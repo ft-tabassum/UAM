@@ -99,7 +99,7 @@ for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X, y), 1):
 
     # Store probabilities and labels
     all_probabilities.append(y_proba)
-    all_true_labels.append(y_test.values)
+    all_true_labels.append(y_test)
     all_pred_labels.append(y_pred)
 
     # Compute metrics
@@ -191,4 +191,4 @@ with open('average_metrics.txt', 'w') as f:
     f.write(f"F1-score: {np.mean(f1s):.4f}\n")
     f.write(f"ROC AUC (macro): {np.nanmean(roc_aucs):.4f}\n")
 
-logger.info("Average metrics saved to 'average_metrics.txt'")
+#logger.info("Average metrics saved to 'average_metrics.txt'")

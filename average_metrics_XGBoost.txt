@@ -1,6 +1,6 @@
 Average Results Over 10 Folds for XGBoost:
-Accuracy: 0.8322
-Precision: 0.8253
-Recall: 0.8322
-F1-score: 0.8263
-ROC AUC (macro): 0.9250
+Accuracy: 0.8385
+Precision: 0.8265
+Recall: 0.8385
+F1-score: 0.8305
+ROC AUC (macro): 0.9345

@@ -19,11 +19,11 @@ data = data.drop(columns=cols_to_drop, errors='ignore')
 
 # Map tmode to numeric categories
 tmode_mapping = {
-    'Car': 1,
-    'Public Transport': 2,
-    'Car-sharing': 3,
-    'Ride-hailing': 4,
-    'UAM': 5
+    'Car': 0,
+    'Public Transport': 1,
+    'Car-sharing': 2,
+    'Ride-hailing': 3,
+    'UAM': 4
 }
 data['tmode'] = data['tmode'].map(tmode_mapping)
 data['tmode'] = data['tmode'].fillna(0).astype(int)

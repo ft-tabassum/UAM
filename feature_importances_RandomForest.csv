@@ -1,181 +1,181 @@
 feature,importance
-TravelCost_Uam,0.18462190402939396
-TravelCost_Car,0.04702597084958897
-InVehicleTime_RideHailing,0.03813560802887973
-InVehicleTime_PublicTransport,0.03780689883345019
-InVehicleTime_Car,0.02870697341101034
-TravelCost_RideHailing,0.025856644043966
-WaitingTime_PublicTransport,0.025020556227978653
-InVehicleTime_Uam,0.0240878775829487
-TravelCost_PublicTransport,0.023260207994158368
-Availability_Uam,0.017954827647793055
-WaitingTime_RideHailing,0.016113586081824678
-WaitingTime_Uam,0.015434535860762799
-Monthly_Income,0.014989751655191516
-"Mode_withLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",0.013953975756549825
-Availability_RideHailing,0.013307217193640933
-Age,0.011778532274055701
-TravelCost_CarSharing,0.011168924846223444
-Mode_withLicense_Car as driver,0.010267230475671806
-InVehicleTime_CarSharing,0.009421497056682753
-Availability_CarSharing,0.0076140513476834785
-Education_University or university of applied sciences (Master’s or PhD degree),0.0075119294882783575
-WaitingTime_CarSharing,0.006777217318003179
-tripLength,0.005619926748403269
-Gender,0.0054419841723635735
-ConnectedVeh_Strongly agree,0.005274161215339374
-UAM_asMode_Very likely,0.005121695041485774
-Elect_vs_convo_Neutral,0.005076008537429811
-Child_Household_I don't have children,0.00503608535134001
-Share_UAMRide_Strongly agree,0.004994402320009111
-Elect_vs_convo_Strongly agree,0.004806446737158459
-Car_vs_Plane_Neutral,0.004617623225140347
-Adult_household_2,0.004499881635325451
-Flight_Safety_Agree,0.0044395264406794
-Current_Travel_Satisfied,0.004402960384797751
-Car_vs_Plane_Strongly disagree,0.004400602515641819
-ConnectedVeh_Agree,0.004379840849949101
-Car_vs_Plane_Disagree,0.004361593889862134
-ElecVeh_Capacity_Agree,0.004361526159665873
-Safety_AutonomousCar_Neutral,0.004356266967537103
-Car_Sharing_Provider_No,0.0043204455437968105
-familiar_ElectricVeh_Agree,0.004310605903753189
-Share_UAMRide_Agree,0.004270814329095728
-Cost_Airport_Satisfied,0.004232472007042098
-Comfort_AerialVeh_Disagree,0.004226156307288309
-familiar_ElectricVeh_Neutral,0.0042174495752206
-HouseholdCar_1,0.004202700216593601
-Live_Countryside,0.004187860764975602
-Employment_Working full-time,0.004181917087681146
-Safety_Plane_Agree,0.004152095218883345
-Used_DAS_Strongly agree,0.0041462367757856234
-Ride_Hailing_Provider_No,0.0041434114080766025
-UAM_Noise_Neutral,0.004116582239008112
-"Ride_Hailing_Provider_Yes, more than one provider(s)",0.004077589477846606
-HouseholdCar_2,0.004063858223495761
-ElecVeh_Capacity_Disagree,0.004033458246429049
-Safety_Plane_Strongly agree,0.003977134080937128
-Used_DAS_Agree,0.003969497849838445
-UAM_asMode_Very unlikely,0.003962235534932496
-UAM_asMode_Likely,0.0039583172473141425
-Safety_AutonomousCar_Disagree,0.003940486647136242
-Comfort_AerialVeh_Neutral,0.003926079855508342
-Live_Urban area,0.003924019944265088
-Share_UAMRide_Neutral,0.0039206599173553834
-Flight_Safety_Strongly agree,0.003910614816394015
-PT_Subscription_No,0.0038494428830028104
-UAM_asMode_Unlikely,0.0038196062165022937
-ElecVeh_Capacity_Neutral,0.0038193799496386766
-Adult_household_1,0.0037795934131408734
-Current_Travel_Neither satisfied nor dissatisfied,0.0037701072210773344
-ConnectedVeh_Neutral,0.003733978522620758
-Reason_Tourism,0.0036992090891585843
-Comfort_AerialVeh_Agree,0.0036901664721157635
-UAM_Noise_Agree,0.003682316331925426
-Elect_vs_convo_Agree,0.0036784041567676585
-HowOften_airport_Less than 2 times per year,0.003614965103471914
-Safety_AutonomousCar_Agree,0.0036146005657689793
-PT_Subscription_Yes,0.00359188839324555
-UAM_asMode_Neutral,0.003542725544848148
-"Access_PrivateCar_Yes, I own a car or I have leased a car",0.0035335737973140094
-Cost_Airport_Neither satisfied nor dissatisfied,0.0035265840301061434
-PT_Subscription_Airport_0,0.003496928030074646
-Cost_Airport_Dissatisfied,0.0034836244941774076
-HowOften_airport_6 times per year,0.0033454989132478963
-Reason_Business trip,0.0031970972118719244
-Education_High school graduate,0.0031910988435750838
-Current_Travel_Dissatisfied,0.003157190709060023
-Used_DAS_Disagree,0.0031569006638983697
-HowOften_airport_2 times per year,0.0030744792618520476
-Elect_vs_convo_Disagree,0.003012331602977898
-"Car_Sharing_Provider_Yes, one provider",0.002990920197226306
-HowOften_airport_4 times per year,0.0029709614036901306
-Safety_Plane_Neutral,0.00290967906904824
-Comfort_AerialVeh_Strongly disagree,0.0028902528700351926
-Reason_Visiting family or friends,0.002880407255587534
-Flight_Safety_Neutral,0.0028320220894891028
-ElecVeh_Capacity_Strongly agree,0.0028271063021746735
-"Car_Sharing_Provider_Yes, more than one provider(s)",0.0027185425404804074
-UAM_Noise_Strongly agree,0.002716988143839047
-Education_University or university of applied sciences (Bachelor’s degree),0.0027159911959801124
-Safety_AutonomousCar_Strongly disagree,0.002713919802134497
-HouseholdCar_0,0.0026389273922613017
-"PT_Subscription_Airport_Yes, at no extra cost",0.002605646007607412
-familiar_ElectricVeh_Disagree,0.0025617690167419258
-"PT_Subscription_Airport_No, I have to pay on top",0.0025602777765923426
-Child_Household_1,0.002505498457220855
-"Ride_Hailing_Provider_Yes, one provider",0.002476410236998295
-Mode_withLicense_Car as passenger,0.002475609985533385
-Adult_household_3,0.002469267852164858
-Employment_Working part-time,0.0024267014832697895
-"Mode_withLicense_Car-sharing (e.g. ShareNow, SIXT Share, Miles)",0.0023806213283551142
-CompanyCar_0,0.0023459148252097653
-"Access_PrivateCar_Yes, but I do not own a car (e.g. I have a company car or access to a shared family car)",0.002337518108912656
-Adult_household_4 or more,0.002326527151929206
-familiar_ElectricVeh_Strongly agree,0.0023242018863155406
-Used_DAS_Strongly disagree,0.0022791060253213764
-familiar_ElectricVeh_Strongly disagree,0.002274658308914907
-HouseholdCar_3 or more,0.002265442864419309
-UAM_Noise_Disagree,0.0022515171691330654
-Comfort_AerialVeh_Strongly agree,0.00214618455810998
-"CompanyCar_Yes, I have a company car that I can also use privately",0.0021327027189026633
-UAM_Noise_Strongly disagree,0.002103894431532729
-Access_PrivateCar_No,0.002044026389597273
-Physical_Disabilities_No,0.002018324608085558
-Cost_Airport_Very satisfied,0.0019685605753767396
-Share_UAMRide_Strongly disagree,0.001963751448713336
-Cost_Airport_Very dissatisfied,0.0019551665561097545
-Child_Household_2,0.0019273586057008095
-ConnectedVeh_Disagree,0.0019077893321436195
-Child_Household_I prefer not to answer,0.0018600604571232238
-ElecVeh_Capacity_Strongly disagree,0.0018492406104551411
-Physical_Disabilities_Yes,0.0016709614764639923
-Current_Travel_Very dissatisfied,0.0016401531309492591
-Car_vs_Plane_Strongly agree,0.0016237062361103185
-Employment_Retired,0.0016142738939100988
-Used_DAS_Neutral,0.0016136360591017466
-Car_vs_Plane_Agree,0.0014247927234381482
-Share_UAMRide_Disagree,0.0013789191396987983
-HowOften_airport_1 time per month,0.0012767479984877666
-CompanyCar_No,0.0012762684738822508
-Elect_vs_convo_Strongly disagree,0.0012751578019577303
-Current_Travel_Very satisfied,0.0012672698712959292
-Safety_AutonomousCar_Strongly agree,0.001254493391213288
-"Employment_Pupil, student or apprentice/intern",0.0012519879628819146
-Flight_Safety_Disagree,0.0012443589184767334
-Safety_Plane_Disagree,0.0011904828100980892
-Child_Household_3,0.001177616829036525
-HowOften_airport_Once per week or more often,0.0011416803857747378
-HowOften_airport_2 times per month,0.001046054399775433
-Driving_License_Yes,0.0010249014563083014
-Access_PrivateCar_0,0.0010012050818943375
-Mode_withLicense_0,0.00098980916291976
-Car_Sharing_Provider_0,0.0009888473575120956
-Driving_License_No,0.0009091499859037449
-ConnectedVeh_Strongly disagree,0.0009062408492447549
-Mode_with_NoLicense_0,0.0008372305178088069
-"PT_Subscription_Airport_No, but my employer covers the extra cost",0.000718279393242956
-"Mode_withLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.0007079210562223222
-Adult_household_I prefer not to answer,0.0006870188347212794
-Education_Other,0.0006718421627472276
-Safety_Plane_Strongly disagree,0.000554242987161953
-Employment_Housewife or househusband,0.0005542416819629855
-"Mode_with_NoLicense_Public Transport (e.g. S-Bahn, Bus, Regional train)",0.0005510729823546364
-"Mode_with_NoLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",0.0005178900264232386
-Employment_Other,0.0004519450832321352
-Physical_Disabilities_I prefer not to answer,0.0003282886939482301
-Flight_Safety_Strongly disagree,0.00032756897283375803
-Mode_withLicense_Other,0.0003250343328074239
-Live_I prefer not to answer,0.00031966377031425675
-Employment_I prefer not to answer,0.0002550520401036761
-Reason_Other,0.00024599133212275235
-Mode_with_NoLicense_Car as passenger,0.00017580551605027303
-"CompanyCar_Yes, I have a company car, but I can't use it privately",0.0001734320305605528
-Education_I prefer not to answer,0.0001454573909128053
-"Mode_with_NoLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.00014526630205027305
-Reason_Medical travel,4.9002584769646486e-05
-Employment_Unemployed,4.7389588789569444e-05
-Education_Not finished school,3.1339448127901485e-05
+TravelCost_Uam,0.200566847873111
+TravelCost_Car,0.045768863562276316
+InVehicleTime_RideHailing,0.037200255687844616
+InVehicleTime_PublicTransport,0.035260897883157796
+InVehicleTime_Car,0.027964092092459626
+TravelCost_RideHailing,0.02507138060668449
+InVehicleTime_Uam,0.024304967076843546
+TravelCost_PublicTransport,0.021548515740339887
+WaitingTime_PublicTransport,0.0214695316192078
+Availability_Uam,0.01633103592156161
+WaitingTime_RideHailing,0.015091319329485065
+"Mode_withLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",0.015079606366048545
+Monthly_Income,0.014905919612904916
+WaitingTime_Uam,0.014086157543168784
+Availability_RideHailing,0.013052786635788335
+Age,0.012196078776858011
+Mode_withLicense_Car as driver,0.010728314911534916
+TravelCost_CarSharing,0.0098142961924572
+InVehicleTime_CarSharing,0.009144321305768987
+Education_University or university of applied sciences (Master’s or PhD degree),0.0079329980472248
+Availability_CarSharing,0.006949222260236911
+WaitingTime_CarSharing,0.006775560173669576
+tripLength,0.005761039877159014
+Gender,0.005649204107059982
+Elect_vs_convo_Strongly agree,0.005080212762833316
+Elect_vs_convo_Neutral,0.00503442035972981
+UAM_asMode_Very likely,0.004879327081980385
+Car_vs_Plane_Neutral,0.004795901728314388
+Child_Household_I don't have children,0.00474181914831238
+Car_vs_Plane_Disagree,0.004734415599324142
+Share_UAMRide_Strongly agree,0.004721742532300935
+ConnectedVeh_Strongly agree,0.004679526380106595
+ElecVeh_Capacity_Agree,0.004509475144594506
+Car_vs_Plane_Strongly disagree,0.004415993369410883
+Used_DAS_Strongly agree,0.0043563678600313255
+UAM_Noise_Neutral,0.004348523811090973
+Safety_Plane_Agree,0.004320527796246623
+Safety_AutonomousCar_Neutral,0.004289560771989961
+Current_Travel_Satisfied,0.00425260454178888
+UAM_asMode_Very unlikely,0.004230759191110505
+Safety_AutonomousCar_Disagree,0.004229108792570713
+ElecVeh_Capacity_Disagree,0.004196057365197292
+Cost_Airport_Satisfied,0.004193246596714294
+UAM_asMode_Likely,0.004157142794367223
+Comfort_AerialVeh_Disagree,0.004157044483439903
+familiar_ElectricVeh_Neutral,0.004130685954019912
+HouseholdCar_1,0.004119509604858474
+HouseholdCar_2,0.004112456878841005
+ConnectedVeh_Agree,0.004097146550824301
+UAM_asMode_Unlikely,0.004077710995320689
+Used_DAS_Agree,0.004064213175938514
+familiar_ElectricVeh_Agree,0.004058931953513933
+Flight_Safety_Agree,0.004011119232463172
+Adult_household_2,0.003968140672473966
+Reason_Tourism,0.003961299641540385
+"Ride_Hailing_Provider_Yes, more than one provider(s)",0.003940172145827313
+Comfort_AerialVeh_Neutral,0.0039269396820880015
+PT_Subscription_Airport_0,0.003914507787122811
+Live_Urban area,0.0039027012775300443
+Live_Countryside,0.0039017824887051015
+Elect_vs_convo_Agree,0.0038509606561305957
+ConnectedVeh_Neutral,0.0038384174684791108
+Safety_Plane_Strongly agree,0.0038220658425445683
+Ride_Hailing_Provider_No,0.003805869394881816
+Comfort_AerialVeh_Agree,0.003804819969276272
+Safety_AutonomousCar_Agree,0.0038012566782928982
+Flight_Safety_Strongly agree,0.0037798077756864695
+ElecVeh_Capacity_Neutral,0.0037706713274383206
+Share_UAMRide_Agree,0.003726045149577253
+Car_Sharing_Provider_No,0.003715494844981916
+Share_UAMRide_Neutral,0.003696863300708072
+Employment_Working full-time,0.003669644084297366
+Cost_Airport_Neither satisfied nor dissatisfied,0.003645219292289723
+Cost_Airport_Dissatisfied,0.003610841650676902
+UAM_asMode_Neutral,0.003578229050869258
+Current_Travel_Neither satisfied nor dissatisfied,0.003574961606264357
+Adult_household_1,0.0035643976327421898
+PT_Subscription_No,0.003452493410560787
+"Access_PrivateCar_Yes, I own a car or I have leased a car",0.003451427320036906
+Education_High school graduate,0.003392251209991656
+HowOften_airport_Less than 2 times per year,0.003376801873287522
+PT_Subscription_Yes,0.003321996758293193
+UAM_Noise_Agree,0.003318617158351647
+HowOften_airport_6 times per year,0.003278057286849166
+"Car_Sharing_Provider_Yes, one provider",0.003253520678842536
+Reason_Business trip,0.0032377145880956686
+HowOften_airport_2 times per year,0.003121972799975627
+Current_Travel_Dissatisfied,0.003010673492780146
+Elect_vs_convo_Disagree,0.002997054926115739
+HowOften_airport_4 times per year,0.0029656667876913527
+Used_DAS_Disagree,0.0029639976626859364
+Reason_Visiting family or friends,0.0029374727616925133
+Comfort_AerialVeh_Strongly disagree,0.0028609032470037292
+ElecVeh_Capacity_Strongly agree,0.002836174862064715
+Safety_AutonomousCar_Strongly disagree,0.0028336708819200187
+UAM_Noise_Strongly agree,0.002802635742476592
+Education_University or university of applied sciences (Bachelor’s degree),0.00276268931590902
+familiar_ElectricVeh_Disagree,0.002745114253159206
+Flight_Safety_Neutral,0.0027084475772241883
+"PT_Subscription_Airport_Yes, at no extra cost",0.0026692341409775945
+Child_Household_1,0.0026377807570745104
+HouseholdCar_0,0.0025902550244744043
+"Car_Sharing_Provider_Yes, more than one provider(s)",0.0025805252649934913
+"PT_Subscription_Airport_No, I have to pay on top",0.0025552762733559264
+CompanyCar_0,0.0025222480132985926
+Safety_Plane_Neutral,0.002446815410797152
+Mode_withLicense_Car as passenger,0.002430889741341384
+Employment_Working part-time,0.0023607300407027187
+UAM_Noise_Disagree,0.0023339024199804147
+UAM_Noise_Strongly disagree,0.0023307545131110597
+familiar_ElectricVeh_Strongly agree,0.002329165059200099
+HouseholdCar_3 or more,0.0023206844570172976
+"Mode_withLicense_Car-sharing (e.g. ShareNow, SIXT Share, Miles)",0.002287106284463929
+Used_DAS_Strongly disagree,0.0022827069183249536
+Access_PrivateCar_No,0.0022746406418298797
+"Ride_Hailing_Provider_Yes, one provider",0.002274396182575143
+Adult_household_3,0.002205072248769356
+"CompanyCar_Yes, I have a company car that I can also use privately",0.0021468379800055255
+"Access_PrivateCar_Yes, but I do not own a car (e.g. I have a company car or access to a shared family car)",0.002137687378667542
+ConnectedVeh_Disagree,0.0021365591577377483
+Child_Household_2,0.0021098299011830923
+Adult_household_4 or more,0.0020584738593950047
+ElecVeh_Capacity_Strongly disagree,0.002054140050054684
+Used_DAS_Neutral,0.002039278966995682
+familiar_ElectricVeh_Strongly disagree,0.0020236515883774826
+Comfort_AerialVeh_Strongly agree,0.001980855899177841
+Employment_Retired,0.001972883026442657
+Share_UAMRide_Strongly disagree,0.0019417739415986397
+Cost_Airport_Very dissatisfied,0.0019315608593649392
+Cost_Airport_Very satisfied,0.0018964672183214369
+Child_Household_I prefer not to answer,0.0018910667572918489
+Physical_Disabilities_No,0.0018415974919546371
+Car_vs_Plane_Strongly agree,0.0017434359140798348
+Current_Travel_Very dissatisfied,0.0017155530882508637
+Physical_Disabilities_Yes,0.0016535186472152598
+Safety_AutonomousCar_Strongly agree,0.0016185232805712366
+HowOften_airport_1 time per month,0.0015439072725606288
+Share_UAMRide_Disagree,0.0014996285696466413
+Current_Travel_Very satisfied,0.0014798412589911991
+HowOften_airport_Once per week or more often,0.0014269431211505778
+Car_vs_Plane_Agree,0.0013767426132773632
+Safety_Plane_Disagree,0.001319405338133231
+"Employment_Pupil, student or apprentice/intern",0.0013004190881140008
+CompanyCar_No,0.001274153854309872
+Elect_vs_convo_Strongly disagree,0.0012662136264046107
+Flight_Safety_Disagree,0.00125752368210177
+Child_Household_3,0.001240972520727622
+HowOften_airport_2 times per month,0.001169571533753013
+Car_Sharing_Provider_0,0.0010312900159947806
+Driving_License_Yes,0.0009281466219587406
+Access_PrivateCar_0,0.0009099071477420796
+Driving_License_No,0.0008950469918406626
+ConnectedVeh_Strongly disagree,0.0008788078696701449
+Mode_withLicense_0,0.0008726823083037467
+"Mode_with_NoLicense_Public Transport (e.g. S-Bahn, Bus, Regional train)",0.0008343977071214889
+"Mode_withLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.0008314931374325159
+"PT_Subscription_Airport_No, but my employer covers the extra cost",0.0008081350929289082
+Mode_with_NoLicense_0,0.0008076436728578944
+Adult_household_I prefer not to answer,0.0006712377677781582
+Education_Other,0.0006554646544336915
+"Mode_with_NoLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",0.0006431031486086401
+Safety_Plane_Strongly disagree,0.00061814944655505
+Employment_Housewife or househusband,0.0005548919388039113
+Employment_Other,0.0004737885102491164
+Mode_withLicense_Other,0.00042668672060211407
+Flight_Safety_Strongly disagree,0.00040247606639132416
+Live_I prefer not to answer,0.00037892947137831417
+Physical_Disabilities_I prefer not to answer,0.0003746479444225202
+Employment_I prefer not to answer,0.00030219229853563784
+"CompanyCar_Yes, I have a company car, but I can't use it privately",0.00027187828488274053
+Mode_with_NoLicense_Car as passenger,0.0002663704384305122
+Reason_Other,0.00022042522008357263
+Education_I prefer not to answer,0.00018081768825003948
+"Mode_with_NoLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.00011197305574835279
+Employment_Unemployed,6.048433176387354e-05
+Education_Not finished school,4.347830576647823e-05
+Reason_Medical travel,1.5023587801287475e-05
 WaitingTime_Car,0.0
 Availability_Car,0.0
 Availability_PublicTransport,0.0

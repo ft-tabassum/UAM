@@ -1,6 +1,6 @@
 Average Results Over 10 Folds for RandomForest:
-Accuracy: 0.8484
-Precision: 0.8198
-Recall: 0.8484
-F1-score: 0.8300
-ROC AUC (macro): 0.9196
+Accuracy: 0.8368
+Precision: 0.8076
+Recall: 0.8368
+F1-score: 0.8174
+ROC AUC (macro): 0.9249

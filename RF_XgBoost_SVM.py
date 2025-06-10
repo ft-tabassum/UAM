@@ -4,13 +4,13 @@ import logging
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, roc_auc_score
-)
-from sklearn.preprocessing import label_binarize, LabelEncoder
+    confusion_matrix, roc_auc_score)
+from sklearn.preprocessing import label_binarize
 
 # Setup logging (optional)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,15 +22,6 @@ data = pd.read_csv('data_normalized.csv')  # Your normalized CSV path
 # Define features and target
 y = data['tmode']
 X = data.drop(columns=['tmode'])
-
-# Label encode for tmode (0-based labels)
-le = LabelEncoder()
-y_encoded = le.fit_transform(y)  # Maps e.g. [1,2,3,4,5] -> [0,1,2,3,4]
-
-# Check for categorical columns (optional)
-categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
-if len(categorical_cols) > 0:
-    logger.warning(f"Categorical columns found but this code assumes numeric only: {categorical_cols}")
 
 # Pipeline for numeric data: impute missing values (if any)
 numeric_transformer = Pipeline([
@@ -61,12 +52,22 @@ models = [
         'name': 'XGBoost',
         'estimator': XGBClassifier( eval_metric='logloss', random_state=42),
         'param_grid': {
-            'classifier__n_estimators': [100, 200],
+            'classifier__n_estimators': [50, 100],
             'classifier__max_depth': [3, 6, 10],
             'classifier__learning_rate': [0.01, 0.1, 0.2],
             'classifier__subsample': [0.7, 1],
             'classifier__colsample_bytree': [0.7, 1],
             'classifier__gamma': [0, 1],
+        }
+    },
+    {
+        'name': 'SVM',
+        'estimator': SVC(probability=True, random_state=42),  # SVC with probability=True to allow roc_auc_score
+        'param_grid': {
+            'classifier__C': [0.1, 1, 10],
+            'classifier__kernel': ['linear', 'rbf'],
+            'classifier__gamma': ['scale', 'auto'],
+            'classifier__degree': [3, 5]
         }
     }
 ]
@@ -81,37 +82,29 @@ for model_info in models:
 
     param_grid = model_info['param_grid']
 
-    # Use label-encoded y only for XGBoost, original y otherwise
-    if model_info['name'] == 'XGBoost':
-        y_used = y_encoded
-        classes_used = np.arange(len(le.classes_))  # zero-based classes for XGB
-    else:
-        y_used = y
-        classes_used = classes
-
     # Metrics storage per model
     accuracies = []
     precisions = []
     recalls = []
     f1s = []
-    conf_matrix_sum = np.zeros((len(classes_used), len(classes_used)), dtype=int)
+    conf_matrix_sum = np.zeros((len(classes), len(classes)), dtype=int)
     roc_aucs = []
     all_probabilities = []
     all_true_labels = []
     all_pred_labels = []
     importances_list = []
 
-    for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X, y_used), 1):
+    for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X, y), 1):
         logger.info(f"{model_info['name']} - Fold {fold} processing...")
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-        y_train, y_test = y_used[train_idx], y_used[test_idx]
-        y_test_bin = label_binarize(y_test, classes=classes_used)
+        y_train, y_test = y[train_idx], y[test_idx]
+        y_test_bin = label_binarize(y_test, classes=classes)
 
         # Inner CV for hyperparameter tuning
         grid_search = GridSearchCV(
             estimator=pipeline,
             param_grid=param_grid,
-            cv=3,
+            cv=5,
             scoring='accuracy',
             n_jobs=-1
         )
@@ -121,8 +114,14 @@ for model_info in models:
         logger.info(f" Best params: {grid_search.best_params_}")
 
         # Extract feature importances
-        importances = best_model.named_steps['classifier'].feature_importances_
-        importances_list.append(importances)
+        #importances = best_model.named_steps['classifier'].feature_importances_
+        #importances_list.append(importances)
+        try:
+            importances = best_model.named_steps['classifier'].feature_importances_
+            importances_list.append(importances)
+        except AttributeError:
+            # This model doesn't have feature_importances_ (e.g., SVC), so just log it
+            logger.warning(f"Model {model_info['name']} does not support feature importances")
 
         # Predict on test fold
         y_pred = best_model.predict(X_test)
@@ -138,7 +137,7 @@ for model_info in models:
         prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
         rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
         f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-        cm = confusion_matrix(y_test, y_pred, labels=classes_used)
+        cm = confusion_matrix(y_test, y_pred, labels=classes)
 
         try:
             roc_auc = roc_auc_score(y_test_bin, y_proba, average='macro', multi_class='ovr')
@@ -193,7 +192,7 @@ for model_info in models:
     all_pred_labels_np = np.concatenate(all_pred_labels)
 
     # Create a DataFrame with predicted probabilities + true/predicted labels
-    prob_df = pd.DataFrame(all_probabilities_np, columns=[f'prob_class_{c}' for c in classes_used])
+    prob_df = pd.DataFrame(all_probabilities_np, columns=[f'prob_class_{c}' for c in classes])
     prob_df['true_label'] = all_true_labels_np
     prob_df['pred_label'] = all_pred_labels_np
 
@@ -204,8 +203,9 @@ for model_info in models:
     prob_df.to_csv(f'predicted_probabilities_{model_info["name"]}.csv', index=False)
     logger.info(f"{model_info['name']} - Predicted probabilities saved to 'predicted_probabilities_{model_info['name']}.csv'")
 
+
     # Save aggregated confusion matrix to CSV
-    conf_matrix_df = pd.DataFrame(conf_matrix_sum, index=classes_used, columns=classes_used)
+    conf_matrix_df = pd.DataFrame(conf_matrix_sum, index=classes, columns=classes)
     conf_matrix_df.to_csv(f'confusion_matrix_{model_info["name"]}.csv')
     logger.info(f"{model_info['name']} - Aggregated confusion matrix saved to 'confusion_matrix_{model_info['name']}.csv'")
 
