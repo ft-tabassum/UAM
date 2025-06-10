@@ -1,0 +1,6 @@
+Average Results Over 10 Folds for LightGBM:
+Accuracy: 0.8657
+Precision: 0.8596
+Recall: 0.8657
+F1-score: 0.8611
+ROC AUC (macro): 0.9449

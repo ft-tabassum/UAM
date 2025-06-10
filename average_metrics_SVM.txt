@@ -1,0 +1,6 @@
+Average Results Over 10 Folds for SVM:
+Accuracy: 0.6441
+Precision: 0.4149
+Recall: 0.6441
+F1-score: 0.5047
+ROC AUC (macro): 0.8512
