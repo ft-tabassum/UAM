@@ -1,0 +1,6 @@
+Average Results Over 10 Folds for Neural Network (MLP):
+Accuracy: 0.6643
+Precision: 0.5392
+Recall: 0.6643
+F1-score: 0.5687
+ROC AUC (macro): 0.6178
