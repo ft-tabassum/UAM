@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
@@ -27,16 +27,16 @@ n_classes = len(classes)
 # Create base pipeline
 base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
-    ('classifier', RandomForestClassifier(random_state=42))
+    ('classifier', XGBClassifier(random_state=42))
 ])
 
 # Hyperparameter grid - focused on key parameters
 param_grid = {
-    'classifier__n_estimators': [70, 80, 90],  # Moderate number of trees
-    'classifier__max_depth': [8, 10, 12],  # Moderate tree depth
-    'classifier__min_samples_split': [5, 8, 10],  # Increased minimum samples required to split
-    'classifier__min_samples_leaf': [2, 3, 4],  # Increased minimum samples at leaf node
-    'classifier__max_features': ['sqrt']  # Using sqrt for feature selection
+    'classifier__n_estimators': [90, 100, 110],  # Increased number of trees
+    'classifier__max_depth': [3, 4, 5],  # XGBoost typically needs smaller depth
+    'classifier__learning_rate': [0.001, 0.005, 0.01],  # Smaller learning rates
+    'classifier__subsample': [0.8, 0.9, 1.0],  # Subsample ratio
+    'classifier__colsample_bytree': [0.8, 0.9, 1.0]  # Column sampling
 }
 
 # Split data into train+val and test
@@ -52,7 +52,7 @@ fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': [], 'train_accuracies': [], 'class_accuracies': []  # Added class_accuracies
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': []
 }
 
 # Initialize a list to store the probabilities
@@ -72,7 +72,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='accuracy',  # Using accuracy
+        scoring='accuracy',
         n_jobs=-1
     )
     
@@ -142,9 +142,9 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('all_folds_probabilities_RandomForest.csv', index=False)
+all_fold_probs_df.to_csv('all_folds_probabilities_XGBoost.csv', index=False)
 
-logger.info("All fold probabilities have been saved to 'all_folds_probabilities_RandomForest.csv'.")
+logger.info("All fold probabilities have been saved to 'all_folds_probabilities_XGBoost.csv'.")
 
 # Analyze parameter stability
 param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
@@ -181,7 +181,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('test_set_probabilities_RandomForest.csv', index=False)
+test_probs_df.to_csv('test_set_probabilities_XGBoost.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -199,8 +199,8 @@ except ValueError as e:
     test_roc_auc = np.nan
 
 # Save results
-with open('Result_RandomForest.txt', 'w') as f:
-    f.write("Results for RandomForest with 10-fold Cross-Validation:\n\n")
+with open('Result_XGBoost.txt', 'w') as f:
+    f.write("Results for XGBoost with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
     f.write("Parameter Stability Analysis:\n")
@@ -262,6 +262,6 @@ with open('Result_RandomForest.txt', 'w') as f:
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('CM_confusion_matrix_RandomForest.csv')
+conf_matrix_df.to_csv('CM_confusion_matrix_XGBoost.csv')
 
-logger.info("Cross-validation completed. Results saved to Result_RandomForest.txt")
+logger.info("Cross-validation completed. Results saved to Result_XGBoost.txt")
