@@ -33,7 +33,7 @@ classes = np.unique(y)
 n_classes = len(classes)
 
 # Stratified 10-fold outer CV
-outer_cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
 # Define models and their hyperparameter grids
 models = [

@@ -1,0 +1,108 @@
+Results for RandomForest with 10-fold Cross-Validation:
+
+Cross-validation Results (10 folds):
+Mean Accuracy: 0.8386 ± 0.0174
+Mean Precision: 0.8169 ± 0.0253
+Mean Recall: 0.8386 ± 0.0174
+Mean F1-score: 0.8219 ± 0.0231
+Mean ROC AUC: 0.9122 ± 0.0318
+
+Best Parameters per Fold:
+Fold 1: {'classifier__max_depth': 15, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 5, 'classifier__n_estimators': 70}
+Fold 2: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 65}
+Fold 3: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 72}
+Fold 4: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 65}
+Fold 5: {'classifier__max_depth': 15, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 70}
+Fold 6: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 5, 'classifier__n_estimators': 65}
+Fold 7: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 65}
+Fold 8: {'classifier__max_depth': 15, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 65}
+Fold 9: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 75}
+Fold 10: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 75}
+
+Most Common Best Parameters: {'classifier__max_depth': 20, 'classifier__max_features': 'sqrt', 'classifier__min_samples_leaf': 1, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 65}
+
+Per-fold Confusion Matrices:
+
+Fold 1:
+[[ 7  1  0  0  9]
+ [ 3 22  0  0  4]
+ [ 0  1  0  0  1]
+ [ 1  0  0  0  1]
+ [ 1  1  0  0 87]]
+
+Fold 2:
+[[ 9  2  0  0  6]
+ [ 2 22  0  0  5]
+ [ 0  1  0  0  1]
+ [ 1  1  0  0  0]
+ [ 0  4  0  0 85]]
+
+Fold 3:
+[[ 9  4  0  0  4]
+ [ 3 24  0  0  2]
+ [ 0  2  0  0  0]
+ [ 1  0  0  0  0]
+ [ 0  4  0  0 85]]
+
+Fold 4:
+[[12  1  0  0  4]
+ [ 4 20  0  0  5]
+ [ 0  1  0  0  1]
+ [ 0  0  0  1  0]
+ [ 1  1  0  0 87]]
+
+Fold 5:
+[[ 9  2  0  0  6]
+ [ 4 21  0  0  4]
+ [ 0  2  0  0  0]
+ [ 1  0  0  0  0]
+ [ 1  4  0  0 84]]
+
+Fold 6:
+[[ 7  6  0  0  4]
+ [ 2 22  0  0  4]
+ [ 0  2  0  0  1]
+ [ 0  0  0  0  1]
+ [ 0  2  0  0 87]]
+
+Fold 7:
+[[ 5  6  0  0  6]
+ [ 1 20  0  0  7]
+ [ 0  1  1  0  1]
+ [ 0  1  0  0  0]
+ [ 0  1  0  0 88]]
+
+Fold 8:
+[[ 6  6  0  0  5]
+ [ 2 24  0  0  2]
+ [ 1  2  0  0  0]
+ [ 0  0  0  0  1]
+ [ 3  2  0  0 84]]
+
+Fold 9:
+[[12  2  1  0  2]
+ [ 2 22  0  0  4]
+ [ 0  0  0  0  2]
+ [ 0  1  0  1  0]
+ [ 1  3  1  0 84]]
+
+Fold 10:
+[[ 6  6  0  0  5]
+ [ 1 21  0  0  6]
+ [ 0  1  0  0  1]
+ [ 0  1  0  0  1]
+ [ 2  2  0  0 85]]
+
+Test Set Results:
+Accuracy: 0.8671
+Precision: 0.8418
+Recall: 0.8671
+F1-score: 0.8515
+ROC AUC: 0.9230
+
+Test Set Confusion Matrix:
+[[ 22  11   1   0   8]
+ [  2  63   0   0   6]
+ [  1   5   0   0   0]
+ [  2   0   0   0   2]
+ [  4   4   0   0 215]]
