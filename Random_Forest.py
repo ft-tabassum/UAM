@@ -23,8 +23,8 @@ X = data.drop(columns=['tmode'])
 classes = np.unique(y)
 n_classes = len(classes)
 
-# Create pipeline
-pipeline = Pipeline([
+# Create base pipeline
+base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
     ('classifier', RandomForestClassifier(random_state=42))
 ])
@@ -43,55 +43,73 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# Setup cross-validation
+# First, use GridSearchCV to find best hyperparameters
+logger.info("Finding best hyperparameters using GridSearchCV...")
+grid_search = GridSearchCV(
+    estimator=base_pipeline,
+    param_grid=param_grid,
+    cv=10,  # Use 10-fold CV for hyperparameter tuning
+    scoring='accuracy',
+    n_jobs=-1
+)
+
+# Fit GridSearchCV on training+validation data
+grid_search.fit(X_train_val, y_train_val)
+
+# Get best parameters
+best_params = grid_search.best_params_
+logger.info(f"Best parameters found: {best_params}")
+
+# Create new pipeline with best parameters
+pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+    ('classifier', RandomForestClassifier(**{k.split('__')[1]: v for k, v in best_params.items()}, random_state=42))
+])
+
+# Setup cross-validation for model evaluation
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
 # Initialize storage for metrics
 fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [],
-    'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': []
+    'probabilities': [], 'true_labels': [], 'pred_labels': []
 }
+# Initialize a list to store the probabilities
+all_fold_probs = []
 
-# Perform cross-validation with GridSearchCV
+# Perform cross-validation with best parameters
+logger.info("Performing 10-fold cross-validation with best parameters...")
 for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
     logger.info(f"Processing Fold {fold}/10...")
-
+    
     # Split data for this fold
     X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
     y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
-
-    # Use GridSearchCV for hyperparameter tuning
-    grid_search = GridSearchCV(
-        estimator=pipeline,
-        param_grid=param_grid,
-        cv=3,  # Internal CV for hyperparameter tuning
-        scoring='accuracy',
-        n_jobs=-1
-    )
-
-    # Fit GridSearchCV on training data
-    grid_search.fit(X_train, y_train)
-
-    # Get best model
-    best_model = grid_search.best_estimator_
-
+    
+    # Train model with best parameters
+    pipeline.fit(X_train, y_train)
+    
     # Make predictions on validation set
-    val_pred = best_model.predict(X_val)
-    val_proba = best_model.predict_proba(X_val)
+    val_pred = pipeline.predict(X_val)
+    val_proba = pipeline.predict_proba(X_val)
+
+    # Append the probabilities to the list (add fold number as a column)
+    fold_probs_df = pd.DataFrame(val_proba, columns=classes)
+    fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
+    all_fold_probs.append(fold_probs_df)
 
     # Save fold probabilities to a CSV file after each fold
-    fold_probs_df = pd.DataFrame(val_proba, columns=classes)
-    fold_probs_df.to_csv(f'fold_{fold}_probabilities_RandomForest.csv', index=False)
-
+    #fold_probs_df = pd.DataFrame(val_proba, columns=classes)
+    #fold_probs_df.to_csv(f'fold_{fold}_probabilities_RandomForest.csv', index=False)
+    
     # Calculate metrics
     val_acc = accuracy_score(y_val, val_pred)
     val_prec = precision_score(y_val, val_pred, average='weighted', zero_division=0)
     val_rec = recall_score(y_val, val_pred, average='weighted', zero_division=0)
     val_f1 = f1_score(y_val, val_pred, average='weighted', zero_division=0)
     val_cm = confusion_matrix(y_val, val_pred, labels=classes)
-
+    
     # Calculate ROC AUC
     y_val_bin = label_binarize(y_val, classes=classes)
     try:
@@ -99,7 +117,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     except ValueError as e:
         logger.warning(f"ROC AUC calculation failed for fold {fold}: {str(e)}")
         val_roc_auc = np.nan
-
+    
     # Store metrics
     fold_metrics['accuracies'].append(val_acc)
     fold_metrics['precisions'].append(val_prec)
@@ -110,17 +128,19 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     fold_metrics['probabilities'].append(val_proba)
     fold_metrics['true_labels'].append(y_val)
     fold_metrics['pred_labels'].append(val_pred)
-    fold_metrics['best_params'].append(grid_search.best_params_)
-
+    
     logger.info(f"Fold {fold} - Validation Accuracy: {val_acc:.4f}")
-    logger.info(f"Fold {fold} - Best Parameters: {grid_search.best_params_}")
 
-# Find most common best parameters across folds
-best_params = max(fold_metrics['best_params'], key=fold_metrics['best_params'].count)
+# After all folds are processed, concatenate all fold probabilities into a single DataFrame
+all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
-# Train final model on all training+validation data using best parameters
-final_model = pipeline.set_params(**best_params)
-final_model.fit(X_train_val, y_train_val)
+# Save the aggregated probabilities to a single CSV file
+all_fold_probs_df.to_csv('all_folds_probabilities_RandomForest.csv', index=False)
+
+logger.info("All fold probabilities have been saved to 'all_folds_probabilities_RandomForest.csv'.")
+
+# Train final model on all training+validation data with best parameters
+final_model = pipeline.fit(X_train_val, y_train_val)
 
 # Evaluate on test set
 test_pred = final_model.predict(X_test)
@@ -129,7 +149,6 @@ test_proba = final_model.predict_proba(X_test)
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
 test_probs_df.to_csv('test_set_probabilities_RandomForest.csv', index=False)
-
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -149,22 +168,18 @@ except ValueError as e:
 # Save results
 with open('Result_RandomForest.txt', 'w') as f:
     f.write("Results for RandomForest with 10-fold Cross-Validation:\n\n")
+    f.write(f"Best Parameters Found: {best_params}\n\n")
     f.write("Cross-validation Results (10 folds):\n")
     f.write(f"Mean Accuracy: {np.mean(fold_metrics['accuracies']):.4f} ± {np.std(fold_metrics['accuracies']):.4f}\n")
     f.write(f"Mean Precision: {np.mean(fold_metrics['precisions']):.4f} ± {np.std(fold_metrics['precisions']):.4f}\n")
     f.write(f"Mean Recall: {np.mean(fold_metrics['recalls']):.4f} ± {np.std(fold_metrics['recalls']):.4f}\n")
     f.write(f"Mean F1-score: {np.mean(fold_metrics['f1s']):.4f} ± {np.std(fold_metrics['f1s']):.4f}\n")
     f.write(f"Mean ROC AUC: {np.nanmean(fold_metrics['roc_aucs']):.4f} ± {np.nanstd(fold_metrics['roc_aucs']):.4f}\n\n")
-
-    f.write("Best Parameters per Fold:\n")
-    for i, params in enumerate(fold_metrics['best_params'], 1):
-        f.write(f"Fold {i}: {params}\n")
-    f.write(f"\nMost Common Best Parameters: {best_params}\n\n")
-
+    
     f.write("Per-fold Confusion Matrices:\n")
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
-
+    
     f.write("\nTest Set Results:\n")
     f.write(f"Accuracy: {test_acc:.4f}\n")
     f.write(f"Precision: {test_prec:.4f}\n")
@@ -178,4 +193,4 @@ with open('Result_RandomForest.txt', 'w') as f:
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
 conf_matrix_df.to_csv('CM_confusion_matrix_RandomForest.csv')
 
-logger.info("Cross-validation completed. Results saved to trialResult_RandomForest.txt")
+logger.info("Cross-validation completed. Results saved to Result_RandomForest.txt")
