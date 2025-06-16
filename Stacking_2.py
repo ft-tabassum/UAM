@@ -17,41 +17,39 @@ from datetime import datetime
 import re
 import joblib
 
-
 # Configure logging
 def setup_logger():
     # Create logs directory if it doesn't exist
     if not os.path.exists('logs'):
         os.makedirs('logs')
-
+    
     # Create a logger
     logger = logging.getLogger('stacking_model')
     logger.setLevel(logging.INFO)
-
+    
     # Create handlers
     current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
     file_handler = logging.FileHandler(f'logs/stacking_model_{current_time}.log')
     console_handler = logging.StreamHandler()
-
+    
     # Create formatters and add it to handlers
     log_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(log_format)
     console_handler.setFormatter(log_format)
-
+    
     # Add handlers to the logger
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-
+    
     return logger
-
 
 # Initialize logger
 logger = setup_logger()
 warnings.filterwarnings('ignore')
 
 # Load the data
-data = pd.read_csv('D:\PythonProject\Result\Data_Preprocessing\data_normalized.csv')
-
+logger.info("Loading data...")
+data = pd.read_csv('data_normalized.csv')
 
 # Clean feature names (remove special characters and spaces)
 def clean_feature_names(df):
@@ -65,11 +63,10 @@ def clean_feature_names(df):
         # Remove leading/trailing underscores
         new_name = new_name.strip('_')
         name_mapping[col] = new_name
-
+    
     # Create a new DataFrame with cleaned column names
     df_cleaned = df.rename(columns=name_mapping)
     return df_cleaned, name_mapping
-
 
 # Clean feature names
 data, name_mapping = clean_feature_names(data)
@@ -186,27 +183,26 @@ meta_learners = {
     }
 }
 
-
 # Function to validate data before training
 def validate_data(X, y, model_name):
     logger.info(f"Validating data for {model_name}...")
-
+    
     # Store feature names if available
     feature_names = None
     if hasattr(X, 'columns'):
         feature_names = X.columns.tolist()
         X = np.array(X)
-
+    
     # Check for NaN values
     if np.isnan(X).any():
         logger.warning(f"NaN values found in features for {model_name}")
         X = np.nan_to_num(X, nan=np.nanmean(X))
-
+    
     # Check for infinite values
     if np.isinf(X).any():
         logger.warning(f"Infinite values found in features for {model_name}")
         X = np.nan_to_num(X, nan=np.nanmean(X), posinf=np.nanmax(X), neginf=np.nanmin(X))
-
+    
     # Check for constant features
     constant_features = []
     if feature_names:
@@ -218,27 +214,26 @@ def validate_data(X, y, model_name):
         for i in range(X.shape[1]):
             if len(np.unique(X[:, i])) <= 1:
                 constant_features.append(i)
-
+    
     if constant_features:
         logger.warning(f"Removing {len(constant_features)} constant features")
         X = np.delete(X, constant_features, axis=1)
         if feature_names:
             feature_names = [f for i, f in enumerate(feature_names) if i not in constant_features]
-
+    
     return X, feature_names
-
 
 # Function to perform hyperparameter tuning
 def tune_hyperparameters(X_train, y_train, model, param_grid, model_name):
     logger.info(f"Tuning hyperparameters for {model_name}...")
     start_time = time.time()
-
+    
     # Validate data before tuning
     X_train, feature_names = validate_data(X_train, y_train, model_name)
-
+    
     # For LightGBM, use a smaller number of CV folds to speed up training
     n_splits = 3 if model_name == 'lightgbm' else 5
-
+    
     # Initialize GridSearchCV
     grid_search = GridSearchCV(
         estimator=model,
@@ -248,45 +243,44 @@ def tune_hyperparameters(X_train, y_train, model, param_grid, model_name):
         n_jobs=-1,
         verbose=1
     )
-
+    
     # For LightGBM, convert back to DataFrame with feature names
     if model_name == 'lightgbm' and feature_names is not None:
         X_train = pd.DataFrame(X_train, columns=feature_names)
-
+    
     # Fit GridSearchCV
     grid_search.fit(X_train, y_train)
-
+    
     # Log results
     logger.info(f"Best parameters for {model_name}:")
     logger.info(grid_search.best_params_)
     logger.info(f"Best cross-validation score: {grid_search.best_score_:.4f}")
     logger.info(f"Time taken: {time.time() - start_time:.2f} seconds")
-
+    
     return grid_search.best_estimator_
-
 
 # Function to get base model predictions using stratified cross-validation
 def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_grids, n_folds=10):
-    logger.info("\n" + "=" * 50)
+    logger.info("\n" + "="*50)
     logger.info("Starting Base Model Training")
-    logger.info("=" * 50)
-
+    logger.info("="*50)
+    
     # Initialize arrays to store predictions
     train_meta_features = np.zeros((X_train.shape[0], len(base_models)))
     val_meta_features = np.zeros((X_val.shape[0], len(base_models)))
     test_meta_features = np.zeros((X_test.shape[0], len(base_models)))
-
+    
     # Initialize StratifiedKFold
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
-
+    
     # Train each base model and get predictions
     for i, (name, model) in enumerate(base_models.items()):
         logger.info(f"\nTraining {name}...")
-        logger.info("-" * 30)
-
+        logger.info("-"*30)
+        
         # Tune hyperparameters
         best_model = tune_hyperparameters(X_train, y_train, model, param_grids[name], name)
-
+        
         # Get cross-validated predictions for training set
         fold_scores = []
         for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):
@@ -294,42 +288,41 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
             X_fold_train = X_train.iloc[train_idx]
             y_fold_train = y_train.iloc[train_idx]
             X_fold_val = X_train.iloc[val_idx]
-
+            
             # Train model on this fold
             best_model.fit(X_fold_train, y_fold_train)
-
+            
             # Get predictions for validation set
             train_meta_features[val_idx, i] = best_model.predict_proba(X_fold_val)[:, 1]
-
+            
             # Log fold performance
             fold_pred = best_model.predict(X_fold_val)
             fold_acc = accuracy_score(y_train.iloc[val_idx], fold_pred)
             fold_scores.append(fold_acc)
             logger.info(f"Fold {fold + 1} Accuracy: {fold_acc:.4f}")
-
+        
         # Log average fold performance
         logger.info(f"\nAverage Fold Accuracy: {np.mean(fold_scores):.4f} (+/- {np.std(fold_scores):.4f})")
-
+        
         # Train final model on full training set
         logger.info("\nTraining final model on full dataset...")
         best_model.fit(X_train, y_train)
-
+        
         # Get predictions for validation and test sets
         val_meta_features[:, i] = best_model.predict_proba(X_val)[:, 1]
         test_meta_features[:, i] = best_model.predict_proba(X_test)[:, 1]
-
+        
         # Log model performance using cross-validation
         cv_scores = cross_val_score(best_model, X_train, y_train, cv=n_folds, scoring='accuracy')
         logger.info(f"Final Cross-Validation Performance:")
         logger.info(f"Mean CV Accuracy: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
-        logger.info("-" * 30)
-
-    logger.info("\n" + "=" * 50)
+        logger.info("-"*30)
+    
+    logger.info("\n" + "="*50)
     logger.info("Base Model Training Completed")
-    logger.info("=" * 50 + "\n")
-
+    logger.info("="*50 + "\n")
+    
     return train_meta_features, val_meta_features, test_meta_features
-
 
 # Get base model predictions using cross-validation
 logger.info("Training base models and generating meta-features using stratified cross-validation...")
@@ -337,20 +330,19 @@ train_meta_features, val_meta_features, test_meta_features = get_base_prediction
     X_train, X_val, X_test, y_train, base_models, param_grids
 )
 
-
 # Function to evaluate meta-learners
 def evaluate_meta_learners(train_meta_features, val_meta_features, y_train, y_val):
-    logger.info("\n" + "=" * 50)
+    logger.info("\n" + "="*50)
     logger.info("Starting Meta-Learner Evaluation")
-    logger.info("=" * 50)
-
+    logger.info("="*50)
+    
     results = {}
-
+    
     for name, meta_config in meta_learners.items():
         logger.info(f"\nEvaluating {name}...")
-        logger.info("-" * 30)
+        logger.info("-"*30)
         start_time = time.time()
-
+        
         # Tune hyperparameters
         best_model = tune_hyperparameters(
             train_meta_features, y_train,
@@ -358,28 +350,27 @@ def evaluate_meta_learners(train_meta_features, val_meta_features, y_train, y_va
             meta_config['param_grid'],
             name
         )
-
+        
         # Evaluate on validation set
         val_predictions = best_model.predict(val_meta_features)
         val_accuracy = accuracy_score(y_val, val_predictions)
-
+        
         # Store results
         results[name] = {
             'model': best_model,
             'accuracy': val_accuracy,
             'training_time': time.time() - start_time
         }
-
+        
         logger.info(f"Validation Accuracy: {val_accuracy:.4f}")
         logger.info(f"Training Time: {results[name]['training_time']:.2f} seconds")
-        logger.info("-" * 30)
-
-    logger.info("\n" + "=" * 50)
+        logger.info("-"*30)
+    
+    logger.info("\n" + "="*50)
     logger.info("Meta-Learner Evaluation Completed")
-    logger.info("=" * 50 + "\n")
-
+    logger.info("="*50 + "\n")
+    
     return results
-
 
 # Evaluate all meta-learners
 logger.info("Starting meta-learner evaluation...")

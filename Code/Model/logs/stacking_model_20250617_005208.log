@@ -1,0 +1,188 @@
+2025-06-17 00:52:08,230 - INFO - Feature names cleaned for LightGBM compatibility
+2025-06-17 00:52:08,231 - INFO - Data shapes:
+2025-06-17 00:52:08,231 - INFO - Features (X): (1728, 180)
+2025-06-17 00:52:08,231 - INFO - Target (y): (1728,)
+2025-06-17 00:52:08,236 - INFO - Data split sizes:
+2025-06-17 00:52:08,236 - INFO - Training set: 1036 samples
+2025-06-17 00:52:08,237 - INFO - Validation set: 346 samples
+2025-06-17 00:52:08,237 - INFO - Test set: 346 samples
+2025-06-17 00:52:08,237 - INFO - Training base models and generating meta-features using stratified cross-validation...
+2025-06-17 00:52:08,237 - INFO - 
+==================================================
+2025-06-17 00:52:08,238 - INFO - Starting Base Model Training
+2025-06-17 00:52:08,238 - INFO - ==================================================
+2025-06-17 00:52:08,238 - INFO - 
+Training random_forest...
+2025-06-17 00:52:08,238 - INFO - ------------------------------
+2025-06-17 00:52:08,238 - INFO - Tuning hyperparameters for random_forest...
+2025-06-17 00:52:08,239 - INFO - Validating data for random_forest...
+2025-06-17 00:52:08,240 - WARNING - Constant feature found: WaitingTime_Car
+2025-06-17 00:52:08,240 - WARNING - Constant feature found: Availability_Car
+2025-06-17 00:52:08,240 - WARNING - Constant feature found: Availability_PublicTransport
+2025-06-17 00:52:08,241 - WARNING - Removing 3 constant features
+2025-06-17 00:52:20,418 - INFO - Best parameters for random_forest:
+2025-06-17 00:52:20,418 - INFO - {'max_depth': 15, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 200}
+2025-06-17 00:52:20,418 - INFO - Best cross-validation score: 0.8011
+2025-06-17 00:52:20,418 - INFO - Time taken: 12.18 seconds
+2025-06-17 00:52:20,848 - INFO - Fold 1 Accuracy: 0.8654
+2025-06-17 00:52:21,272 - INFO - Fold 2 Accuracy: 0.8558
+2025-06-17 00:52:21,682 - INFO - Fold 3 Accuracy: 0.8558
+2025-06-17 00:52:23,133 - INFO - Fold 4 Accuracy: 0.8269
+2025-06-17 00:52:23,609 - INFO - Fold 5 Accuracy: 0.7885
+2025-06-17 00:52:24,085 - INFO - Fold 6 Accuracy: 0.8077
+2025-06-17 00:52:24,445 - INFO - Fold 7 Accuracy: 0.8350
+2025-06-17 00:52:24,820 - INFO - Fold 8 Accuracy: 0.8350
+2025-06-17 00:52:25,195 - INFO - Fold 9 Accuracy: 0.7767
+2025-06-17 00:52:25,552 - INFO - Fold 10 Accuracy: 0.7767
+2025-06-17 00:52:25,552 - INFO - 
+Average Fold Accuracy: 0.8223 (+/- 0.0316)
+2025-06-17 00:52:25,552 - INFO - 
+Training final model on full dataset...
+2025-06-17 00:52:29,483 - INFO - Final Cross-Validation Performance:
+2025-06-17 00:52:29,485 - INFO - Mean CV Accuracy: 0.8262 (+/- 0.0761)
+2025-06-17 00:52:29,485 - INFO - ------------------------------
+2025-06-17 00:52:29,485 - INFO - 
+Training xgboost...
+2025-06-17 00:52:29,485 - INFO - ------------------------------
+2025-06-17 00:52:29,485 - INFO - Tuning hyperparameters for xgboost...
+2025-06-17 00:52:29,485 - INFO - Validating data for xgboost...
+2025-06-17 00:52:29,486 - WARNING - Constant feature found: WaitingTime_Car
+2025-06-17 00:52:29,486 - WARNING - Constant feature found: Availability_Car
+2025-06-17 00:52:29,486 - WARNING - Constant feature found: Availability_PublicTransport
+2025-06-17 00:52:29,487 - WARNING - Removing 3 constant features
+2025-06-17 00:52:46,223 - INFO - Best parameters for xgboost:
+2025-06-17 00:52:46,223 - INFO - {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 200, 'subsample': 1.0}
+2025-06-17 00:52:46,223 - INFO - Best cross-validation score: 0.8591
+2025-06-17 00:52:46,223 - INFO - Time taken: 16.74 seconds
+2025-06-17 00:52:46,959 - INFO - Fold 1 Accuracy: 0.8846
+2025-06-17 00:52:47,679 - INFO - Fold 2 Accuracy: 0.8846
+2025-06-17 00:52:48,353 - INFO - Fold 3 Accuracy: 0.9327
+2025-06-17 00:52:48,980 - INFO - Fold 4 Accuracy: 0.8942
+2025-06-17 00:52:49,551 - INFO - Fold 5 Accuracy: 0.8173
+2025-06-17 00:52:50,168 - INFO - Fold 6 Accuracy: 0.8365
+2025-06-17 00:52:50,775 - INFO - Fold 7 Accuracy: 0.8544
+2025-06-17 00:52:51,390 - INFO - Fold 8 Accuracy: 0.8641
+2025-06-17 00:52:52,012 - INFO - Fold 9 Accuracy: 0.8155
+2025-06-17 00:52:52,570 - INFO - Fold 10 Accuracy: 0.8544
+2025-06-17 00:52:52,570 - INFO - 
+Average Fold Accuracy: 0.8638 (+/- 0.0346)
+2025-06-17 00:52:52,570 - INFO - 
+Training final model on full dataset...
+2025-06-17 00:53:02,961 - INFO - Final Cross-Validation Performance:
+2025-06-17 00:53:02,961 - INFO - Mean CV Accuracy: 0.8561 (+/- 0.0652)
+2025-06-17 00:53:02,961 - INFO - ------------------------------
+2025-06-17 00:53:02,963 - INFO - 
+Training lightgbm...
+2025-06-17 00:53:02,963 - INFO - ------------------------------
+2025-06-17 00:53:02,963 - INFO - Tuning hyperparameters for lightgbm...
+2025-06-17 00:53:02,963 - INFO - Validating data for lightgbm...
+2025-06-17 00:53:02,965 - WARNING - Constant feature found: WaitingTime_Car
+2025-06-17 00:53:02,965 - WARNING - Constant feature found: Availability_Car
+2025-06-17 00:53:02,965 - WARNING - Constant feature found: Availability_PublicTransport
+2025-06-17 00:53:02,967 - WARNING - Removing 3 constant features
+2025-06-17 00:55:34,809 - INFO - Best parameters for lightgbm:
+2025-06-17 00:55:34,809 - INFO - {'learning_rate': 0.1, 'max_depth': 5, 'min_child_samples': 50, 'min_child_weight': 0.001, 'min_split_gain': 0.001, 'n_estimators': 100, 'num_leaves': 31, 'reg_alpha': 0.1, 'reg_lambda': 0.1}
+2025-06-17 00:55:34,809 - INFO - Best cross-validation score: 0.8552
+2025-06-17 00:55:34,809 - INFO - Time taken: 151.85 seconds
+2025-06-17 00:55:35,103 - INFO - Fold 1 Accuracy: 0.8750
+2025-06-17 00:55:35,371 - INFO - Fold 2 Accuracy: 0.8462
+2025-06-17 00:55:35,690 - INFO - Fold 3 Accuracy: 0.9519
+2025-06-17 00:55:36,050 - INFO - Fold 4 Accuracy: 0.9038
+2025-06-17 00:55:36,362 - INFO - Fold 5 Accuracy: 0.8173
+2025-06-17 00:55:36,681 - INFO - Fold 6 Accuracy: 0.8750
+2025-06-17 00:55:37,004 - INFO - Fold 7 Accuracy: 0.8544
+2025-06-17 00:55:37,313 - INFO - Fold 8 Accuracy: 0.8447
+2025-06-17 00:55:37,625 - INFO - Fold 9 Accuracy: 0.7961
+2025-06-17 00:55:37,979 - INFO - Fold 10 Accuracy: 0.8155
+2025-06-17 00:55:37,979 - INFO - 
+Average Fold Accuracy: 0.8580 (+/- 0.0437)
+2025-06-17 00:55:37,979 - INFO - 
+Training final model on full dataset...
+2025-06-17 00:55:41,050 - INFO - Final Cross-Validation Performance:
+2025-06-17 00:55:41,051 - INFO - Mean CV Accuracy: 0.8610 (+/- 0.0455)
+2025-06-17 00:55:41,051 - INFO - ------------------------------
+2025-06-17 00:55:41,051 - INFO - 
+==================================================
+2025-06-17 00:55:41,051 - INFO - Base Model Training Completed
+2025-06-17 00:55:41,051 - INFO - ==================================================
+
+2025-06-17 00:55:41,053 - INFO - Starting meta-learner evaluation...
+2025-06-17 00:55:41,053 - INFO - 
+==================================================
+2025-06-17 00:55:41,053 - INFO - Starting Meta-Learner Evaluation
+2025-06-17 00:55:41,053 - INFO - ==================================================
+2025-06-17 00:55:41,053 - INFO - 
+Evaluating logistic_regression...
+2025-06-17 00:55:41,053 - INFO - ------------------------------
+2025-06-17 00:55:41,053 - INFO - Tuning hyperparameters for logistic_regression...
+2025-06-17 00:55:41,054 - INFO - Validating data for logistic_regression...
+2025-06-17 00:55:41,265 - INFO - Best parameters for logistic_regression:
+2025-06-17 00:55:41,265 - INFO - {'C': 10.0, 'penalty': 'l2', 'solver': 'liblinear'}
+2025-06-17 00:55:41,265 - INFO - Best cross-validation score: 0.7973
+2025-06-17 00:55:41,265 - INFO - Time taken: 0.21 seconds
+2025-06-17 00:55:41,280 - INFO - Validation Accuracy: 0.7890
+2025-06-17 00:55:41,280 - INFO - Training Time: 0.23 seconds
+2025-06-17 00:55:41,280 - INFO - ------------------------------
+2025-06-17 00:55:41,280 - INFO - 
+Evaluating gradient_boosting...
+2025-06-17 00:55:41,280 - INFO - ------------------------------
+2025-06-17 00:55:41,280 - INFO - Tuning hyperparameters for gradient_boosting...
+2025-06-17 00:55:41,280 - INFO - Validating data for gradient_boosting...
+2025-06-17 00:56:15,202 - INFO - Best parameters for gradient_boosting:
+2025-06-17 00:56:15,202 - INFO - {'learning_rate': 0.01, 'max_depth': 3, 'min_samples_split': 2, 'n_estimators': 200}
+2025-06-17 00:56:15,202 - INFO - Best cross-validation score: 0.8243
+2025-06-17 00:56:15,202 - INFO - Time taken: 33.92 seconds
+2025-06-17 00:56:15,207 - INFO - Validation Accuracy: 0.7919
+2025-06-17 00:56:15,207 - INFO - Training Time: 33.93 seconds
+2025-06-17 00:56:15,207 - INFO - ------------------------------
+2025-06-17 00:56:15,208 - INFO - 
+Evaluating svm...
+2025-06-17 00:56:15,208 - INFO - ------------------------------
+2025-06-17 00:56:15,208 - INFO - Tuning hyperparameters for svm...
+2025-06-17 00:56:15,208 - INFO - Validating data for svm...
+2025-06-17 00:56:16,625 - INFO - Best parameters for svm:
+2025-06-17 00:56:16,625 - INFO - {'C': 10.0, 'gamma': 'scale', 'kernel': 'rbf'}
+2025-06-17 00:56:16,625 - INFO - Best cross-validation score: 0.8205
+2025-06-17 00:56:16,625 - INFO - Time taken: 1.42 seconds
+2025-06-17 00:56:16,635 - INFO - Validation Accuracy: 0.8006
+2025-06-17 00:56:16,635 - INFO - Training Time: 1.43 seconds
+2025-06-17 00:56:16,635 - INFO - ------------------------------
+2025-06-17 00:56:16,635 - INFO - 
+Evaluating neural_network...
+2025-06-17 00:56:16,635 - INFO - ------------------------------
+2025-06-17 00:56:16,635 - INFO - Tuning hyperparameters for neural_network...
+2025-06-17 00:56:16,635 - INFO - Validating data for neural_network...
+2025-06-17 00:56:17,581 - INFO - Best parameters for neural_network:
+2025-06-17 00:56:17,581 - INFO - {'activation': 'relu', 'alpha': 0.0001, 'hidden_layer_sizes': (50,), 'learning_rate': 'constant', 'learning_rate_init': 0.01}
+2025-06-17 00:56:17,581 - INFO - Best cross-validation score: 0.7982
+2025-06-17 00:56:17,581 - INFO - Time taken: 0.95 seconds
+2025-06-17 00:56:17,583 - INFO - Validation Accuracy: 0.7746
+2025-06-17 00:56:17,583 - INFO - Training Time: 0.95 seconds
+2025-06-17 00:56:17,583 - INFO - ------------------------------
+2025-06-17 00:56:17,583 - INFO - 
+==================================================
+2025-06-17 00:56:17,583 - INFO - Meta-Learner Evaluation Completed
+2025-06-17 00:56:17,583 - INFO - ==================================================
+
+2025-06-17 00:56:17,583 - INFO - 
+Best meta-learner: svm
+2025-06-17 00:56:17,583 - INFO - Validation Accuracy: 0.8006
+2025-06-17 00:56:17,583 - INFO - 
+Final Test Set Performance:
+2025-06-17 00:56:17,602 - INFO - Accuracy: 0.8121
+2025-06-17 00:56:17,602 - INFO - Classification Report:
+2025-06-17 00:56:17,609 - INFO - 
+              precision    recall  f1-score   support
+
+           0       0.38      0.40      0.39        42
+           1       0.76      0.86      0.81        71
+           2       0.00      0.00      0.00         6
+           3       0.00      0.00      0.00         4
+           4       0.92      0.91      0.91       223
+
+    accuracy                           0.81       346
+   macro avg       0.41      0.43      0.42       346
+weighted avg       0.79      0.81      0.80       346
+
+2025-06-17 00:56:17,612 - INFO - Model saved as 'logs/stacking_model.joblib'
+2025-06-17 00:56:17,615 - INFO - Meta-learner comparison results saved to 'logs/meta_learner_comparison.csv'
