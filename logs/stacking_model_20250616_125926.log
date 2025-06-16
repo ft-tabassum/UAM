@@ -1,0 +1,47 @@
+2025-06-16 12:59:26,362 - INFO - Loading data...
+2025-06-16 12:59:26,399 - INFO - Data shapes:
+2025-06-16 12:59:26,406 - INFO - Features (X): (1728, 180)
+2025-06-16 12:59:26,406 - INFO - Target (y): (1728,)
+2025-06-16 12:59:26,406 - INFO - Data split sizes:
+2025-06-16 12:59:26,413 - INFO - Training set: 1036 samples
+2025-06-16 12:59:26,416 - INFO - Validation set: 346 samples
+2025-06-16 12:59:26,416 - INFO - Test set: 346 samples
+2025-06-16 12:59:26,416 - INFO - Training base models and generating meta-features using stratified cross-validation...
+2025-06-16 12:59:26,416 - INFO - Processing random_forest...
+2025-06-16 12:59:26,416 - INFO - Tuning hyperparameters for random_forest...
+2025-06-16 12:59:42,147 - INFO - Best parameters for random_forest:
+2025-06-16 12:59:42,147 - INFO - {'max_depth': 15, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 200}
+2025-06-16 12:59:42,147 - INFO - Best cross-validation score: 0.8040
+2025-06-16 12:59:42,147 - INFO - Time taken: 15.73 seconds
+2025-06-16 12:59:42,575 - INFO - Fold 1 Accuracy: 0.8654
+2025-06-16 12:59:43,001 - INFO - Fold 2 Accuracy: 0.8558
+2025-06-16 12:59:43,439 - INFO - Fold 3 Accuracy: 0.8558
+2025-06-16 12:59:43,873 - INFO - Fold 4 Accuracy: 0.8269
+2025-06-16 12:59:44,294 - INFO - Fold 5 Accuracy: 0.7885
+2025-06-16 12:59:44,740 - INFO - Fold 6 Accuracy: 0.8077
+2025-06-16 12:59:45,147 - INFO - Fold 7 Accuracy: 0.8350
+2025-06-16 12:59:45,554 - INFO - Fold 8 Accuracy: 0.8350
+2025-06-16 12:59:45,966 - INFO - Fold 9 Accuracy: 0.7767
+2025-06-16 12:59:46,366 - INFO - Fold 10 Accuracy: 0.7767
+2025-06-16 12:59:50,711 - INFO - random_forest Cross-Validation Performance:
+2025-06-16 12:59:50,711 - INFO - Mean CV Accuracy: 0.8262 (+/- 0.0761)
+2025-06-16 12:59:50,712 - INFO - Processing xgboost...
+2025-06-16 12:59:50,712 - INFO - Tuning hyperparameters for xgboost...
+2025-06-16 13:00:09,805 - INFO - Best parameters for xgboost:
+2025-06-16 13:00:09,805 - INFO - {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 200, 'subsample': 1.0}
+2025-06-16 13:00:09,805 - INFO - Best cross-validation score: 0.8591
+2025-06-16 13:00:09,807 - INFO - Time taken: 19.09 seconds
+2025-06-16 13:00:10,532 - INFO - Fold 1 Accuracy: 0.8846
+2025-06-16 13:00:11,210 - INFO - Fold 2 Accuracy: 0.8846
+2025-06-16 13:00:11,829 - INFO - Fold 3 Accuracy: 0.9327
+2025-06-16 13:00:12,439 - INFO - Fold 4 Accuracy: 0.8942
+2025-06-16 13:00:13,044 - INFO - Fold 5 Accuracy: 0.8173
+2025-06-16 13:00:13,644 - INFO - Fold 6 Accuracy: 0.8365
+2025-06-16 13:00:14,252 - INFO - Fold 7 Accuracy: 0.8544
+2025-06-16 13:00:14,863 - INFO - Fold 8 Accuracy: 0.8641
+2025-06-16 13:00:15,474 - INFO - Fold 9 Accuracy: 0.8155
+2025-06-16 13:00:16,096 - INFO - Fold 10 Accuracy: 0.8544
+2025-06-16 13:00:22,271 - INFO - xgboost Cross-Validation Performance:
+2025-06-16 13:00:22,271 - INFO - Mean CV Accuracy: 0.8561 (+/- 0.0652)
+2025-06-16 13:00:22,271 - INFO - Processing lightgbm...
+2025-06-16 13:00:22,273 - INFO - Tuning hyperparameters for lightgbm...

@@ -1,0 +1,54 @@
+2025-06-16 23:59:26,226 - INFO - Loading data...
+2025-06-16 23:59:26,256 - INFO - Feature names cleaned for LightGBM compatibility
+2025-06-16 23:59:26,261 - INFO - Data shapes:
+2025-06-16 23:59:26,261 - INFO - Features (X): (1728, 180)
+2025-06-16 23:59:26,261 - INFO - Target (y): (1728,)
+2025-06-16 23:59:26,268 - INFO - Data split sizes:
+2025-06-16 23:59:26,269 - INFO - Training set: 1036 samples
+2025-06-16 23:59:26,270 - INFO - Validation set: 346 samples
+2025-06-16 23:59:26,270 - INFO - Test set: 346 samples
+2025-06-16 23:59:26,272 - INFO - Training base models and generating meta-features using stratified cross-validation...
+2025-06-16 23:59:26,272 - INFO - Processing random_forest...
+2025-06-16 23:59:26,274 - INFO - Tuning hyperparameters for random_forest...
+2025-06-16 23:59:26,274 - INFO - Validating data for random_forest...
+2025-06-16 23:59:26,282 - WARNING - Constant features found for random_forest: ['WaitingTime_Car', 'Availability_Car', 'Availability_PublicTransport']
+2025-06-16 23:59:36,769 - INFO - Best parameters for random_forest:
+2025-06-16 23:59:36,769 - INFO - {'max_depth': 15, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 200}
+2025-06-16 23:59:36,769 - INFO - Best cross-validation score: 0.8011
+2025-06-16 23:59:36,769 - INFO - Time taken: 10.49 seconds
+2025-06-16 23:59:37,141 - INFO - Fold 1 Accuracy: 0.8654
+2025-06-16 23:59:37,495 - INFO - Fold 2 Accuracy: 0.8558
+2025-06-16 23:59:37,852 - INFO - Fold 3 Accuracy: 0.8558
+2025-06-16 23:59:38,220 - INFO - Fold 4 Accuracy: 0.8269
+2025-06-16 23:59:38,592 - INFO - Fold 5 Accuracy: 0.7885
+2025-06-16 23:59:38,948 - INFO - Fold 6 Accuracy: 0.8077
+2025-06-16 23:59:39,323 - INFO - Fold 7 Accuracy: 0.8350
+2025-06-16 23:59:39,658 - INFO - Fold 8 Accuracy: 0.8350
+2025-06-16 23:59:40,027 - INFO - Fold 9 Accuracy: 0.7767
+2025-06-16 23:59:40,384 - INFO - Fold 10 Accuracy: 0.7767
+2025-06-16 23:59:44,196 - INFO - random_forest Cross-Validation Performance:
+2025-06-16 23:59:44,196 - INFO - Mean CV Accuracy: 0.8262 (+/- 0.0761)
+2025-06-16 23:59:44,196 - INFO - Processing xgboost...
+2025-06-16 23:59:44,212 - INFO - Tuning hyperparameters for xgboost...
+2025-06-16 23:59:44,212 - INFO - Validating data for xgboost...
+2025-06-16 23:59:44,212 - WARNING - Constant features found for xgboost: ['WaitingTime_Car', 'Availability_Car', 'Availability_PublicTransport']
+2025-06-16 23:59:56,029 - INFO - Best parameters for xgboost:
+2025-06-16 23:59:56,031 - INFO - {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 200, 'subsample': 1.0}
+2025-06-16 23:59:56,031 - INFO - Best cross-validation score: 0.8591
+2025-06-16 23:59:56,031 - INFO - Time taken: 11.82 seconds
+2025-06-16 23:59:56,550 - INFO - Fold 1 Accuracy: 0.8846
+2025-06-16 23:59:57,067 - INFO - Fold 2 Accuracy: 0.8846
+2025-06-16 23:59:57,590 - INFO - Fold 3 Accuracy: 0.9327
+2025-06-16 23:59:58,090 - INFO - Fold 4 Accuracy: 0.8942
+2025-06-16 23:59:58,658 - INFO - Fold 5 Accuracy: 0.8173
+2025-06-16 23:59:59,177 - INFO - Fold 6 Accuracy: 0.8365
+2025-06-16 23:59:59,681 - INFO - Fold 7 Accuracy: 0.8544
+2025-06-17 00:00:00,222 - INFO - Fold 8 Accuracy: 0.8641
+2025-06-17 00:00:00,738 - INFO - Fold 9 Accuracy: 0.8155
+2025-06-17 00:00:01,240 - INFO - Fold 10 Accuracy: 0.8544
+2025-06-17 00:00:07,066 - INFO - xgboost Cross-Validation Performance:
+2025-06-17 00:00:07,066 - INFO - Mean CV Accuracy: 0.8561 (+/- 0.0652)
+2025-06-17 00:00:07,066 - INFO - Processing lightgbm...
+2025-06-17 00:00:07,066 - INFO - Tuning hyperparameters for lightgbm...
+2025-06-17 00:00:07,066 - INFO - Validating data for lightgbm...
+2025-06-17 00:00:07,078 - WARNING - Constant features found for lightgbm: ['WaitingTime_Car', 'Availability_Car', 'Availability_PublicTransport']
