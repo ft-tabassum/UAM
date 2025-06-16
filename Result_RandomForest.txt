@@ -141,3 +141,16 @@ Test Set Confusion Matrix:
  [  0   5   0   0   1]
  [  2   0   0   0   2]
  [  3   0   0   0 220]]
+
+Top 10 Most Important Features:
+TravelCost_Uam: 0.2145
+TravelCost_Car: 0.0462
+InVehicleTime_RideHailing: 0.0382
+InVehicleTime_PublicTransport: 0.0363
+WaitingTime_PublicTransport: 0.0277
+InVehicleTime_Car: 0.0266
+TravelCost_RideHailing: 0.0255
+InVehicleTime_Uam: 0.0223
+TravelCost_PublicTransport: 0.0212
+Availability_Uam: 0.0157
+

@@ -47,12 +47,16 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
 # Setup cross-validation
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
+# Store feature names
+feature_names = X.columns.tolist()
+
 # Initialize storage for metrics
 fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': [], 'train_accuracies': [], 'class_accuracies': []
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
+    'feature_importances': []  # Added feature importances
 }
 
 # Initialize a list to store the probabilities
@@ -105,6 +109,10 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
     fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
     all_fold_probs.append(fold_probs_df)
+    
+    # Store feature importances
+    feature_importances = best_model.named_steps['classifier'].feature_importances_
+    fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate metrics
     val_acc = accuracy_score(y_val, val_pred)
@@ -198,6 +206,15 @@ except ValueError as e:
     logger.warning(f"ROC AUC calculation failed for test set: {str(e)}")
     test_roc_auc = np.nan
 
+# After all folds are processed, calculate and save feature importance analysis
+mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
+feature_importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': mean_feature_importance
+})
+feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
+feature_importance_df.to_csv('feature_importance_XGBoost.csv', index=False)
+
 # Save results
 with open('Result_XGBoost.txt', 'w') as f:
     f.write("Results for XGBoost with 10-fold Cross-Validation:\n\n")
@@ -259,6 +276,11 @@ with open('Result_XGBoost.txt', 'w') as f:
             f.write(f"Class {cls}: {acc:.4f}\n")
     f.write("\nTest Set Confusion Matrix:\n")
     f.write(f"{test_cm}\n")
+
+    f.write("\nTop 10 Most Important Features:\n")
+    for _, row in feature_importance_df.head(10).iterrows():
+        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
+    f.write("\n")
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)

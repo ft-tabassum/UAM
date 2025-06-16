@@ -1,0 +1,152 @@
+Results for LightGBM with 10-fold Cross-Validation:
+
+Parameter Stability Analysis:
+
+Parameters: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Selected in 8 out of 10 folds
+
+Parameters: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.5, 'classifier__reg_lambda': 0.1}
+Selected in 2 out of 10 folds
+
+Best Parameters per Fold:
+Fold 1: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 2: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.5, 'classifier__reg_lambda': 0.1}
+Fold 3: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 4: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.5, 'classifier__reg_lambda': 0.1}
+Fold 5: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 6: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 7: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 8: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 9: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+Fold 10: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+
+Most Common Best Parameters: {'classifier__learning_rate': 0.01, 'classifier__max_depth': 3, 'classifier__n_estimators': 80, 'classifier__num_leaves': 15, 'classifier__reg_alpha': 0.1, 'classifier__reg_lambda': 0.1}
+
+Top 10 Most Important Features:
+TravelCost_Uam: 497.6000
+TravelCost_Car: 160.3000
+InVehicleTime_PublicTransport: 141.3000
+Mode_withLicense_Public transport (e.g. S-Bahn, Bus, Regional train): 100.3000
+TravelCost_RideHailing: 87.1000
+InVehicleTime_RideHailing: 86.5000
+InVehicleTime_Uam: 55.7000
+UAM_asMode_Very likely: 55.5000
+Mode_withLicense_Car as driver: 50.5000
+Share_UAMRide_Strongly agree: 46.5000
+
+Overfitting Analysis:
+Mean Training Accuracy: 0.7974 ± 0.0084
+Mean Validation Accuracy: 0.7822 ± 0.0227
+Training-Validation Accuracy Gap: 0.0152
+
+Per-class Accuracy Analysis:
+Class 0: 0.2529 ± 0.0791
+Class 1: 0.6182 ± 0.1084
+Class 2: 0.0000 ± 0.0000
+Class 3: 0.0000 ± 0.0000
+Class 4: 0.9685 ± 0.0110
+
+Cross-validation Results (10 folds):
+Mean Accuracy: 0.7822 ± 0.0227
+Mean Precision: 0.7457 ± 0.0323
+Mean Recall: 0.7822 ± 0.0227
+Mean F1-score: 0.7475 ± 0.0265
+Mean ROC AUC: 0.9016 ± 0.0374
+
+Per-fold Confusion Matrices:
+
+Fold 1:
+[[ 2  4  0  0 11]
+ [ 2 17  0  0 10]
+ [ 1  1  0  0  0]
+ [ 1  1  0  0  0]
+ [ 0  2  0  0 87]]
+
+Fold 2:
+[[ 5  2  0  0 10]
+ [ 1 15  0  0 13]
+ [ 0  1  0  0  1]
+ [ 1  0  0  0  1]
+ [ 0  3  0  0 86]]
+
+Fold 3:
+[[ 3  3  0  0 11]
+ [ 1 21  0  0  7]
+ [ 0  1  0  0  1]
+ [ 0  0  0  0  1]
+ [ 0  5  0  0 84]]
+
+Fold 4:
+[[ 7  2  0  0  8]
+ [ 2 16  0  0 11]
+ [ 0  0  0  0  2]
+ [ 0  0  0  0  1]
+ [ 0  2  0  0 87]]
+
+Fold 5:
+[[ 5  3  0  0  9]
+ [ 5 15  0  0  9]
+ [ 0  2  0  0  0]
+ [ 1  0  0  0  0]
+ [ 0  2  0  0 87]]
+
+Fold 6:
+[[ 5  2  0  0 10]
+ [ 2 17  0  0  9]
+ [ 1  0  0  0  2]
+ [ 0  1  0  0  0]
+ [ 1  2  0  0 86]]
+
+Fold 7:
+[[ 3  4  0  0 10]
+ [ 4 14  0  0 10]
+ [ 0  0  0  0  3]
+ [ 0  1  0  0  0]
+ [ 0  2  0  0 87]]
+
+Fold 8:
+[[ 4  3  0  0 10]
+ [ 1 20  0  0  7]
+ [ 0  2  0  0  1]
+ [ 0  1  0  0  0]
+ [ 0  2  0  0 87]]
+
+Fold 9:
+[[ 4  4  0  0  9]
+ [ 0 17  0  0 11]
+ [ 0  2  0  0  0]
+ [ 1  0  0  0  1]
+ [ 1  3  0  0 85]]
+
+Fold 10:
+[[ 5  3  0  0  9]
+ [ 1 24  0  0  3]
+ [ 0  2  0  0  0]
+ [ 0  2  0  0  0]
+ [ 1  2  0  0 86]]
+
+Final Model Performance:
+Training+Validation Accuracy: 0.7902
+Test Set Accuracy: 0.8006
+Test-Train Accuracy Gap: 0.0104
+
+Test Set Results:
+Accuracy: 0.8006
+Precision: 0.7508
+Recall: 0.8006
+F1-score: 0.7638
+ROC AUC: 0.9223
+
+Test Set Per-class Accuracy:
+Class 0: 0.1905
+Class 1: 0.7183
+Class 2: 0.0000
+Class 3: 0.0000
+Class 4: 0.9776
+
+Test Set Confusion Matrix:
+[[  8   5   0   0  29]
+ [  7  51   0   0  13]
+ [  0   3   0   0   3]
+ [  2   0   0   0   2]
+ [  0   5   0   0 218]]

@@ -1,0 +1,181 @@
+Feature,Importance
+TravelCost_Uam,497.6
+TravelCost_Car,160.3
+InVehicleTime_PublicTransport,141.3
+"Mode_withLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",100.3
+TravelCost_RideHailing,87.1
+InVehicleTime_RideHailing,86.5
+InVehicleTime_Uam,55.7
+UAM_asMode_Very likely,55.5
+Mode_withLicense_Car as driver,50.5
+Share_UAMRide_Strongly agree,46.5
+WaitingTime_PublicTransport,44.0
+Cost_Airport_Neither satisfied nor dissatisfied,40.4
+ConnectedVeh_Disagree,39.2
+"Car_Sharing_Provider_Yes, more than one provider(s)",37.9
+Elect_vs_convo_Agree,36.3
+Monthly_Income,35.4
+HouseholdCar_2,32.8
+tripLength,31.0
+Safety_AutonomousCar_Disagree,26.2
+Share_UAMRide_Strongly disagree,25.2
+InVehicleTime_Car,24.6
+HowOften_airport_6 times per year,19.3
+Adult_household_1,17.4
+Gender,16.9
+Education_University or university of applied sciences (Bachelor’s degree),13.8
+HouseholdCar_1,13.5
+Live_Countryside,13.4
+Age,13.1
+Elect_vs_convo_Strongly agree,12.8
+InVehicleTime_CarSharing,12.5
+Share_UAMRide_Disagree,12.1
+WaitingTime_RideHailing,11.8
+Current_Travel_Satisfied,11.4
+UAM_asMode_Very unlikely,11.2
+Live_Urban area,10.7
+WaitingTime_Uam,10.7
+WaitingTime_CarSharing,10.3
+Comfort_AerialVeh_Agree,9.8
+Safety_AutonomousCar_Neutral,9.8
+Share_UAMRide_Neutral,9.4
+"Ride_Hailing_Provider_Yes, more than one provider(s)",8.6
+Child_Household_I don't have children,8.5
+Car_vs_Plane_Strongly agree,8.2
+Safety_Plane_Neutral,8.0
+HouseholdCar_0,7.9
+Cost_Airport_Satisfied,7.7
+Cost_Airport_Very dissatisfied,7.5
+Elect_vs_convo_Strongly disagree,6.6
+UAM_asMode_Unlikely,6.3
+Physical_Disabilities_Yes,5.3
+TravelCost_CarSharing,5.0
+Elect_vs_convo_Neutral,5.0
+PT_Subscription_No,4.7
+Car_Sharing_Provider_No,4.7
+Used_DAS_Agree,4.6
+UAM_Noise_Disagree,4.1
+Comfort_AerialVeh_Strongly agree,3.7
+Employment_Working part-time,3.5
+Car_vs_Plane_Disagree,3.4
+Safety_Plane_Agree,3.2
+Current_Travel_Neither satisfied nor dissatisfied,3.2
+HowOften_airport_1 time per month,3.0
+HowOften_airport_4 times per year,2.9
+Car_vs_Plane_Neutral,2.7
+Driving_License_No,2.7
+UAM_Noise_Neutral,2.6
+TravelCost_PublicTransport,2.6
+"Ride_Hailing_Provider_Yes, one provider",2.4
+Employment_Working full-time,2.4
+ElecVeh_Capacity_Neutral,2.4
+Adult_household_2,2.3
+Availability_CarSharing,1.8
+Flight_Safety_Disagree,1.7
+Access_PrivateCar_No,1.6
+Used_DAS_Disagree,1.6
+Comfort_AerialVeh_Disagree,1.5
+Used_DAS_Strongly agree,1.5
+"CompanyCar_Yes, I have a company car that I can also use privately",1.3
+Elect_vs_convo_Disagree,1.2
+"Access_PrivateCar_Yes, I own a car or I have leased a car",1.1
+Child_Household_1,1.1
+familiar_ElectricVeh_Agree,1.1
+Flight_Safety_Agree,1.1
+Availability_Uam,1.0
+HowOften_airport_Less than 2 times per year,1.0
+ElecVeh_Capacity_Disagree,0.9
+Current_Travel_Very dissatisfied,0.8
+"PT_Subscription_Airport_No, I have to pay on top",0.8
+"PT_Subscription_Airport_Yes, at no extra cost",0.7
+HouseholdCar_3 or more,0.7
+ElecVeh_Capacity_Agree,0.6
+Comfort_AerialVeh_Strongly disagree,0.6
+ConnectedVeh_Neutral,0.6
+Availability_RideHailing,0.5
+Share_UAMRide_Agree,0.5
+Safety_Plane_Strongly agree,0.5
+UAM_asMode_Neutral,0.5
+familiar_ElectricVeh_Neutral,0.4
+Current_Travel_Dissatisfied,0.4
+Used_DAS_Strongly disagree,0.3
+Safety_AutonomousCar_Strongly disagree,0.3
+familiar_ElectricVeh_Disagree,0.3
+HowOften_airport_2 times per year,0.3
+ConnectedVeh_Strongly agree,0.3
+Child_Household_2,0.2
+CompanyCar_0,0.2
+Comfort_AerialVeh_Neutral,0.2
+UAM_Noise_Agree,0.2
+"Car_Sharing_Provider_Yes, one provider",0.2
+UAM_Noise_Strongly disagree,0.1
+"Access_PrivateCar_Yes, but I do not own a car (e.g. I have a company car or access to a shared family car)",0.1
+Reason_Tourism,0.1
+Education_High school graduate,0.1
+"Mode_withLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.0
+Access_PrivateCar_0,0.0
+Mode_withLicense_Other,0.0
+Reason_Visiting family or friends,0.0
+Reason_Other,0.0
+UAM_asMode_Likely,0.0
+Reason_Medical travel,0.0
+HowOften_airport_2 times per month,0.0
+HowOften_airport_Once per week or more often,0.0
+Reason_Business trip,0.0
+Ride_Hailing_Provider_No,0.0
+"PT_Subscription_Airport_No, but my employer covers the extra cost",0.0
+PT_Subscription_Airport_0,0.0
+"CompanyCar_Yes, I have a company car, but I can't use it privately",0.0
+PT_Subscription_Yes,0.0
+Car_Sharing_Provider_0,0.0
+"Mode_with_NoLicense_Ride-hailing (e.g. Taxi, Uber, FreeNow)",0.0
+"Mode_with_NoLicense_Public transport (e.g. S-Bahn, Bus, Regional train)",0.0
+CompanyCar_No,0.0
+"Mode_with_NoLicense_Public Transport (e.g. S-Bahn, Bus, Regional train)",0.0
+Mode_with_NoLicense_Car as passenger,0.0
+Mode_with_NoLicense_0,0.0
+Driving_License_Yes,0.0
+Mode_withLicense_0,0.0
+Mode_withLicense_Car as passenger,0.0
+"Mode_withLicense_Car-sharing (e.g. ShareNow, SIXT Share, Miles)",0.0
+Safety_Plane_Disagree,0.0
+Safety_AutonomousCar_Strongly agree,0.0
+Safety_AutonomousCar_Agree,0.0
+Car_vs_Plane_Strongly disagree,0.0
+Safety_Plane_Strongly disagree,0.0
+Car_vs_Plane_Agree,0.0
+Flight_Safety_Strongly agree,0.0
+Flight_Safety_Strongly disagree,0.0
+Flight_Safety_Neutral,0.0
+UAM_Noise_Strongly agree,0.0
+ConnectedVeh_Strongly disagree,0.0
+ConnectedVeh_Agree,0.0
+familiar_ElectricVeh_Strongly disagree,0.0
+familiar_ElectricVeh_Strongly agree,0.0
+ElecVeh_Capacity_Strongly agree,0.0
+ElecVeh_Capacity_Strongly disagree,0.0
+Used_DAS_Neutral,0.0
+Physical_Disabilities_I prefer not to answer,0.0
+Physical_Disabilities_No,0.0
+Live_I prefer not to answer,0.0
+Cost_Airport_Dissatisfied,0.0
+Cost_Airport_Very satisfied,0.0
+Current_Travel_Very satisfied,0.0
+Child_Household_3,0.0
+Adult_household_3,0.0
+Education_University or university of applied sciences (Master’s or PhD degree),0.0
+Education_Other,0.0
+Education_Not finished school,0.0
+Education_I prefer not to answer,0.0
+Adult_household_4 or more,0.0
+Adult_household_I prefer not to answer,0.0
+Child_Household_I prefer not to answer,0.0
+Employment_Retired,0.0
+Availability_Car,0.0
+WaitingTime_Car,0.0
+Employment_Housewife or househusband,0.0
+Employment_I prefer not to answer,0.0
+"Employment_Pupil, student or apprentice/intern",0.0
+Employment_Other,0.0
+Employment_Unemployed,0.0
+Availability_PublicTransport,0.0

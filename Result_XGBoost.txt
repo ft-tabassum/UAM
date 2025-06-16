@@ -153,3 +153,16 @@ Test Set Confusion Matrix:
  [  1   5   0   0   0]
  [  4   0   0   0   0]
  [  7   7   0   0 209]]
+
+Top 10 Most Important Features:
+TravelCost_Uam: 0.0469
+Mode_withLicense_Public transport (e.g. S-Bahn, Bus, Regional train): 0.0280
+InVehicleTime_RideHailing: 0.0272
+TravelCost_Car: 0.0227
+WaitingTime_PublicTransport: 0.0227
+InVehicleTime_PublicTransport: 0.0221
+TravelCost_RideHailing: 0.0154
+WaitingTime_RideHailing: 0.0134
+Mode_withLicense_Car as driver: 0.0132
+Share_UAMRide_Strongly agree: 0.0119
+

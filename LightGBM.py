@@ -1,182 +1,308 @@
 import pandas as pd
 import numpy as np
 import logging
-from sklearn.model_selection import StratifiedKFold, train_test_split
+import warnings
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
 from lightgbm import LGBMClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import label_binarize
+from collections import Counter
 
-# Setup logging (optional)
+# Suppress all warnings
+warnings.filterwarnings('ignore')
+
+# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Load normalized numeric data
-data = pd.read_csv('data_normalized.csv')  # Your normalized CSV path
-
-# Clean the column names to remove special characters
-data.columns = data.columns.str.replace(r'[^a-zA-Z0-9]', '_', regex=True)
+# Load data
+data = pd.read_csv('data_normalized.csv')
 
 # Define features and target
 y = data['tmode']
 X = data.drop(columns=['tmode'])
 
-# Pipeline for numeric data: impute missing values (if any)
-numeric_transformer = Pipeline([
-    ('imputer', SimpleImputer(strategy='constant', fill_value=0))
-])
+# Store feature names
+feature_names = X.columns.tolist()
 
-# Original classes (for LGBM)
+# Original classes
 classes = np.unique(y)
 n_classes = len(classes)
 
-# Stratified 10-fold outer CV
-outer_cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
-
-# Define the LightGBM model and hyperparameter grid
-model = LGBMClassifier(random_state=42)
-
-# Hyperparameter grid for tuning
-param_grid = {
-    'classifier__n_estimators': [300,500],  # Single value in a list
-    'classifier__max_depth': [ 3, 5],  # Adjust the tree depth
-    'classifier__learning_rate': [0.01, 0.05],  # Try different learning rates
-    'classifier__num_leaves': [31,50],  # Increase num_leaves to allow more splits
-    'classifier__boosting_type': ['gbdt', 'dart']
-}
-
-# Create pipeline with imputer and LightGBM model
-pipeline = Pipeline([
-    ('imputer', numeric_transformer),
-    ('classifier', model)  # Use the LightGBM model directly here
+# Create base pipeline
+base_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+    ('classifier', LGBMClassifier(
+        random_state=42,
+        verbose=-1,
+        min_gain_to_split=0.1,  # Increased minimum gain for splitting
+        min_data_in_leaf=30,    # Increased minimum samples in leaf
+        min_sum_hessian_in_leaf=1e-2,  # Increased minimum hessian
+        n_jobs=-1  # Use all available cores
+    ))
 ])
 
-# Metrics storage
-accuracies = []
-precisions = []
-recalls = []
-f1s = []
-conf_matrix_sum = np.zeros((len(classes), len(classes)), dtype=int)
-roc_aucs = []
-all_probabilities = []
-all_true_labels = []
-all_pred_labels = []
-importances_list = []
+# Keep only important parameters with 2 values each
+param_grid = {
+    'classifier__n_estimators': [50, 80],     # Reduced number of trees
+    'classifier__max_depth': [2, 3],          # Reduced tree depth
+    'classifier__learning_rate': [0.005, 0.01], # Reduced learning rate
+    'classifier__num_leaves': [15, 31],       # Reduced number of leaves
+    'classifier__reg_alpha': [0.1, 0.5],      # Added L1 regularization
+    'classifier__reg_lambda': [0.1, 0.5]      # Added L2 regularization
+}
 
-# Cross-validation
-for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X, y), 1):
-    logger.info(f"LightGBM - Fold {fold} processing...")  # Replaced model_info with 'LightGBM'
-    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
-    y_test_bin = label_binarize(y_test, classes=classes)
+# Split data into train+val and test
+X_train_val, X_test, y_train_val, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
 
-    # Create a validation set for early stopping (split the training set)
-    X_train_full, X_val, y_train_full, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+# Setup cross-validation
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
-    # Train the model with early stopping
-    model = LGBMClassifier(random_state=42, n_estimators=50, early_stopping_rounds=20)
-    model.fit(X_train_full, y_train_full,
-              eval_set=[(X_val, y_val)],  # Provide the validation set for early stopping
-              eval_metric='logloss')  # Provide an evaluation metric for early stopping
+# Initialize storage for metrics
+fold_metrics = {
+    'accuracies': [], 'precisions': [], 'recalls': [],
+    'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
+    'probabilities': [], 'true_labels': [], 'pred_labels': [],
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
+    'feature_importances': []
+}
 
-    # Extract feature importances
+# Initialize a list to store the probabilities
+all_fold_probs = []
+
+# Perform cross-validation with GridSearchCV in each fold
+logger.info("Starting 10-fold cross-validation...")
+for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
+    logger.info(f"Processing Fold {fold}/10...")
+    
+    # Split data for this fold
+    X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
+    y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
+    
+    # Convert to numpy arrays to avoid feature name warnings
+    X_train = X_train.values
+    X_val = X_val.values
+    
+    logger.info(f"Fold {fold} - Training data shape: {X_train.shape}")
+    logger.info(f"Fold {fold} - Validation data shape: {X_val.shape}")
+    
+    # Use GridSearchCV for hyperparameter tuning on training data
+    grid_search = GridSearchCV(
+        estimator=base_pipeline,
+        param_grid=param_grid,
+        cv=3,
+        scoring='accuracy',  # Changed to accuracy
+        n_jobs=-1,  # Use all available cores
+        verbose=1
+    )
+    
+    logger.info(f"Fold {fold} - Starting GridSearchCV...")
+    # Fit GridSearchCV on training data
+    grid_search.fit(X_train, y_train)
+    logger.info(f"Fold {fold} - GridSearchCV completed")
+    
+    # Get best model
+    best_model = grid_search.best_estimator_
+    
+    # Store feature importances
+    feature_importances = best_model.named_steps['classifier'].feature_importances_
+    fold_metrics['feature_importances'].append(feature_importances)
+    
+    # Calculate training accuracy
+    train_pred = best_model.predict(X_train)
+    train_acc = accuracy_score(y_train, train_pred)
+    fold_metrics['train_accuracies'].append(train_acc)
+    
+    # Make predictions on validation set
+    val_pred = best_model.predict(X_val)
+    val_proba = best_model.predict_proba(X_val)
+    
+    # Calculate per-class accuracy
+    class_acc = {}
+    for cls in classes:
+        mask = y_val == cls
+        if np.any(mask):
+            class_acc[cls] = accuracy_score(y_val[mask], val_pred[mask])
+        else:
+            class_acc[cls] = np.nan
+    fold_metrics['class_accuracies'].append(class_acc)
+    
+    # Append the probabilities to the list
+    fold_probs_df = pd.DataFrame(val_proba, columns=classes)
+    fold_probs_df['fold'] = fold
+    all_fold_probs.append(fold_probs_df)
+    
+    # Calculate metrics
+    val_acc = accuracy_score(y_val, val_pred)
+    val_prec = precision_score(y_val, val_pred, average='weighted', zero_division=0)
+    val_rec = recall_score(y_val, val_pred, average='weighted', zero_division=0)
+    val_f1 = f1_score(y_val, val_pred, average='weighted', zero_division=0)
+    val_cm = confusion_matrix(y_val, val_pred, labels=classes)
+    
+    # Calculate ROC AUC
+    y_val_bin = label_binarize(y_val, classes=classes)
     try:
-        importances = model.feature_importances_
-        importances_list.append(importances)
-    except AttributeError:
-        # This model doesn't support feature_importances_ (e.g., SVC), so just log it
-        logger.warning("Model does not support feature importances")
+        val_roc_auc = roc_auc_score(y_val_bin, val_proba, average='macro', multi_class='ovr')
+    except ValueError as e:
+        logger.warning(f"ROC AUC calculation failed for fold {fold}: {str(e)}")
+        val_roc_auc = np.nan
+    
+    # Store metrics
+    fold_metrics['accuracies'].append(val_acc)
+    fold_metrics['precisions'].append(val_prec)
+    fold_metrics['recalls'].append(val_rec)
+    fold_metrics['f1s'].append(val_f1)
+    fold_metrics['roc_aucs'].append(val_roc_auc)
+    fold_metrics['confusion_matrices'].append(val_cm)
+    fold_metrics['probabilities'].append(val_proba)
+    fold_metrics['true_labels'].append(y_val)
+    fold_metrics['pred_labels'].append(val_pred)
+    fold_metrics['best_params'].append(grid_search.best_params_)
+    
+    logger.info(f"Fold {fold} - Training Accuracy: {train_acc:.4f}")
+    logger.info(f"Fold {fold} - Validation Accuracy: {val_acc:.4f}")
+    logger.info(f"Fold {fold} - Best Parameters: {grid_search.best_params_}")
+    logger.info(f"Fold {fold} - Per-class Accuracy: {class_acc}")
 
-    # Predict on test fold
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test) if hasattr(model, 'predict_proba') else None
+# After all folds are processed, concatenate all fold probabilities
+all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
+all_fold_probs_df.to_csv('all_folds_probabilities_LightGBM.csv', index=False)
 
-    # Store probabilities and labels
-    all_probabilities.append(y_proba)
-    all_true_labels.append(y_test)
-    all_pred_labels.append(y_pred)
-
-    # Compute metrics
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-    rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-    cm = confusion_matrix(y_test, y_pred, labels=classes)
-
-    try:
-        roc_auc = roc_auc_score(y_test_bin, y_proba, average='macro', multi_class='ovr') if y_proba is not None else np.nan
-    except ValueError:
-        roc_auc = np.nan
-
-    accuracies.append(acc)
-    precisions.append(prec)
-    recalls.append(rec)
-    f1s.append(f1)
-    conf_matrix_sum += cm
-    roc_aucs.append(roc_auc)
-
-    logger.info(f" Accuracy: {acc:.4f}")
-    logger.info(f" Precision: {prec:.4f}")
-    logger.info(f" Recall: {rec:.4f}")
-    logger.info(f" F1-score: {f1:.4f}")
-    logger.info(f" ROC AUC (macro): {roc_auc if not np.isnan(roc_auc) else 'N/A'}")
-    logger.info(f" Confusion Matrix:\n{cm}")
-    logger.info(" Interpretation:")
-    logger.info("  - Diagonal values are correct predictions.")
-    logger.info("  - Off-diagonal values show where the model confuses classes.\n")
-
-logger.info(f"LightGBM - Cross-validation completed.\n")
-
-# Aggregate feature importances over folds
-mean_importances = np.mean(importances_list, axis=0)
+# Calculate and save feature importance analysis
+mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
 feature_importance_df = pd.DataFrame({
-    'Feature': X.columns,
-    'Importance': mean_importances
-}).sort_values(by='Importance', ascending=False)
+    'Feature': feature_names,
+    'Importance': mean_feature_importance
+})
+feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
+feature_importance_df.to_csv('feature_importance_LightGBM.csv', index=False)
 
-logger.info(f"Aggregated Feature Importances:")
-logger.info(feature_importance_df.head(10))
+# Analyze parameter stability
+param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
+most_common_params = param_counts.most_common()
+logger.info("\nParameter Stability Analysis:")
+for params, count in most_common_params:
+    logger.info(f"Parameters: {dict(params)}")
+    logger.info(f"Selected in {count} out of 10 folds")
 
-# Save the aggregated feature importances to a CSV file
-feature_importance_df.to_csv('feature_importances_LightGBM.csv', index=False)
-logger.info(f"Aggregated feature importances saved to 'feature_importances_LightGBM.csv'")
+# Find most common best parameters across folds
+best_params = max(fold_metrics['best_params'], key=fold_metrics['best_params'].count)
+logger.info(f"\nMost common best parameters across folds: {best_params}")
 
-# Average metrics reporting
-logger.info(f"LightGBM - Average Results Over 10 Folds:")
-logger.info(f" Accuracy: {np.mean(accuracies):.4f}")
-logger.info(f" Precision: {np.mean(precisions):.4f}")
-logger.info(f" Recall: {np.mean(recalls):.4f}")
-logger.info(f" F1-score: {np.mean(f1s):.4f}")
-logger.info(f" ROC AUC (macro): {np.nanmean(roc_aucs):.4f}")
-logger.info(f"LightGBM - Aggregated Confusion Matrix:")
-logger.info(conf_matrix_sum)
+# Train final model on all training+validation data using most common best parameters
+final_model = base_pipeline.set_params(**best_params)
+final_model.fit(X_train_val.values, y_train_val)
 
-# Concatenate all probabilities and labels into single arrays
-all_probabilities_np = np.vstack(all_probabilities)
-all_true_labels_np = np.concatenate(all_true_labels)
-all_pred_labels_np = np.concatenate(all_pred_labels)
+# Calculate training accuracy on full training set
+train_val_pred = final_model.predict(X_train_val.values)
+train_val_acc = accuracy_score(y_train_val, train_val_pred)
 
-# Create a DataFrame with predicted probabilities + true/predicted labels
-prob_df = pd.DataFrame(all_probabilities_np, columns=[f'prob_class_{c}' for c in classes])
-prob_df['true_label'] = all_true_labels_np
-prob_df['pred_label'] = all_pred_labels_np
+# Evaluate on test set
+test_pred = final_model.predict(X_test.values)
+test_proba = final_model.predict_proba(X_test.values)
 
-prob_df.to_csv(f'predicted_probabilities_LightGBM.csv', index=False)
-logger.info(f"LightGBM - Predicted probabilities saved to 'predicted_probabilities_LightGBM.csv'")
+# Calculate per-class accuracy on test set
+test_class_acc = {}
+for cls in classes:
+    mask = y_test == cls
+    if np.any(mask):
+        test_class_acc[cls] = accuracy_score(y_test[mask], test_pred[mask])
+    else:
+        test_class_acc[cls] = np.nan
 
-# Save aggregated confusion matrix to CSV
-conf_matrix_df = pd.DataFrame(conf_matrix_sum, index=classes, columns=classes)
-conf_matrix_df.to_csv(f'confusion_matrix_LightGBM.csv')
-logger.info(f"LightGBM - Aggregated confusion matrix saved to 'confusion_matrix_LightGBM.csv'")
+# Save test set probabilities
+test_probs_df = pd.DataFrame(test_proba, columns=classes)
+test_probs_df.to_csv('test_set_probabilities_LightGBM.csv', index=False)
 
-# Save average metrics to a text file
-with open(f'average_metrics_LightGBM.txt', 'w') as f:
-    f.write(f"Average Results Over 10 Folds for LightGBM:\n")
-    f.write(f"Accuracy: {np.mean(accuracies):.4f}\n")
-    f.write(f"Precision: {np.mean(precisions):.4f}\n")
-    f.write(f"Recall: {np.mean(recalls):.4f}\n")
-    f.write(f"F1-score: {np.mean(f1s):.4f}\n")
-    f.write(f"ROC AUC (macro): {np.nanmean(roc_aucs):.4f}\n")
+# Calculate test metrics
+test_acc = accuracy_score(y_test, test_pred)
+test_prec = precision_score(y_test, test_pred, average='weighted', zero_division=0)
+test_rec = recall_score(y_test, test_pred, average='weighted', zero_division=0)
+test_f1 = f1_score(y_test, test_pred, average='weighted', zero_division=0)
+test_cm = confusion_matrix(y_test, test_pred, labels=classes)
 
-logger.info(f"LightGBM - Average metrics saved to 'average_metrics_LightGBM.txt'")
+# Calculate test ROC AUC
+y_test_bin = label_binarize(y_test, classes=classes)
+try:
+    test_roc_auc = roc_auc_score(y_test_bin, test_proba, average='macro', multi_class='ovr')
+except ValueError as e:
+    logger.warning(f"ROC AUC calculation failed for test set: {str(e)}")
+    test_roc_auc = np.nan
+
+# Save results
+with open('Result_LightGBM.txt', 'w') as f:
+    f.write("Results for LightGBM with 10-fold Cross-Validation:\n\n")
+    
+    # Write parameter stability analysis
+    f.write("Parameter Stability Analysis:\n")
+    for params, count in most_common_params:
+        f.write(f"\nParameters: {dict(params)}\n")
+        f.write(f"Selected in {count} out of 10 folds\n")
+    
+    f.write("\nBest Parameters per Fold:\n")
+    for i, params in enumerate(fold_metrics['best_params'], 1):
+        f.write(f"Fold {i}: {params}\n")
+    f.write(f"\nMost Common Best Parameters: {best_params}\n\n")
+    
+    # Write feature importance analysis
+    f.write("Top 10 Most Important Features:\n")
+    for _, row in feature_importance_df.head(10).iterrows():
+        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
+    f.write("\n")
+    
+    # Write overfitting analysis
+    f.write("Overfitting Analysis:\n")
+    f.write(f"Mean Training Accuracy: {np.mean(fold_metrics['train_accuracies']):.4f} ± {np.std(fold_metrics['train_accuracies']):.4f}\n")
+    f.write(f"Mean Validation Accuracy: {np.mean(fold_metrics['accuracies']):.4f} ± {np.std(fold_metrics['accuracies']):.4f}\n")
+    f.write(f"Training-Validation Accuracy Gap: {np.mean(fold_metrics['train_accuracies']) - np.mean(fold_metrics['accuracies']):.4f}\n\n")
+    
+    # Write per-class accuracy analysis
+    f.write("Per-class Accuracy Analysis:\n")
+    mean_class_acc = {}
+    std_class_acc = {}
+    for cls in classes:
+        accs = [fold_acc[cls] for fold_acc in fold_metrics['class_accuracies'] if not np.isnan(fold_acc[cls])]
+        if accs:
+            mean_class_acc[cls] = np.mean(accs)
+            std_class_acc[cls] = np.std(accs)
+            f.write(f"Class {cls}: {mean_class_acc[cls]:.4f} ± {std_class_acc[cls]:.4f}\n")
+    f.write("\n")
+    
+    f.write("Cross-validation Results (10 folds):\n")
+    f.write(f"Mean Accuracy: {np.mean(fold_metrics['accuracies']):.4f} ± {np.std(fold_metrics['accuracies']):.4f}\n")
+    f.write(f"Mean Precision: {np.mean(fold_metrics['precisions']):.4f} ± {np.std(fold_metrics['precisions']):.4f}\n")
+    f.write(f"Mean Recall: {np.mean(fold_metrics['recalls']):.4f} ± {np.std(fold_metrics['recalls']):.4f}\n")
+    f.write(f"Mean F1-score: {np.mean(fold_metrics['f1s']):.4f} ± {np.std(fold_metrics['f1s']):.4f}\n")
+    f.write(f"Mean ROC AUC: {np.nanmean(fold_metrics['roc_aucs']):.4f} ± {np.nanstd(fold_metrics['roc_aucs']):.4f}\n\n")
+    
+    f.write("Per-fold Confusion Matrices:\n")
+    for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
+        f.write(f"\nFold {i}:\n{cm}\n")
+    
+    f.write("\nFinal Model Performance:\n")
+    f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
+    f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
+    f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
+    
+    f.write("Test Set Results:\n")
+    f.write(f"Accuracy: {test_acc:.4f}\n")
+    f.write(f"Precision: {test_prec:.4f}\n")
+    f.write(f"Recall: {test_rec:.4f}\n")
+    f.write(f"F1-score: {test_f1:.4f}\n")
+    f.write(f"ROC AUC: {test_roc_auc:.4f}\n")
+    f.write("\nTest Set Per-class Accuracy:\n")
+    for cls, acc in test_class_acc.items():
+        if not np.isnan(acc):
+            f.write(f"Class {cls}: {acc:.4f}\n")
+    f.write("\nTest Set Confusion Matrix:\n")
+    f.write(f"{test_cm}\n")
+
+# Save confusion matrix
+conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
+conf_matrix_df.to_csv('CM_confusion_matrix_LightGBM.csv')
+
+logger.info("Cross-validation completed. Results saved to Result_LightGBM.txt")
