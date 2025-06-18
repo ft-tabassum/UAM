@@ -44,14 +44,14 @@ base_pipeline = Pipeline([
     ))
 ])
 
-# Keep only important parameters with 2 values each
+# Define Parameter
 param_grid = {
-    'classifier__n_estimators': [50, 80],     # Reduced number of trees
-    'classifier__max_depth': [2, 3],          # Reduced tree depth
-    'classifier__learning_rate': [0.005, 0.01], # Reduced learning rate
-    'classifier__num_leaves': [15, 31],       # Reduced number of leaves
-    'classifier__reg_alpha': [0.1, 0.5],      # Added L1 regularization
-    'classifier__reg_lambda': [0.1, 0.5]      # Added L2 regularization
+    'classifier__n_estimators': [50, 80],     # number of trees
+    'classifier__max_depth': [2, 3],          # tree depth
+    'classifier__learning_rate': [0.005, 0.01], # learning rate
+    'classifier__num_leaves': [15, 31],       # number of leaves
+    'classifier__reg_alpha': [0.1, 0.5],      #  L1 regularization
+    'classifier__reg_lambda': [0.1, 0.5]      #  L2 regularization
 }
 
 # Split data into train+val and test
@@ -303,6 +303,6 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') 
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('CM_confusion_matrix_LightGBM.csv')
+conf_matrix_df.to_csv('Confusion_matrix_LightGBM.csv')
 
 logger.info("Cross-validation completed. Results saved to Result_LightGBM.txt")
