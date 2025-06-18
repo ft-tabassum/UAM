@@ -385,7 +385,7 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_Stacking.txt', 'w') 
 logger.info("Results saved to 'Result_Stacking.txt'")
 
 # Save model
-model_path = '../../Result/Prediction_EvaluationMetrics/stacking_svm_model.joblib'
+model_path = '../../Result/Probabilities/Testing_Probabilities/stacking_svm_model.joblib'
 joblib.dump(best_svm, model_path)
 logger.info(f"\nModel saved as '{model_path}'")
 
