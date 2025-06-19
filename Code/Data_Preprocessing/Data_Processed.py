@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 import numpy as np
 
 # Load data
-data = pd.read_excel('D://Study//Thesis//data//final_data//uam_dataset.xlsx')
+data = pd.read_excel('D://Files_D//Study//Thesis//data//Discrete_data//uam_dataset.xlsx')
 
 # Drop unnecessary columns
 cols_to_drop = [
