@@ -303,6 +303,6 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') 
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('Confusion_matrix_LightGBM.csv')
+conf_matrix_df.to_csv('CM_LightGBM.csv')
 
 logger.info("Cross-validation completed. Results saved to Result_LightGBM.txt")

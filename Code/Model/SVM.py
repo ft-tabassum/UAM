@@ -251,6 +251,6 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_SVM.txt', 'w') as f:
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('CM_confusion_matrix_SVM.csv')
+conf_matrix_df.to_csv('CM_SVM.csv')
 
 logger.info("Cross-validation completed. Results saved to Result_SVM.txt")

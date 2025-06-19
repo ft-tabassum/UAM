@@ -284,6 +284,6 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') a
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('CM_confusion_matrix_XGBoost.csv')
+conf_matrix_df.to_csv('CM_XGBoost.csv')
 
 logger.info("Cross-validation completed. Results saved to Result_XGBoost.txt")

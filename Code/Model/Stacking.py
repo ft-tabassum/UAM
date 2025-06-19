@@ -398,8 +398,8 @@ logger.info("Test set probabilities saved to 'stacking_svm_test_probabilities.cs
 confusion_matrix_df = pd.DataFrame(test_cm,
                                    index=[f'True_{c}' for c in classes],
                                    columns=[f'Pred_{c}' for c in classes])
-confusion_matrix_df.to_csv('../../Result/Prediction_EvaluationMetrics/stacking_svm_confusion_matrix.csv')
-logger.info("Confusion matrix saved to 'stacking_svm_confusion_matrix.csv'")
+confusion_matrix_df.to_csv('../../Result/Prediction_EvaluationMetrics/CM_Stacking.csv')
+logger.info("Confusion matrix saved to 'CM_Stacking.csv'")
 
 # Save feature importances
 for name, importances in feature_importances.items():
