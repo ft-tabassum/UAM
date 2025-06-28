@@ -50,7 +50,7 @@ logger = setup_logger()
 warnings.filterwarnings('ignore')
 
 # Load the data
-data = pd.read_csv('D:\PythonProject\Result\Data_Preprocessing\data_normalized.csv')
+data = pd.read_csv('/Result/Data_Preprocessing/Uamdata_normalized.csv')
 
 
 # Clean feature names (remove special characters and spaces)

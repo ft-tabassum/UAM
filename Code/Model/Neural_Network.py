@@ -145,7 +145,7 @@ class SimpleNeuralNetwork(nn.Module, BaseEstimator, ClassifierMixin):
         return np.array(probabilities)
 
 # Load data
-data = pd.read_csv('../../Result/Data_Preprocessing/data_normalized.csv')
+data = pd.read_csv('../../Result/Data_Preprocessing/Uamdata_normalized.csv')
 
 # Define features and target
 y = data['tmode']

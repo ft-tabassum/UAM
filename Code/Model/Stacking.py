@@ -43,7 +43,7 @@ warnings.filterwarnings('ignore')
 
 # Load the data
 logger.info("Loading data...")
-data = pd.read_csv('../../Result/Data_Preprocessing/data_normalized.csv')
+data = pd.read_csv('../../Result/Data_Preprocessing/Uamdata_normalized.csv')
 
 
 # Clean feature names to remove special characters

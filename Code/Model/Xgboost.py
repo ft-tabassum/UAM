@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data
-data = pd.read_csv('../../Result/Data_Preprocessing/data_normalized.csv')
+data = pd.read_csv('../../Result/Data_Preprocessing/Uamdata_normalized.csv')
 
 # Define features and target
 y = data['tmode']
