@@ -43,11 +43,11 @@ def process_synthetic_data():
     processed_data['gender'] = processed_data['gender'].map(gender_mapping)
     
     # Employment mapping
-    employment_mapping = {1: 'employed', 2: 'unemployed', 3: 'student'}
+    employment_mapping = {1: 'Working full-time', 2: 'Unemployed', 3: 'Pupil, student or apprentice/intern'}
     processed_data['employment'] = processed_data['employment'].map(employment_mapping)
     
     # Driving license mapping
-    processed_data['driving license'] = processed_data['driving license'].map({True: 'yes', False: 'no'})
+    processed_data['driving license'] = processed_data['driving license'].map({True: 'Yes', False: 'No'})
     
     # Purpose mapping
     purpose_mapping = {
@@ -122,7 +122,7 @@ def process_synthetic_data():
     # 5. Select and rename relevant columns
     print("\nSelecting and organizing columns...")
     
-    # Define the columns we want to keep and their new names
+    # Define the columns we want to keep and their new names - matching reduced model exactly
     columns_to_keep = {
         'driving license': 'driving license',
         'gender': 'gender',
@@ -134,48 +134,15 @@ def process_synthetic_data():
         'mode': 'mode'
     }
     
-    # Add coordinate columns
-    coord_columns = {
-        'coordx_hh': 'coordx_hh',
-        'coordy_hh': 'coordy_hh',
-        'coordx_sch': 'coordx_sch',
-        'coordy_sch': 'coordy_sch',
-        'coordx_job': 'coordx_job',
-        'coordy_job': 'coordy_job'
-    }
-    
-    # Add trip-related columns
-    trip_columns = {
-        'distance': 'distance',
-        'time_auto': 'time_auto',
-        'time_bus': 'time_bus',
-        'time_train': 'time_train',
-        'time_tram_metro': 'time_tram_metro'
-    }
-    
-    # Add zone columns
-    zone_columns = {
-        'origin': 'origin',
-        'destination': 'destination',
-        'household_zone': 'household_zone',
-        'school_zone': 'school_zone',
-        'job_zone': 'job_zone'
-    }
-    
-    # Add time columns
-    time_columns = {
-        'departure_time': 'departure_time',
-        'departure_time_return': 'departure_time_return'
-    }
-    
-    # Combine all columns
-    all_columns = {**columns_to_keep, **coord_columns, **trip_columns, **zone_columns, **time_columns}
+    # Add veh_time using auto time
+    processed_data['veh_time'] = processed_data['time_auto']  # Use auto time as vehicle time
+    columns_to_keep['veh_time'] = 'veh_time'
     
     # Check which columns exist in the data
     available_columns = []
     missing_columns = []
     
-    for old_name, new_name in all_columns.items():
+    for old_name, new_name in columns_to_keep.items():
         if old_name in processed_data.columns:
             available_columns.append((old_name, new_name))
         else:
@@ -196,21 +163,11 @@ def process_synthetic_data():
     print(f"Selected data shape: {selected_data.shape}")
     print(f"Selected columns: {list(selected_data.columns)}")
     
-    # 6. Identify ordinal and nominal columns
+    # 6. Identify ordinal and nominal columns - matching reduced model exactly
     print("\nIdentifying column types...")
     
-    ordinal_cols = []
-    nominal_cols = []
-    
-    for col in selected_data.columns:
-        if col == 'mode':  # Skip target variable
-            continue
-        elif col in ['age', 'monthly income', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro']:
-            ordinal_cols.append(col)
-        elif col in ['driving license', 'gender', 'employment', 'Purpose']:
-            nominal_cols.append(col)
-        else:  # Other numeric columns (coordinates, zones, times)
-            ordinal_cols.append(col)
+    ordinal_cols = ['age', 'monthly income', 'veh_time']
+    nominal_cols = ['driving license', 'Purpose', 'household car', 'gender', 'employment']
     
     print(f"Ordinal columns: {ordinal_cols}")
     print(f"Nominal columns: {nominal_cols}")
@@ -288,7 +245,31 @@ def process_synthetic_data():
     for mode, count in mode_counts.items():
         print(f"  Mode {mode}: {count} trips ({count/len(X_processed_df)*100:.1f}%)")
     
-    return X_processed_df
+    # 10. Align features and one-hot encoding with reduced model
+    print("\nAligning features and one-hot encoding with reduced model...")
+    reduced = pd.read_csv('D:/PythonProject/Result/Data_Preprocessing/reduced_model_normalized.csv')
+    def standardize(col):
+        return col.lower().replace(' ', '').replace('_', '')
+    reduced_cols_std = {standardize(col): col for col in reduced.columns}
+    synthetic_cols_std = {standardize(col): col for col in X_processed_df.columns}
+    cols_to_keep = []
+    for std_col, orig_col in reduced_cols_std.items():
+        if std_col in synthetic_cols_std:
+            cols_to_keep.append(synthetic_cols_std[std_col])
+        else:
+            # If missing, add a column with zeros
+            X_processed_df[orig_col] = 0
+            cols_to_keep.append(orig_col)
+    # Remove extra columns from synthetic data
+    synthetic_aligned = X_processed_df[cols_to_keep]
+    # Reorder columns to match reduced model
+    synthetic_aligned = synthetic_aligned[reduced.columns]
+    # Save the aligned synthetic data
+    output_aligned = 'D:/PythonProject/Result/Data_Preprocessing/synthetic_data_aligned.csv'
+    synthetic_aligned.to_csv(output_aligned, index=False)
+    print(f"Aligned synthetic data saved as: {output_aligned}")
+    print(f"Aligned synthetic data shape: {synthetic_aligned.shape}")
+    return synthetic_aligned
 
 if __name__ == "__main__":
     processed_data = process_synthetic_data() 

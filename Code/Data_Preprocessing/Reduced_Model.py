@@ -8,6 +8,21 @@ import os
 # Load data
 data = pd.read_excel('D://Files_D//Study//Thesis//data//Discrete_data//uam_dataset.xlsx')
 
+# Define columns to exclude (unwanted columns)
+columns_to_exclude = [
+    'PT_Subscription', 'PT_Subscription_Airport',  # pt subscription
+    'Physical_Disabilities',  # disability
+    'Education',  # education
+    'InVehicleTime_Car', 'WaitingTime_Car', 'TravelCost_Car', 'Availability_Car',
+    'InVehicleTime_PublicTransport', 'WaitingTime_PublicTransport', 'TravelCost_PublicTransport', 'Availability_PublicTransport',
+    'InVehicleTime_CarSharing', 'WaitingTime_CarSharing', 'TravelCost_CarSharing', 'Availability_CarSharing',
+    'InVehicleTime_RideHailing', 'WaitingTime_RideHailing', 'TravelCost_RideHailing', 'Availability_RideHailing',
+    'InVehicleTime_Uam', 'WaitingTime_Uam', 'TravelCost_Uam', 'Availability_Uam'
+]
+
+# Remove unwanted columns from the original dataset
+data = data.drop(columns=[col for col in columns_to_exclude if col in data.columns])
+
 # Print original data info
 print("Original data shape:", data.shape)
 print("Original columns:", list(data.columns))
@@ -15,40 +30,15 @@ print("\nFirst few rows:")
 print(data.head())
 
 # Define the columns to keep with their new names (if renaming is needed)
-# Based on the actual column names found in the dataset
 columns_to_keep = {
     'Driving_License': 'driving license',
-    'PT_Subscription': 'pt subscription', 
-    'Reason': 'Purpose',  # renamed from 'Reason' to 'Purpose'
     'HouseholdCar': 'household car',
     'Gender': 'gender',
-    'Age': 'age',
-    'Child_Household': 'child_household',
-    'Physical_Disabilities': 'disability',
-    'Education': 'education',
     'Employment': 'employment',
+    'Age': 'age',
     'Monthly_Income': 'monthly income',
-    'tmode': 'mode',  # renamed from 'tmode' to 'mode'
-    'tripLength': 'veh_time',  # assuming tripLength is the vehicle time
-    'InVehicleTime_Car': 'InVehicleTime_Car',
-    'WaitingTime_Car': 'WaitingTime_Car',
-    'TravelCost_Car': 'TravelCost_Car',
-    'Availability_Car': 'Availability_Car',
-    'InVehicleTime_PublicTransport': 'InVehicleTime_PublicTransport',
-    'WaitingTime_PublicTransport': 'WaitingTime_PublicTransport',
-    'TravelCost_PublicTransport': 'TravelCost_PublicTransport',
-    'Availability_PublicTransport': 'Availability_PublicTransport',
-    'InVehicleTime_CarSharing': 'InVehicleTime_CarSharing',
-    'WaitingTime_CarSharing': 'WaitingTime_CarSharing',
-    'TravelCost_CarSharing': 'TravelCost_CarSharing',
-    'Availability_CarSharing': 'Availability_CarSharing',
-    'InVehicleTime_RideHailing': 'InVehicleTime_RideHailing',
-    'WaitingTime_RideHailing': 'WaitingTime_RideHailing',
-    'TravelCost_RideHailing': 'TravelCost_RideHailing',
-    'Availability_RideHailing': 'Availability_RideHailing',
-    'InVehicleTime_Uam': 'InVehicleTime_Uam',
-    'WaitingTime_Uam': 'WaitingTime_Uam',
-    'TravelCost_Uam': 'TravelCost_Uam'
+    'tmode': 'mode',
+    'tripLength': 'veh_time',
 }
 
 # Check which columns exist in the original dataset
@@ -141,31 +131,51 @@ for col in ordinal_cols:
 X = reduced_data.drop(columns=['mode'])
 y = reduced_data['mode']
 
-# One-hot encode nominal variables
+# For one-hot encoding, use the same categories as in the synthetic data
+household_car_categories = ['0', '1', '2', '3']
+gender_categories = ['female', 'male']
+employment_categories = [
+    'Pupil, student or apprentice/intern', 'Unemployed', 'Working full-time'
+]
+
+# When creating the reduced_data DataFrame, ensure all categorical columns are cast to string and have the correct categories
+reduced_data['household car'] = reduced_data['household car'].astype(str)
+reduced_data['gender'] = reduced_data['gender'].astype(str)
+reduced_data['employment'] = reduced_data['employment'].astype(str)
+
+# For one-hot encoding, use the specified categories
+nominal_cols = ['driving license', 'household car', 'gender', 'employment']
+ordinal_cols = ['age', 'monthly income', 'veh_time']
+
 if nominal_cols:
     categorical_transformer = Pipeline([
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        ('onehot', OneHotEncoder(categories=[
+            ['No', 'Yes'],
+            household_car_categories,
+            gender_categories,
+            employment_categories
+        ], handle_unknown='ignore'))
     ])
 
     preprocessor = ColumnTransformer(transformers=[
         ('nominal', categorical_transformer, nominal_cols)
     ], remainder='passthrough')
 
+    X = reduced_data.drop(columns=['mode'])
+    y = reduced_data['mode']
+
     X_processed = preprocessor.fit_transform(X)
 
     passthrough_cols = [col for col in X.columns if col not in nominal_cols]
-    feature_names = list(preprocessor.named_transformers_['nominal'].named_steps['onehot'].get_feature_names_out(
-        nominal_cols)) + passthrough_cols
+    feature_names = list(preprocessor.named_transformers_['nominal'].named_steps['onehot'].get_feature_names_out(nominal_cols)) + passthrough_cols
 
-    # Convert to dense array if sparse
     if hasattr(X_processed, 'toarray'):
         X_processed = X_processed.toarray()
 
     X_processed_df = pd.DataFrame(X_processed, columns=feature_names)
     X_processed_df['mode'] = y.values
 else:
-    # If no nominal columns, just use the data as is
-    X_processed_df = X.copy()
+    X_processed_df = reduced_data.copy()
     X_processed_df['mode'] = y.values
 
 print(f"Processed reduced data shape: {X_processed_df.shape}")
