@@ -126,7 +126,7 @@ def evaluate_and_save(model, X_train, y_train, X_val, y_val, le, test_data):
         'feature': model.feature_names_in_,
         'importance': model.feature_importances_
     }).sort_values('importance', ascending=False)
-    feature_importance.to_csv('D:/PythonProject/Result/Feature_Importance/feature_importance_XGBoost_UAM_Advanced.csv', index=False)
+    feature_importance.to_csv('D:/PythonProject/Result/Feature_Importance/feature_importance_XGBoost_UAM_Prediction.csv', index=False)
     # Save summary
     with open('D:/PythonProject/Result/Model/xgboost_uam_advanced_summary.txt', 'w') as f:
         f.write(f"Best parameters: {model.get_params()}\n")
