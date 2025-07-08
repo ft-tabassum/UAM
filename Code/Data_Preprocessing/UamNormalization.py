@@ -21,5 +21,5 @@ data_normalized = pd.DataFrame(scaled_features, columns=features.columns)
 data_normalized['tmode'] = data['tmode']
 
 # Save or use data_normalized for  ML or analysis
-data_normalized.to_csv('Uamdata_normalized.csv', index=False)
+data_normalized.to_csv("D://PythonProject//Result//Data_Preprocessing//Uamdata_normalized.csv", index=False)
 

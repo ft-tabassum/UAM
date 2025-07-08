@@ -87,5 +87,5 @@ X_processed_df['tmode'] = y.values
 print(f"Processed data shape: {X_processed_df.shape}")
 print(X_processed_df.head())
 
-X_processed_df.to_csv('Uamdata_processed.csv', index=False)
+X_processed_df.to_csv("D://PythonProject//Result//Data_Preprocessing//Uamdata_processed.csv", index=False)
 print("Processed data saved to 'Uamdata_processed.csv'")
