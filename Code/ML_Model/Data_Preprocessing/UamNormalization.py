@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 # Load data
-data = pd.read_csv('../../Result/Data_Preprocessing/Uamdata_processed.csv')
+data = pd.read_csv('../../../Result/ML_Model/Data_Preprocessing/Uamdata_processed.csv')
 
 # Replace -1 with 0
 data = data.replace(-1, 0)
