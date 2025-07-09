@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 # Load data
-input_file = "../../../LargeFiles_synthetic/trial_micro_trips_with_income_mapping.csv"
+input_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips_with_income&mapping.csv"
 data = pd.read_csv(input_file)
 
 print("=== TRIAL DATA PROCESSING SCRIPT ===")
@@ -204,7 +204,7 @@ for col in reference_cols:
         X_processed_df[col] = data[col].values
 
 # Step 10: Save the processed data
-output_file = "../../../LargeFiles_synthetic/trial_processed.csv"
+output_file = "/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv"
 X_processed_df.to_csv(output_file, index=False)
 
 print("=== PROCESSING COMPLETED ===")

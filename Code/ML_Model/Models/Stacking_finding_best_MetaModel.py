@@ -49,7 +49,7 @@ def setup_logger():
 logger = setup_logger()
 warnings.filterwarnings('ignore')
 
-# Load the data
+# Load data of UAM survey data
 data = pd.read_csv('/Result/Data_Preprocessing/Uamdata_normalized.csv')
 
 
@@ -268,7 +268,7 @@ def tune_hyperparameters(X_train, y_train, model, param_grid, model_name):
 # Function to get base model predictions using stratified cross-validation
 def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_grids, n_folds=10):
     logger.info("\n" + "=" * 50)
-    logger.info("Starting Base Model Training")
+    logger.info("Starting Base ML_Model Training")
     logger.info("=" * 50)
 
     # Initialize arrays to store predictions
@@ -325,7 +325,7 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
         logger.info("-" * 30)
 
     logger.info("\n" + "=" * 50)
-    logger.info("Base Model Training Completed")
+    logger.info("Base ML_Model Training Completed")
     logger.info("=" * 50 + "\n")
 
     return train_meta_features, val_meta_features, test_meta_features
@@ -404,7 +404,7 @@ logger.info("\n" + classification_report(y_test, test_predictions))
 # Save the model and results
 model_path = 'logs/stacking_model.joblib'
 joblib.dump(best_meta_learner, model_path)
-logger.info(f"Model saved as '{model_path}'")
+logger.info(f"ML_Model saved as '{model_path}'")
 
 # Save meta-learner comparison results
 results_df = pd.DataFrame({

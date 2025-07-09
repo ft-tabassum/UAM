@@ -160,7 +160,7 @@ def process_combined_data():
         final_data = combined_data[available_columns]
 
         # Create output directory
-        output_dir = ""
+        output_dir = "../../../Result/Vertiport_analysis/Synthetic_population"
         os.makedirs(output_dir, exist_ok=True)
 
         # Save the combined data

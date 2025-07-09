@@ -17,8 +17,8 @@ warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Load data
-data = pd.read_csv('../../Result/Data_Preprocessing/Uamdata_normalized.csv')
+# Load data of UAM survey data
+data = pd.read_csv('../../../Result/ML_Model/Data_Preprocessing/Uamdata_normalized.csv')
 
 # Define features and target
 y = data['tmode']
@@ -234,7 +234,7 @@ except ValueError as e:
     test_roc_auc = np.nan
 
 # Save results
-with open('../../Result/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') as f:
+with open('../../../Result/ML_Model/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') as f:
     f.write("Results for LightGBM with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
@@ -283,7 +283,7 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') 
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal Model Performance:\n")
+    f.write("\nFinal ML_Model Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")

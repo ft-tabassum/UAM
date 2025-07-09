@@ -16,19 +16,21 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Create output directories
-os.makedirs('../../Result/Probabilities/Testing_Probabilities', exist_ok=True)
-os.makedirs('../../Result/Probabilities/Training_Probabilities', exist_ok=True)
-os.makedirs('../../Result/Feature_Importance', exist_ok=True)
-os.makedirs('../../Result/Confusion_Matrix', exist_ok=True)
-os.makedirs('../../Result/Prediction_EvaluationMetrics', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Testing_Probabilities', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Training_Probabilities', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Feature_Importance', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Confusion_Matrix', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Prediction_EvaluationMetrics', exist_ok=True)
 
 # Load LighterModel data (UAM-aware data for training)
+## Normalization is skipped because it generates many zero values, which leads to incorrect results.
+
 logger.info("Loading processed LighterModel data...")
-lighter_data = pd.read_csv("/Code/Lightermodel/Result_LM/LighterModel_processing.csv")
+lighter_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/LighterModel/LighterModel_processing.csv")
 
 # Load trial data (UAM-unaware data for prediction)
 logger.info("Loading processed trial data...")
-trial_data = pd.read_csv('/LargeFiles_synthetic/trial_processed.csv')
+trial_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv")
 
 # Define features and target for LighterModel
 y_lighter = lighter_data['tmode']
@@ -163,7 +165,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('../../Result/Probabilities/Training_Probabilities/all_folds_probabilities_LighterModel.csv',
+all_fold_probs_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Training_Probabilities/all_folds_probabilities_Xgboost_with_synthetic_population.csv',
                          index=False)
 
 logger.info("All fold probabilities have been saved to 'all_folds_probabilities_LighterModel.csv'.")
@@ -203,7 +205,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('../../Result/Probabilities/Testing_Probabilities/test_set_probabilities_LighterModel.csv',
+test_probs_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Testing_Probabilities/test_set_probabilities_Xgboost_with_synthetic_population.csv',
                      index=False)
 
 # Calculate test metrics
@@ -228,10 +230,10 @@ feature_importance_df = pd.DataFrame({
     'Importance': mean_feature_importance
 })
 feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('../../Result/Feature_Importance/feature_importance_LighterModel.csv', index=False)
+feature_importance_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Feature_Importance/fi_Xgboost_with_synthetic_population.csv', index=False)
 
 # Save results
-with open('../../Result/Prediction_EvaluationMetrics/Result_LighterModel.txt', 'w') as f:
+with open('../../../Result/Vertiport_analysis/Probability_clustering/Prediction_EvaluationMetrics/Xgboost_with_synthetic_population.txt', 'w') as f:
     f.write("Results for LighterModel XGBoost with 10-fold Cross-Validation:\n\n")
 
     # Write parameter stability analysis
@@ -277,7 +279,7 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_LighterModel.txt', '
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
 
-    f.write("\nFinal Model Performance:\n")
+    f.write("\nFinal ML_Model Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -302,9 +304,9 @@ with open('../../Result/Prediction_EvaluationMetrics/Result_LighterModel.txt', '
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('../../Result/Confusion_Matrix/CM_LighterModel.csv')
+conf_matrix_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Confusion_Matrix/Xgboost_with_synthetic_population.csv')
 
-logger.info("Step 1 complete: Model trained, validated, and tested. Results saved.")
+logger.info("Step 1 complete: ML_Model trained, validated, and tested. Results saved.")
 
 # =========================
 # 2. INITIALIZE K-MEANS WITH 74 VERTIPORTS
@@ -446,7 +448,7 @@ logger.info("Step 3 complete: Vertiport optimization finished.")
 
 # Save centroid history after optimization
 centroid_history = np.array(centroid_history)  # shape: (num_iterations+1, 74, 2)
-np.save('../../Result/Probabilities/Testing_Probabilities/vertiport_centroid_history.npy', centroid_history)
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/vertiport_centroid_history.npy', centroid_history)
 
 # =========================
 # 4. FINAL PREDICTION AND OUTPUT
@@ -468,9 +470,9 @@ for i, cls in enumerate(classes):
 for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel time_Uam', 'TravelCost_Uam', 'uam_first_mile_km',
             'uam_last_mile_km', 'uam_air_km']:
     output[col] = trial_with_uam_full[col]
-os.makedirs('../../Result/Probabilities/Testing_Probabilities', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
 output.to_csv(
-    '../../Result/Probabilities/Testing_Probabilities/trial_probabilities_with_optimized_vertiports_softmax.csv',
+    '../../../Result/Vertiport_analysis/Probability_clustering/syntheticPopulation_probabilities_with_optimized_vertiports_softmax.csv',
     index=False)
-np.save('../../Result/Probabilities/Testing_Probabilities/optimized_vertiport_coords_softmax.npy', vertiport_coords)
-logger.info("Step 4 complete: All results saved to Result/Probabilities/Testing_Probabilities/") 
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_softmax.npy', vertiport_coords)
+logger.info("Step 4 complete: All results saved to Result/Vertiport_analysis/Probability_clustering/")

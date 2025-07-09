@@ -4,7 +4,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import numpy as np
 
-# Load data
+# Load data of Survey
+#Features that are similar to "Synthetic_population" are considered here
 data = pd.read_excel("D://Files_D//Study//Thesis//data//Lighter_UAM//Lighter_UAM.xlsx")
 
 # Step 1: Drop Unnamed columns (remove columns like 'Unnamed: 33')
@@ -64,8 +65,8 @@ data[nominal_cols] = data[nominal_cols].fillna('0').astype(str)
 for col in ordinal_cols:
     data[col] = data[col].fillna(0)
 
-# Step 7: Custom mapping for Gender and Age to match the synthetic population script
-print("Custom mapping for Gender and Age to match synthetic population script:")
+# Step 7: Custom mapping for Gender and Age to match the Synthetic_population script
+print("Custom mapping for Gender and Age to match Synthetic_population script:")
 print()
 
 # Custom Gender mapping
@@ -147,6 +148,6 @@ X_processed_df = pd.DataFrame(X_processed, columns=feature_names)
 X_processed_df['tmode'] = y.values
 
 # Step 13: Save the processed data to a CSV file
-output_file = "/Code/Lightermodel/Result_LM/LighterModel_processing.csv"
+output_file = "/Result/LighterModel/LighterModel_processing.csv"
 X_processed_df.to_csv(output_file, index=False)
 print(f"Processed data saved to '{output_file}'")

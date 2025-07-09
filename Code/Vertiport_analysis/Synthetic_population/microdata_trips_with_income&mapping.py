@@ -142,8 +142,8 @@ def main():
     print("=" * 60)
     
     # Input and output file paths
-    input_file = "/Code/synthetic population/trial_synthetic/trial_micro_trips_fixed.csv"
-    output_file = "/Code/synthetic population/trial_synthetic/trial_micro_trips_with_income_mapping.csv"
+    input_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips.csv"
+    output_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips_with_income&mapping.csv"
     
     try:
         # Read the input data
@@ -258,7 +258,7 @@ def main():
         
     except FileNotFoundError:
         print(f"Error: Input file '{input_file}' not found!")
-        print("Please make sure the trial_fixed.py script has been run successfully.")
+        print("Please make sure the microdata_trips.py script has been run successfully.")
     except Exception as e:
         print(f"Error processing data: {str(e)}")
         import traceback

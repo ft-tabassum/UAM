@@ -6,7 +6,7 @@ print("=== TRIAL SYNTHETIC NORMALIZATION SCRIPT ===")
 print("=" * 55)
 
 # Load the processed trial synthetic data
-input_file = "../../../LargeFiles_synthetic/trial_processed.csv"
+input_file = "../../../LargeFiles_synthetic/synthetic_population_processing.csv"
 data = pd.read_csv(input_file)
 
 print(f"Input file: {input_file}")

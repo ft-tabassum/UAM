@@ -6,7 +6,7 @@ print("=== LIGHTERMODEL NORMALIZATION SCRIPT ===")
 print("=" * 50)
 
 # Load the processed LighterModel data
-input_file = "Result_LM/LighterModel_processing.csv"
+input_file = "/Result/LighterModel/LighterModel_processing.csv"
 data = pd.read_csv(input_file)
 
 print(f"Input file: {input_file}")
@@ -29,7 +29,8 @@ numerical_cols = []
 for col in data.columns:
     if col == 'tmode':  # Target variable - don't normalize
         continue
-    elif col.startswith(('Employment_', 'Driving_License_', 'disability_', 'Child_Household_', 'Adult_household_', 'autos_')):
+    elif col.startswith(
+            ('Employment_', 'Driving_License_', 'disability_', 'Child_Household_', 'Adult_household_', 'autos_')):
         # One-hot encoded categorical columns
         categorical_cols.append(col)
     elif col in ['Gender', 'Age', 'Monthly_Income', 'purpose']:
@@ -77,14 +78,14 @@ for col in numerical_cols:
     original_std = data[col].std()
     normalized_mean = data_normalized[col].mean()
     normalized_std = data_normalized[col].std()
-    
+
     print(f"{col}:")
     print(f"  Original - mean: {original_mean:.4f}, std: {original_std:.4f}")
     print(f"  Normalized - mean: {normalized_mean:.4f}, std: {normalized_std:.4f}")
 print()
 
 # Save normalized data
-output_file = "Result_LM/LighterModel_normalized.csv"
+output_file = "/Result/LighterModel/LighterModel_normalized.csv"
 data_normalized.to_csv(output_file, index=False)
 
 print(f"Normalized data saved to: {output_file}")
