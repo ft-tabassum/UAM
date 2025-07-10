@@ -10,6 +10,12 @@ from sklearn.preprocessing import label_binarize
 from collections import Counter
 import os
 from sklearn.cluster import KMeans
+import random
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -45,7 +51,7 @@ logger.info(f"Classes: {classes}")
 # Create base pipeline
 base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
-    ('classifier', XGBClassifier(random_state=42))
+    ('classifier', XGBClassifier(random_state=RANDOM_SEED))
 ])
 
 # Hyperparameter grid - focused on key parameters
@@ -59,11 +65,11 @@ param_grid = {
 
 # Split LighterModel data into train+val and test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
-    X_lighter, y_lighter, test_size=0.2, random_state=42, stratify=y_lighter
+    X_lighter, y_lighter, test_size=0.2, random_state=RANDOM_SEED, stratify=y_lighter
 )
 
 # Setup cross-validation
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
 # Store feature names
 feature_names = X_lighter.columns.tolist()
@@ -316,7 +322,7 @@ od_points = np.vstack([
     trial_data[['originX', 'originY']].values,
     trial_data[['destinationX', 'destinationY']].values
 ])
-kmeans = KMeans(n_clusters=74, random_state=42)
+kmeans = KMeans(n_clusters=74, random_state=RANDOM_SEED)
 kmeans.fit(od_points)
 vertiport_coords = kmeans.cluster_centers_
 logger.info("Step 2 complete: Initial vertiport locations set.")
@@ -429,7 +435,7 @@ for iteration in range(max_iter):
     # Use softmax to accentuate high-demand trips (temperature=1 for )
     softmax_weights = softmax(uam_probs, temperature=1)
     weights = np.concatenate([softmax_weights, softmax_weights])
-    kmeans = KMeans(n_clusters=VERTIPORT_K, random_state=42)
+    kmeans = KMeans(n_clusters=VERTIPORT_K, random_state=RANDOM_SEED)
     kmeans.fit(od_points, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
     # e. Check convergence

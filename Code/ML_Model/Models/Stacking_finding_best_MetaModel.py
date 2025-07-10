@@ -16,6 +16,12 @@ import os
 from datetime import datetime
 import re
 import joblib
+import random
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 
 # Configure logging
@@ -84,10 +90,10 @@ logger.info(f"Features (X): {X.shape}")
 logger.info(f"Target (y): {y.shape}")
 
 # First split: separate test set (20%)
-X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
 
 # Second split: separate validation set from remaining data (20% of original = 25% of remaining)
-X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp)
+X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=RANDOM_SEED, stratify=y_temp)
 
 logger.info("Data split sizes:")
 logger.info(f"Training set: {X_train.shape[0]} samples")
@@ -96,10 +102,10 @@ logger.info(f"Test set: {X_test.shape[0]} samples")
 
 # Initialize base models
 base_models = {
-    'random_forest': RandomForestClassifier(random_state=42),
-    'xgboost': xgb.XGBClassifier(random_state=42),
+    'random_forest': RandomForestClassifier(random_state=RANDOM_SEED),
+    'xgboost': xgb.XGBClassifier(random_state=RANDOM_SEED),
     'lightgbm': lgb.LGBMClassifier(
-        random_state=42,
+        random_state=RANDOM_SEED,
         verbose=-1,  # Suppress LightGBM output
         force_col_wise=True,  # Force column-wise split
         n_jobs=-1,  # Use all available cores
@@ -143,7 +149,7 @@ param_grids = {
 # Define meta-learners and their parameter grids
 meta_learners = {
     'logistic_regression': {
-        'model': LogisticRegression(random_state=42),
+        'model': LogisticRegression(random_state=RANDOM_SEED),
         'param_grid': {
             'C': [0.1, 1.0, 10.0],
             'penalty': ['l1', 'l2'],
@@ -151,7 +157,7 @@ meta_learners = {
         }
     },
     'gradient_boosting': {
-        'model': GradientBoostingClassifier(random_state=42),
+        'model': GradientBoostingClassifier(random_state=RANDOM_SEED),
         'param_grid': {
             'n_estimators': [100, 200],
             'learning_rate': [0.01, 0.1],
@@ -160,7 +166,7 @@ meta_learners = {
         }
     },
     'svm': {
-        'model': SVC(probability=True, random_state=42),
+        'model': SVC(probability=True, random_state=RANDOM_SEED),
         'param_grid': {
             'C': [0.1, 1.0, 10.0],
             'kernel': ['rbf', 'linear'],
@@ -169,7 +175,7 @@ meta_learners = {
     },
     'neural_network': {
         'model': MLPClassifier(
-            random_state=42,
+            random_state=RANDOM_SEED,
             max_iter=1000,  # Increased maximum iterations
             early_stopping=True,  # Enable early stopping
             validation_fraction=0.1,  # Use 10% of data for validation
@@ -243,7 +249,7 @@ def tune_hyperparameters(X_train, y_train, model, param_grid, model_name):
     grid_search = GridSearchCV(
         estimator=model,
         param_grid=param_grid,
-        cv=StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42),
+        cv=StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_SEED),
         scoring='accuracy',
         n_jobs=-1,
         verbose=1
@@ -277,7 +283,7 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
     test_meta_features = np.zeros((X_test.shape[0], len(base_models)))
 
     # Initialize StratifiedKFold
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=RANDOM_SEED)
 
     # Train each base model and get predictions
     for i, (name, model) in enumerate(base_models.items()):

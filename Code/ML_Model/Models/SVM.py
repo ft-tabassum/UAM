@@ -8,6 +8,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import label_binarize
 from collections import Counter
+import random
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,7 +33,7 @@ n_classes = len(classes)
 # Create base pipeline
 base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
-    ('classifier', SVC(probability=True, random_state=42))
+    ('classifier', SVC(probability=True, random_state=RANDOM_SEED))
 ])
 
 # Hyperparameter grid - increased regularization
@@ -39,11 +45,11 @@ param_grid = {
 
 # Split data into train+val and test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y
 )
 
 # Setup cross-validation
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
 # Initialize storage for metrics
 fold_metrics = {

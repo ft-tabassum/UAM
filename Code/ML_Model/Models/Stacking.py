@@ -13,6 +13,12 @@ import os
 from datetime import datetime
 import joblib
 import re
+import random
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 
 # Setup logging
@@ -91,8 +97,8 @@ logger.info(f"Features (X): {X.shape}")
 logger.info(f"Target (y): {y.shape}")
 
 # Split data
-X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.25, random_state=42,
+X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
+X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.25, random_state=RANDOM_SEED,
                                                   stratify=y_train_val)
 
 logger.info("Data split sizes:")
@@ -125,7 +131,7 @@ param_grids = {
 # Initialize base models
 base_models = {
     'lightgbm': lgb.LGBMClassifier(
-        random_state=42,
+        random_state=RANDOM_SEED,
         verbose=-1,
         force_col_wise=True,
         n_jobs=-1,
@@ -139,8 +145,8 @@ base_models = {
         min_child_weight=1e-3,
         min_split_gain=0
     ),
-    'random_forest': RandomForestClassifier(random_state=42),
-    'xgboost': xgb.XGBClassifier(random_state=42)
+    'random_forest': RandomForestClassifier(random_state=RANDOM_SEED),
+    'xgboost': xgb.XGBClassifier(random_state=RANDOM_SEED)
 }
 
 # Initialize storage for metrics
@@ -167,7 +173,7 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
     best_params_dict = {}
     all_fold_params = {name: [] for name in base_models.keys()}
 
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=RANDOM_SEED)
 
     for i, (name, model) in enumerate(base_models.items()):
         logger.info(f"\nTraining {name}...")
@@ -229,7 +235,7 @@ train_meta_features, val_meta_features, test_meta_features, best_params_dict, al
 )
 
 # Define SVM meta-learner with important parameters only
-svm_meta_learner = SVC(probability=True, random_state=42)
+svm_meta_learner = SVC(probability=True, random_state=RANDOM_SEED)
 svm_param_grid = {
     'C': [0.1, 1.0, 10.0],
     'kernel': ['rbf', 'linear'],

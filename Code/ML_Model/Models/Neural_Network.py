@@ -12,6 +12,13 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import Counter
 import warnings
 import time
+import random
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+torch.manual_seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
 
 warnings.filterwarnings('ignore')
 
@@ -19,9 +26,7 @@ warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Set random seeds for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
+
 
 class CustomDataset(Dataset):
     """Simple dataset class for PyTorch."""
@@ -166,11 +171,11 @@ param_grid = {
 
 # Split data into train+val and test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y
 )
 
 # Setup cross-validation
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
 # Initialize storage for metrics
 fold_metrics = {
