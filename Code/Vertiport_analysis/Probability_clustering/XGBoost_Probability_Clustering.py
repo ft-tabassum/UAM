@@ -315,14 +315,14 @@ conf_matrix_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering
 logger.info("Step 1 complete: ML_Model trained, validated, and tested. Results saved.")
 
 # =========================
-# 2. INITIALIZE K-MEANS WITH 74 VERTIPORTS
+# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 # =========================
-logger.info("Step 2: Initializing k-means with 74 vertiports on O/D points from trial data...")
+logger.info("Step 2: Initializing k-means++ with 74 vertiports on O/D points from trial data...")
 od_points = np.vstack([
     trial_data[['originX', 'originY']].values,
     trial_data[['destinationX', 'destinationY']].values
 ])
-kmeans = KMeans(n_clusters=74, random_state=RANDOM_SEED)
+kmeans = KMeans(n_clusters=74, init='k-means++', random_state=RANDOM_SEED)
 kmeans.fit(od_points)
 vertiport_coords = kmeans.cluster_centers_
 logger.info("Step 2 complete: Initial vertiport locations set.")
@@ -364,26 +364,80 @@ BASE_FARE = 18.4
 PRE_FLIGHT_TIME_HOURS = 15 / 60
 
 
-# --- Softmax function for weighting ---
+# --- Weight normalization functions ---
 def softmax(x, temperature=1.0):
+    """Global softmax function (original)"""
     x = np.array(x)
     x = x / temperature
     e_x = np.exp(x - np.max(x))  # for numerical stability
     return e_x / e_x.sum()
+
+def normalize_weights_within_clusters(weights, cluster_labels, method='simple', temperature=1.0):
+    """
+    Normalize weights so that each cluster has weight sum = 1
+    
+    Args:
+        weights: array of weights for all points
+        cluster_labels: cluster assignment for each point
+        method: 'simple', 'softmax', or 'log'
+        temperature: temperature for softmax (only used if method='softmax')
+    
+    Returns:
+        normalized_weights: weights normalized within each cluster
+    """
+    normalized_weights = np.zeros_like(weights)
+    unique_clusters = np.unique(cluster_labels)
+    
+    for cluster in unique_clusters:
+        cluster_mask = cluster_labels == cluster
+        cluster_weights = weights[cluster_mask]
+        
+        if method == 'simple':
+            # Simple normalization: x / sum(x)
+            if np.sum(cluster_weights) > 0:
+                normalized_cluster_weights = cluster_weights / np.sum(cluster_weights)
+            else:
+                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
+                
+        elif method == 'softmax':
+            # Softmax within cluster: exp(x/t) / sum(exp(x/t))
+            if np.sum(cluster_weights) > 0:
+                cluster_weights_scaled = cluster_weights / temperature
+                e_x = np.exp(cluster_weights_scaled - np.max(cluster_weights_scaled))
+                normalized_cluster_weights = e_x / np.sum(e_x)
+            else:
+                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
+                
+        elif method == 'log':
+            # Log transformation: log(1 + x) then normalize
+            if np.sum(cluster_weights) > 0:
+                log_weights = np.log(1 + cluster_weights)
+                normalized_cluster_weights = log_weights / np.sum(log_weights)
+            else:
+                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
+        
+        normalized_weights[cluster_mask] = normalized_cluster_weights
+    
+    return normalized_weights
 
 
 def calculate_uam_time_cost(df, vertiport_coords, car_speed, car_cost_km, base_fare=BASE_FARE,
                             uam_speed=UAM_CRUISE_SPEED_KMH, uam_cost_km=UAM_COST_PER_KM,
                             pre_flight_time=PRE_FLIGHT_TIME_HOURS):
     from scipy.spatial.distance import cdist
+    # Road network factor for car distances (accounts for road network)
+    ROAD_NETWORK_FACTOR = 1.4
+    
     origins = df[['originX', 'originY']].values
     dests = df[['destinationX', 'destinationY']].values
     origin_v_idx = np.argmin(cdist(origins, vertiport_coords), axis=1)
     dest_v_idx = np.argmin(cdist(dests, vertiport_coords), axis=1)
     origin_v = vertiport_coords[origin_v_idx]
     dest_v = vertiport_coords[dest_v_idx]
-    first_mile_dist = np.linalg.norm(origins - origin_v, axis=1)
-    last_mile_dist = np.linalg.norm(dests - dest_v, axis=1)
+    # Apply road network factor to car distances (first and last mile)
+    first_mile_dist = np.linalg.norm(origins - origin_v, axis=1) * ROAD_NETWORK_FACTOR
+    last_mile_dist = np.linalg.norm(dests - dest_v, axis=1) * ROAD_NETWORK_FACTOR
+    # UAM distance (Euclidean distance)
     uam_dist = np.linalg.norm(origin_v - dest_v, axis=1)
     first_mile_time = first_mile_dist / car_speed
     last_mile_time = last_mile_dist / car_speed
@@ -403,27 +457,33 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed, car_cost_km, base_f
     return df
 
 
-def predict_mode_probabilities(df, model, feature_cols): #make sure to same as training model feature
+def predict_mode_probabilities(df, model, feature_cols): #features are arranged identically to how they were during training
     X = df[feature_cols]
     return model.predict_proba(X)
 
 
-max_iter = 5 # correction: input large number
+max_iter = 10000  # Maximum iterations to prevent infinite loops
+convergence_threshold = 1e-2  # Convergence threshold for vertiport shift
 converged = False
 prev_coords = None
 feature_cols = X_lighter.columns.tolist()
+
+# Choose normalization method: 'simple', 'softmax', or 'log'
+NORMALIZATION_METHOD = 'simple'  # Change this to test different methods
+logger.info(f"Using {NORMALIZATION_METHOD} normalization within clusters")
+
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
     # a. Calculate UAM travel time and cost for each trip
     trial_with_uam = calculate_uam_time_cost(trial_data, vertiport_coords, avg_car_speed, car_cost_per_km)
     # b. Add these UAM features to the trial data (already done in trial_with_uam)
     # c. Predict mode probabilities
-    for col in feature_cols:
+    for col in feature_cols: #Feature Alignment Safeguards
         if col not in trial_with_uam.columns:
             trial_with_uam[col] = 0.0
     trial_with_uam = trial_with_uam[feature_cols]
     proba = predict_mode_probabilities(trial_with_uam, final_model, feature_cols)
-    # d. Use UAM probability as weights for weighted k-means (with softmax)
+    # d. Use UAM probability as weights for weighted k-means
     uam_class_idx = None
     for i, cls in enumerate(classes):
         if 'uam' in str(cls).lower() or cls == 4:
@@ -432,24 +492,46 @@ for iteration in range(max_iter):
     if uam_class_idx is None:
         uam_class_idx = len(classes) - 1
     uam_probs = proba[:, uam_class_idx]
-    # Use softmax to accentuate high-demand trips (temperature=1 for )
-    softmax_weights = softmax(uam_probs, temperature=1)
-    weights = np.concatenate([softmax_weights, softmax_weights])
-    kmeans = KMeans(n_clusters=VERTIPORT_K, random_state=RANDOM_SEED)
+    
+    # e. Apply normalization within clusters after each clustering iteration
+    # First, get current cluster assignments using previous centroids (or initial centroids for first iteration)
+    from scipy.spatial.distance import cdist
+    origins = trial_data[['originX', 'originY']].values
+    dests = trial_data[['destinationX', 'destinationY']].values
+    od_points_current = np.vstack([origins, dests])
+    
+    # Assign points to nearest centroids
+    distances = cdist(od_points_current, vertiport_coords)
+    cluster_labels = np.argmin(distances, axis=1)
+    
+    # Normalize weights within each cluster
+    normalized_weights = normalize_weights_within_clusters(
+        uam_probs, cluster_labels[:len(uam_probs)], 
+        method=NORMALIZATION_METHOD, temperature=1.0
+    )
+    weights = np.concatenate([normalized_weights, normalized_weights])
+    
+    # f. Perform weighted k-means clustering
+    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=RANDOM_SEED)
     kmeans.fit(od_points, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
-    # e. Check convergence
+    
+    # g. Check convergence
     if prev_coords is not None:
         shift = np.linalg.norm(new_coords - prev_coords)
-        logger.info(f"Vertiport shift: {shift:.4f}")
-        if shift < 1e-2:
-            logger.info("Converged.")
+        logger.info(f"Vertiport shift: {shift:.6f}")
+        if shift < convergence_threshold:
+            logger.info(f"Converged after {iteration + 1} iterations with shift: {shift:.6f}")
             converged = True
             centroid_history.append(new_coords.copy())
             break
     prev_coords = new_coords
     vertiport_coords = new_coords
     centroid_history.append(vertiport_coords.copy())
+
+if not converged:
+    logger.warning(f"Did not converge within {max_iter} iterations. Final shift: {shift:.6f}")
+
 logger.info("Step 3 complete: Vertiport optimization finished.")
 
 # Save centroid history after optimization
@@ -464,7 +546,7 @@ logger.info("Step 4: Final prediction with optimized vertiports and saving resul
 trial_with_uam_full = calculate_uam_time_cost(trial_data, vertiport_coords, avg_car_speed, car_cost_per_km)
 # For prediction, use only model features:
 trial_with_uam = trial_with_uam_full.copy()
-for col in feature_cols:
+for col in feature_cols: #Feature Alignment Safeguards
     if col not in trial_with_uam.columns:
         trial_with_uam[col] = 0.0
 trial_with_uam = trial_with_uam[feature_cols]
