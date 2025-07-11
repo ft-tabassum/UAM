@@ -55,32 +55,26 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # 3. ITERATIVE OPTIMIZATION
 # =========================
 logger.info("Step 3: Iterative vertiport optimization with UAM probability weighting...")
-# Calculate car speed and cost per km from synthetic population data
-car_speed_debug_info = []
+# Filter data to remove unrealistic values (keep only positive distance, time, and cost)
 if 'tripLength-km' in synthetic_population.columns and 'travel time_car' in synthetic_population.columns:
     valid = (synthetic_population['travel time_car'] > 0) & (synthetic_population['tripLength-km'] > 0)
     filtered = synthetic_population[valid].copy()
-    if filtered['travel time_car'].median() > 10:
-        filtered['travel time_car'] = filtered['travel time_car'] / 60
-    avg_car_speed = filtered['tripLength-km'].mean() / filtered['travel time_car'].mean()
-    if avg_car_speed < 10 or avg_car_speed > 120 or np.isnan(avg_car_speed):
-        avg_car_speed = 40
-else:
-    avg_car_speed = 40
+    logger.info(f"Data filtering: {len(filtered)} out of {len(synthetic_population)} trips have valid car data")
+
 if 'TravelCost_Car' in synthetic_population.columns and 'tripLength-km' in synthetic_population.columns:
     valid_cost = (synthetic_population['TravelCost_Car'] > 0) & (synthetic_population['tripLength-km'] > 0)
     filtered_cost = synthetic_population[valid_cost].copy()
-    car_cost_per_km = (filtered_cost['TravelCost_Car'].sum() / filtered_cost['tripLength-km'].sum())
-    if not (0.05 < car_cost_per_km < 2.0) or np.isnan(car_cost_per_km):
-        car_cost_per_km = 0.25
-else:
-    car_cost_per_km = 0.25
+    logger.info(f"Data filtering: {len(filtered_cost)} out of {len(synthetic_population)} trips have valid cost data")
+
+# Set car speed and cost per km to default values
+avg_car_speed = 40  # Default car speed in km/h
+car_cost_per_km = 0.25  # Default car cost in €/km
 logger.info(f"Using car speed: {avg_car_speed:.2f} km/h, car cost per km: {car_cost_per_km:.2f} €/km")
 
 # --- Centroid history tracking ---
 centroid_history = [vertiport_coords.copy()]
 
-# UAM calculation function
+# UAM calculation function, based on assumptions from the literature
 VERTIPORT_K = 74
 UAM_CRUISE_SPEED_KMH = 350
 UAM_COST_PER_KM = 1.0
@@ -186,8 +180,8 @@ def predict_mode_probabilities(df, model, feature_cols): #features are arranged 
     return model.predict_proba(X)
 
 
-max_iter = 10000  # Maximum iterations to prevent infinite loops
-convergence_threshold = 1e-2  # Convergence threshold for vertiport shift
+max_iter = 500  
+convergence_threshold = 1e-1  # Convergence threshold for vertiport shift
 converged = False
 prev_coords = None
 feature_cols = feature_names
