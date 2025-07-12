@@ -11,7 +11,7 @@
 -Pricing data for ground modes derived from ADAC (2022) for private cars (€0.65/km) and Uber/FreeNow for ride-hailing (€1.8-3.3/km).
 -Funded by the Air Mobility Initiative (Grant HAM-2109-0006).
 
-2)MITO Synthetic Population Dataset (Extended Munich Metropolitan Region):
+2) MITO Synthetic Population Dataset (Extended Munich Metropolitan Region):
 -The Microscopic Transportation Orchestrator (MITO) model, based on OpenStreetMap and SILO land use data, generates travel demand for the Extended Munich Metropolitan region.
 -Calibrated with the German national household survey (Lenz et al., 2010) and validated using BASt traffic counts (2022).
 -Home locations from the synthetic population serve as demand data points for weighted clustering, incorporating demographic attributes (e.g., income, car ownership) and spatial data processed via GIS tools.
