@@ -180,7 +180,7 @@ def predict_mode_probabilities(df, model, feature_cols): #features are arranged 
     return model.predict_proba(X)
 
 
-max_iter = 500
+max_iter = 10000
 convergence_threshold = 1e-1  # Convergence threshold for vertiport shift
 converged = False
 prev_coords = None
