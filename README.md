@@ -7,8 +7,7 @@
 **Data Source:** This project utilizes two primary data sources for UAM analysis in the Munich region:
 1) Stated Preference Survey (Munich International Airport):
 -A survey conducted in March 2023 collected 218 responses from Bavaria (67.9%) and Austria (17.7%) to analyze mode choice preferences and willingness to pay for UAM AirShuttle services to Munich International Airport (MUC).
--Includes travel behavior (e.g., 38.9% private car drivers, 39.4% public transport users), sociodemographic data (age, income, education), and attitudes toward automation and flight safety.
--Pricing data for ground modes derived from ADAC (2022) for private cars (€0.65/km) and Uber/FreeNow for ride-hailing (€1.8-3.3/km).
+-Includes travel behavior, sociodemographic data (age, income, education), and attitudes toward automation and flight safety.
 -Funded by the Air Mobility Initiative (Grant HAM-2109-0006).
 
 2) MITO Synthetic Population Dataset (Extended Munich Metropolitan Region):
