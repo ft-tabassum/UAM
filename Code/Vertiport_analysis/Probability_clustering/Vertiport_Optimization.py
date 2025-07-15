@@ -37,16 +37,16 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 #synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv")
-synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/destination_Zone.csv")
+synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/destination_Zone.csv") #only for 80933 PLZ
 # =========================
-# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
+# 2. INITIALIZE K-MEANS++ WITH 20 VERTIPORTS
 # =========================
-logger.info("Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data...")
+logger.info("Step 2: Initializing k-means++ with 20 vertiports on O/D points from synthetic population data...")
 od_points = np.vstack([
     synthetic_population[['originX', 'originY']].values,
     synthetic_population[['destinationX', 'destinationY']].values
 ])
-kmeans = KMeans(n_clusters=74, init='k-means++', random_state=RANDOM_SEED)
+kmeans = KMeans(n_clusters=20, init='k-means++', random_state=RANDOM_SEED)
 kmeans.fit(od_points)
 vertiport_coords = kmeans.cluster_centers_
 logger.info("Step 2 complete: Initial vertiport locations set.")
@@ -75,7 +75,7 @@ logger.info(f"Using car speed: {avg_car_speed:.2f} km/h, car cost per km: {car_c
 centroid_history = [vertiport_coords.copy()]
 
 # UAM calculation function, based on assumptions from the literature
-VERTIPORT_K = 74
+VERTIPORT_K = 20
 UAM_CRUISE_SPEED_KMH = 350
 UAM_COST_PER_KM = 1.0
 BASE_FARE = 18.4
@@ -180,14 +180,14 @@ def predict_mode_probabilities(df, model, feature_cols): #features are arranged 
     return model.predict_proba(X)
 
 
-max_iter = 10000
+max_iter = 100000
 convergence_threshold = 1e-1  # Convergence threshold for vertiport shift
 converged = False
 prev_coords = None
 feature_cols = feature_names
 
 # Choose normalization method: 'simple', 'softmax', or 'log'
-NORMALIZATION_METHOD = 'simple'  # Change this to test different methods
+NORMALIZATION_METHOD = 'softmax'  # Change this to test different methods
 logger.info(f"Using {NORMALIZATION_METHOD} normalization within clusters")
 
 for iteration in range(max_iter):
@@ -258,7 +258,7 @@ if not converged:
 logger.info("Step 3 complete: Vertiport optimization finished.")
 
 # Save centroid history after optimization
-centroid_history = np.array(centroid_history)  # shape: (num_iterations+1, 74, 2)
+centroid_history = np.array(centroid_history)  # shape: (num_iterations+1, 20, 2)
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/vertiport_centroid_history.npy', centroid_history)
 
 # =========================
