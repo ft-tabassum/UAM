@@ -2,11 +2,12 @@ import pandas as pd
 
 # List of values to check
 values_to_check = [
-    1734, 1736, 1737, 1739, 1740, 1746, 1748, 1751, 1754, 1755, 1756, 1757, 1758, 1759, 1760, 1761, 1762, 1763, 1765,1766]
+    1734, 1736, 1737, 1739, 1740, 1746, 1748, 1751, 1754, 1755, 1756, 1757, 1758, 1759, 1760, 1761, 1762, 1763, 1765, 1766
+]
 
 # Path to the CSV file
 csv_path = 'D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv'  # Update path if needed
-output_csv = 'D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/matching_origin_destination.csv'
+output_csv = '../../Result/Scenario/matching_origin_destination.csv'
 
 # Read the CSV file
 try:
@@ -18,6 +19,7 @@ except FileNotFoundError:
 # Check if required columns exist
 if 'origin' not in df.columns or 'destination' not in df.columns:
     print("CSV must contain 'origin' and 'destination' columns.")
+    print(f"Available columns: {list(df.columns)}")
     exit(1)
 
 # Find rows where origin or destination is in the list
@@ -31,5 +33,10 @@ if not matching_rows.empty:
     # Save to CSV
     matching_rows.to_csv(output_csv, index=False)
     print(f"Matching rows saved to {output_csv}")
+    # Print summary for each value
+    print("\nSummary of rows associated with each value:")
+    for value in values_to_check:
+        count = ((df['origin'] == value) | (df['destination'] == value)).sum()
+        print(f"Rows associated with {value}: {count}")
 else:
     print("No rows found with the specified origin or destination values.") 

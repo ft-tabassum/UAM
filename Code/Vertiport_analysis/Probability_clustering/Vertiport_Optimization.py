@@ -37,7 +37,7 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 #synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv")
-synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/destination_Zone.csv") #only for 80933 PLZ
+synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/moosach_related_trips.csv") #only for 80933 PLZ
 # =========================
 # 2. INITIALIZE K-MEANS++ WITH 20 VERTIPORTS
 # =========================
@@ -180,7 +180,7 @@ def predict_mode_probabilities(df, model, feature_cols): #features are arranged 
     return model.predict_proba(X)
 
 
-max_iter = 100000
+max_iter = 1000
 convergence_threshold = 1e-1  # Convergence threshold for vertiport shift
 converged = False
 prev_coords = None
