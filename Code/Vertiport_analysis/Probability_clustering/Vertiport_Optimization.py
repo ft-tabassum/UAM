@@ -37,16 +37,17 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 #synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv")
-synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/moosach_related_trips.csv") #only for 80933 PLZ
+###unsolved: only for 80933 PLZ
+synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/moosach_related_trips.csv") ###unsolved: only for 80933 PLZ
 # =========================
-# 2. INITIALIZE K-MEANS++ WITH 20 VERTIPORTS
+# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 # =========================
-logger.info("Step 2: Initializing k-means++ with 20 vertiports on O/D points from synthetic population data...")
+logger.info("Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data for 1% of the population...")
 od_points = np.vstack([
     synthetic_population[['originX', 'originY']].values,
     synthetic_population[['destinationX', 'destinationY']].values
 ])
-kmeans = KMeans(n_clusters=20, init='k-means++', random_state=RANDOM_SEED)
+kmeans = KMeans(n_clusters=74, init='k-means++', random_state=RANDOM_SEED, max_iter=1000) #k-means++ only for initialization
 kmeans.fit(od_points)
 vertiport_coords = kmeans.cluster_centers_
 logger.info("Step 2 complete: Initial vertiport locations set.")
@@ -73,9 +74,10 @@ logger.info(f"Using car speed: {avg_car_speed:.2f} km/h, car cost per km: {car_c
 
 # --- Centroid history tracking ---
 centroid_history = [vertiport_coords.copy()]
+convergence_history = []  # Track centroid shifts per iteration
 
 # UAM calculation function, based on assumptions from the literature
-VERTIPORT_K = 20
+VERTIPORT_K = 74
 UAM_CRUISE_SPEED_KMH = 350
 UAM_COST_PER_KM = 1.0
 BASE_FARE = 18.4
@@ -83,69 +85,13 @@ PRE_FLIGHT_TIME_HOURS = 15 / 60
 
 
 # --- Weight normalization functions ---
-def softmax(x, temperature=1.0):
-    """Global softmax function (original)"""
-    x = np.array(x)
-    x = x / temperature
-    e_x = np.exp(x - np.max(x))  # for numerical stability
-    return e_x / e_x.sum()
-
-def normalize_weights_within_clusters(weights, cluster_labels, method='simple', temperature=1.0):
-    """
-    Normalize weights so that each cluster has weight sum = 1
-    
-    Args:
-        weights: array of weights for all points
-        cluster_labels: cluster assignment for each point
-        method: 'simple', 'softmax', or 'log'
-        temperature: temperature for softmax (only used if method='softmax')
-    
-    Returns:
-        normalized_weights: weights normalized within each cluster
-    """
-    normalized_weights = np.zeros_like(weights)
-    unique_clusters = np.unique(cluster_labels)
-    
-    for cluster in unique_clusters:
-        cluster_mask = cluster_labels == cluster
-        cluster_weights = weights[cluster_mask]
-        
-        if method == 'simple':
-            # Simple normalization: x / sum(x)
-            if np.sum(cluster_weights) > 0:
-                normalized_cluster_weights = cluster_weights / np.sum(cluster_weights)
-            else:
-                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
-                
-        elif method == 'softmax':
-            # Softmax within cluster: exp(x/t) / sum(exp(x/t))
-            if np.sum(cluster_weights) > 0:
-                cluster_weights_scaled = cluster_weights / temperature
-                e_x = np.exp(cluster_weights_scaled - np.max(cluster_weights_scaled))
-                normalized_cluster_weights = e_x / np.sum(e_x)
-            else:
-                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
-                
-        elif method == 'log':
-            # Log transformation: log(1 + x) then normalize
-            if np.sum(cluster_weights) > 0:
-                log_weights = np.log(1 + cluster_weights)
-                normalized_cluster_weights = log_weights / np.sum(log_weights)
-            else:
-                normalized_cluster_weights = np.ones_like(cluster_weights) / len(cluster_weights)
-        
-        normalized_weights[cluster_mask] = normalized_cluster_weights
-    
-    return normalized_weights
-
-
 def calculate_uam_time_cost(df, vertiport_coords, car_speed, car_cost_km, base_fare=BASE_FARE,
                             uam_speed=UAM_CRUISE_SPEED_KMH, uam_cost_km=UAM_COST_PER_KM,
                             pre_flight_time=PRE_FLIGHT_TIME_HOURS):
     from scipy.spatial.distance import cdist
     # Road network factor for car distances (accounts for road network)
     ROAD_NETWORK_FACTOR = 1.4
-    
+
     origins = df[['originX', 'originY']].values
     dests = df[['destinationX', 'destinationY']].values
     origin_v_idx = np.argmin(cdist(origins, vertiport_coords), axis=1)
@@ -180,15 +126,16 @@ def predict_mode_probabilities(df, model, feature_cols): #features are arranged 
     return model.predict_proba(X)
 
 
-max_iter = 1000
-convergence_threshold = 1e-1  # Convergence threshold for vertiport shift
+max_iter = 5000   #Start with 5000 iterations
+convergence_threshold = 0.1  # Convergence threshold for vertiport shift upto 500m =0.5km
 converged = False
 prev_coords = None
 feature_cols = feature_names
 
-# Choose normalization method: 'simple', 'softmax', or 'log'
-NORMALIZATION_METHOD = 'softmax'  # Change this to test different methods
-logger.info(f"Using {NORMALIZATION_METHOD} normalization within clusters")
+#Using raw probabilities as weights without normalizing
+logger.info("Using raw UAM probabilities as weights")
+
+min_total_shift = float('nan')
 
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
@@ -209,42 +156,46 @@ for iteration in range(max_iter):
             break
     if uam_class_idx is None:
         uam_class_idx = len(classes) - 1
-    
     # Log which class is being used for UAM weighting
     uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
     logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
-    
     uam_probs = proba[:, uam_class_idx]
-    
-    # e. Apply normalization within clusters after each clustering iteration
-    # First, get current cluster assignments using previous centroids (or initial centroids for first iteration)
+    # e. Use raw UAM probabilities as weights for both origins and destinations
+    weights = np.concatenate([uam_probs, uam_probs])
+
+    # Calculate and log sum of weights per cluster before k-means
     from scipy.spatial.distance import cdist
     origins = synthetic_population[['originX', 'originY']].values
     dests = synthetic_population[['destinationX', 'destinationY']].values
     od_points_current = np.vstack([origins, dests])
-    
-    # Assign points to nearest centroids
     distances = cdist(od_points_current, vertiport_coords)
     cluster_labels = np.argmin(distances, axis=1)
-    
-    # Normalize weights within each cluster
-    normalized_weights = normalize_weights_within_clusters(
-        uam_probs, cluster_labels[:len(uam_probs)], 
-        method=NORMALIZATION_METHOD, temperature=1.0
-    )
-    weights = np.concatenate([normalized_weights, normalized_weights])
-    
+    num_clusters = vertiport_coords.shape[0]
+    for cluster_idx in range(num_clusters):
+        cluster_mask = (cluster_labels == cluster_idx)
+        cluster_weight_sum = weights[cluster_mask].sum()
+        logger.info(f"Cluster {cluster_idx}: sum of weights = {cluster_weight_sum:.4f}")
+
     # f. Perform weighted k-means clustering
-    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=RANDOM_SEED)
+    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=RANDOM_SEED, max_iter=1000)
     kmeans.fit(od_points, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
-    
+    logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
     # g. Check convergence
+    # Robust convergence check using the Hungarian (assignment) algorithm: 
+    # Computes the minimum total shift between new and previous vertiport coordinates,
+    # matching centroids optimally regardless of their order. 
+    # This prevents false non-convergence due to centroid reordering between iterations.
     if prev_coords is not None:
-        shift = np.linalg.norm(new_coords - prev_coords)
-        logger.info(f"Vertiport shift: {shift:.6f}")
-        if shift < convergence_threshold:
-            logger.info(f"Converged after {iteration + 1} iterations with shift: {shift:.6f}")
+        from scipy.optimize import linear_sum_assignment
+        from scipy.spatial.distance import cdist
+        cost_matrix = cdist(new_coords, prev_coords)
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        min_total_shift = cost_matrix[row_ind, col_ind].sum()
+        logger.info(f"Assignment-based vertiport shift: {min_total_shift:.6f}")
+        convergence_history.append(min_total_shift)
+        if min_total_shift < convergence_threshold:
+            logger.info(f"Converged after {iteration + 1} iterations with assignment-based shift: {min_total_shift:.6f}")
             converged = True
             centroid_history.append(new_coords.copy())
             break
@@ -253,7 +204,7 @@ for iteration in range(max_iter):
     centroid_history.append(vertiport_coords.copy())
 
 if not converged:
-    logger.warning(f"Did not converge within {max_iter} iterations. Final shift: {shift:.6f}")
+    logger.warning(f"Did not converge within {max_iter} iterations. Final shift: {min_total_shift:.6f}")
 
 logger.info("Step 3 complete: Vertiport optimization finished.")
 
@@ -284,8 +235,52 @@ for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel time_Uam', 'Tr
     output[col] = synthetic_population_with_uam_full[col]
 os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
 output.to_csv(
-    f'../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_{NORMALIZATION_METHOD}.csv',
+    '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_raw_weights.csv',
     index=False)
-np.save(f'../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_{NORMALIZATION_METHOD}.npy', vertiport_coords)
-logger.info("Step 4 complete: All results saved to Result/Vertiport_analysis/Probability_clustering/")
-logger.info(f"Results saved with {NORMALIZATION_METHOD} normalization method") 
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_raw_weights.npy', vertiport_coords)
+
+# =========================
+# 5. SAVE SUMMARY AND REPORT
+# =========================
+import csv
+summary_path = '../../../Result/Vertiport_analysis/Probability_clustering/method_summary.csv'
+report_path = '../../../Result/Vertiport_analysis/Probability_clustering/method_report.txt'
+
+# Save summary CSV
+mean_uam_prob = float(np.mean(uam_probs))
+std_uam_prob = float(np.std(uam_probs))
+min_uam_prob = float(np.min(uam_probs))
+max_uam_prob = float(np.max(uam_probs))
+final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
+iterations = len(centroid_history) - 1
+with open(summary_path, 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability', 'Min_UAM_Probability', 'Max_UAM_Probability'])
+    writer.writerow([
+        'raw_weights', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob, max_uam_prob
+    ])
+
+# Save detailed text report
+with open(report_path, 'w') as f:
+    f.write(f"VERTIPORT OPTIMIZATION REPORT\n")
+    f.write(f"{'='*50}\n")
+    from datetime import datetime
+    f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+    f.write(f"SUMMARY:\n")
+    f.write(f"{'-'*20}\n")
+    f.write(f"Method: raw_weights (no normalization)\n")
+    f.write(f"Converged: {converged}\n")
+    f.write(f"Iterations: {iterations}\n")
+    f.write(f"Final Shift: {final_shift:.6f}\n")
+    f.write(f"Mean UAM Probability: {mean_uam_prob:.4f}\n")
+    f.write(f"UAM Probability Std: {std_uam_prob:.4f}\n")
+    f.write(f"UAM Probability Range: [{min_uam_prob:.4f}, {max_uam_prob:.4f}]\n")
+    f.write(f"\nCONVERGENCE HISTORY (first 20 shown):\n")
+    for i, shift in enumerate(convergence_history[:20]):
+        f.write(f"  Iter {i+1}: {shift:.6f}\n")
+    if len(convergence_history) > 20:
+        f.write(f"  ... ({len(convergence_history)-20} more)\n")
+    f.write(f"\nAll results saved to Result/Vertiport_analysis/Probability_clustering/\n")
+
+logger.info("Step 5 complete: Summary and report saved.")
+logger.info("Results saved with raw UAM probability weights") 
