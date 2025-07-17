@@ -42,6 +42,27 @@ logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv("D:/Thesis/UAM/Result/Scenario/moosach_related_trips.csv") #only for 80933 PLZ
 
 # =========================
+# NORMALIZE COORDINATES
+# =========================
+logger.info("Normalizing coordinates for optimization...")
+min_x = synthetic_population[['originX', 'destinationX']].min().min()
+max_x = synthetic_population[['originX', 'destinationX']].max().max()
+min_y = synthetic_population[['originY', 'destinationY']].min().min()
+max_y = synthetic_population[['originY', 'destinationY']].max().max()
+
+synthetic_population['originX_norm'] = (synthetic_population['originX'] - min_x) / (max_x - min_x)
+synthetic_population['originY_norm'] = (synthetic_population['originY'] - min_y) / (max_y - min_y)
+synthetic_population['destinationX_norm'] = (synthetic_population['destinationX'] - min_x) / (max_x - min_x)
+synthetic_population['destinationY_norm'] = (synthetic_population['destinationY'] - min_y) / (max_y - min_y)
+
+# Save normalization parameters for reproducibility
+norm_params = {
+    'min_x': min_x, 'max_x': max_x,
+    'min_y': min_y, 'max_y': max_y
+}
+pd.Series(norm_params).to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Comparison_Results/normalization_params.csv')
+
+# =========================
 # CONSTANTS AND FUNCTIONS
 # =========================
 VERTIPORT_K = 20
@@ -144,29 +165,26 @@ def predict_mode_probabilities(df, model, feature_cols):
     X = df[feature_cols]
     return model.predict_proba(X)
 
+# =========================
+# Modify run_optimization_with_method to use normalized coordinates
+# =========================
 def run_optimization_with_method(method_name, synthetic_population, final_model, feature_names, classes, class_names):
-    """
-    Run the vertiport optimization with a specific normalization method
-    
-    Returns:
-        dict: Results including final coordinates, convergence info, and predictions
-    """
     logger.info(f"\n{'='*50}")
     logger.info(f"Running optimization with {method_name} normalization")
     logger.info(f"{'='*50}")
     
-    # Initialize k-means++ with 20 vertiports
+    # Use normalized coordinates for clustering
     od_points = np.vstack([
-        synthetic_population[['originX', 'originY']].values,
-        synthetic_population[['destinationX', 'destinationY']].values
+        synthetic_population[['originX_norm', 'originY_norm']].values,
+        synthetic_population[['destinationX_norm', 'destinationY_norm']].values
     ])
     kmeans = KMeans(n_clusters=20, init='k-means++', random_state=RANDOM_SEED)
     kmeans.fit(od_points)
     vertiport_coords = kmeans.cluster_centers_
     
     # Set parameters
-    max_iter = 3000
-    convergence_threshold = 1e-1
+    max_iter = 5000  # Increased 
+    convergence_threshold = 1e-2  # Lowered from 1e-1 to 1e-2 for better convergence
     converged = False
     prev_coords = None
     feature_cols = feature_names
@@ -178,11 +196,17 @@ def run_optimization_with_method(method_name, synthetic_population, final_model,
     centroid_history = [vertiport_coords.copy()]
     
     for iteration in range(max_iter):
-        if iteration % 100 == 0:
+        if iteration % 200 == 0:  # Show progress every 200 iterations
             logger.info(f"Iteration {iteration + 1}...")
             
         # a. Calculate UAM travel time and cost for each trip
-        synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed, car_cost_per_km)
+        # Use denormalized centroids for distance calculations
+        # Denormalize vertiport_coords for use in calculate_uam_time_cost
+        vertiport_coords_denorm = np.zeros_like(vertiport_coords)
+        vertiport_coords_denorm[:, 0] = vertiport_coords[:, 0] * (max_x - min_x) + min_x
+        vertiport_coords_denorm[:, 1] = vertiport_coords[:, 1] * (max_y - min_y) + min_y
+        synthetic_population_with_uam = calculate_uam_time_cost(
+            synthetic_population, vertiport_coords_denorm, avg_car_speed, car_cost_per_km)
         
         # b. Predict mode probabilities
         for col in feature_cols:
@@ -204,8 +228,8 @@ def run_optimization_with_method(method_name, synthetic_population, final_model,
         
         # d. Apply normalization within clusters
         from scipy.spatial.distance import cdist
-        origins = synthetic_population[['originX', 'originY']].values
-        dests = synthetic_population[['destinationX', 'destinationY']].values
+        origins = synthetic_population[['originX_norm', 'originY_norm']].values
+        dests = synthetic_population[['destinationX_norm', 'destinationY_norm']].values
         od_points_current = np.vstack([origins, dests])
         
         distances = cdist(od_points_current, vertiport_coords)
@@ -217,16 +241,16 @@ def run_optimization_with_method(method_name, synthetic_population, final_model,
         )
         weights = np.concatenate([normalized_weights, normalized_weights])
         
-        # e. Perform weighted k-means clustering
+        # e. Perform weighted k-means clustering in normalized space # set up iteration here
         kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=RANDOM_SEED)
         kmeans.fit(od_points, sample_weight=weights)
         new_coords = kmeans.cluster_centers_
         
-        # f. Check convergence
+        # f. Check convergence # check if the previour coordinate is known by the new co-cordinate
         if prev_coords is not None:
             shift = np.linalg.norm(new_coords - prev_coords)
             convergence_history.append(shift)
-            if shift < convergence_threshold:
+            if shift < convergence_threshold: # change threshold to 500 m instead of 2
                 logger.info(f"Converged after {iteration + 1} iterations with shift: {shift:.6f}")
                 converged = True
                 centroid_history.append(new_coords.copy())
@@ -239,7 +263,12 @@ def run_optimization_with_method(method_name, synthetic_population, final_model,
         logger.warning(f"Did not converge within {max_iter} iterations. Final shift: {shift:.6f}")
     
     # Final prediction
-    synthetic_population_with_uam_full = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed, car_cost_per_km)
+    # Denormalize final centroids for output
+    vertiport_coords_denorm = np.zeros_like(vertiport_coords)
+    vertiport_coords_denorm[:, 0] = vertiport_coords[:, 0] * (max_x - min_x) + min_x
+    vertiport_coords_denorm[:, 1] = vertiport_coords[:, 1] * (max_y - min_y) + min_y
+    synthetic_population_with_uam_full = calculate_uam_time_cost(
+        synthetic_population, vertiport_coords_denorm, avg_car_speed, car_cost_per_km)
     synthetic_population_with_uam = synthetic_population_with_uam_full.copy()
     for col in feature_cols:
         if col not in synthetic_population_with_uam.columns:
@@ -258,12 +287,12 @@ def run_optimization_with_method(method_name, synthetic_population, final_model,
     
     return {
         'method': method_name,
-        'final_coords': vertiport_coords,
+        'final_coords': vertiport_coords_denorm,  # Export denormalized centroids
         'converged': converged,
         'iterations': len(centroid_history) - 1,
         'final_shift': convergence_history[-1] if convergence_history else None,
         'convergence_history': convergence_history,
-        'centroid_history': np.array(centroid_history),
+        'centroid_history': np.array(centroid_history),  # Still in normalized space
         'predictions': output,
         'uam_probabilities': proba[:, uam_class_idx]
     }
