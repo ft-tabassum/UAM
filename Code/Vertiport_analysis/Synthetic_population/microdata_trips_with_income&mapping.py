@@ -142,8 +142,8 @@ def main():
     print("=" * 60)
     
     # Input and output file paths
-    input_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips.csv"
-    output_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips_with_income&mapping.csv"
+    input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+    output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips_with_income&mapping.csv"
     
     try:
         # Read the input data
@@ -196,10 +196,6 @@ def main():
         
         # Apply mappings
         df = apply_mapping(df)
-        
-        # Create output directory if it doesn't exist
-        output_dir = os.path.dirname(output_file)
-        os.makedirs(output_dir, exist_ok=True)
         
         # Save the processed data
         print(f"Saving output file: {output_file}")

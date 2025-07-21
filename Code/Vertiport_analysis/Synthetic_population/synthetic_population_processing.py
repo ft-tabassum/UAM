@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 # Load data
-input_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips_with_income&mapping.csv"
+input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips_with_income&mapping.csv"
 data = pd.read_csv(input_file)
 
 print("=== TRIAL DATA PROCESSING SCRIPT ===")
@@ -203,8 +203,19 @@ for col in reference_cols:
     if col in data.columns:
         X_processed_df[col] = data[col].values
 
+# After renaming columns and before saving the processed data
+if 'tripLength-km' in X_processed_df.columns:
+    X_processed_df['tripLength-m'] = X_processed_df['tripLength-km'] * 1000
+    # Reorder columns to place 'tripLength-m' after 'tripLength-km'
+    cols = list(X_processed_df.columns)
+    km_idx = cols.index('tripLength-km')
+    # Remove 'tripLength-m' and insert after 'tripLength-km'
+    cols.remove('tripLength-m')
+    cols.insert(km_idx + 1, 'tripLength-m')
+    X_processed_df = X_processed_df[cols]
+
 # Step 10: Save the processed data
-output_file = "/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv"
+output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/synthetic_population_processing.csv"
 X_processed_df.to_csv(output_file, index=False)
 
 print("=== PROCESSING COMPLETED ===")
@@ -219,7 +230,7 @@ print(f"Total records: {len(X_processed_df)}")
 print(f"Total features: {len(X_processed_df.columns)}")
 
 # Show some statistics for key numerical features
-numerical_features = ['tripLength-km', 'travel time_car', 'travel time_PublicTransport', 'TravelCost_Car', 'TravelCost_PublicTransport']
+numerical_features = ['tripLength-m', 'travel time_car', 'travel time_PublicTransport', 'TravelCost_Car', 'TravelCost_PublicTransport']
 for feature in numerical_features:
     if feature in X_processed_df.columns:
         print(f"  {feature}: mean={X_processed_df[feature].mean():.2f}, std={X_processed_df[feature].std():.2f}")

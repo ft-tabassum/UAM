@@ -20,16 +20,20 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Create output directories
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Testing_Probabilities', exist_ok=True)
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Training_Probabilities', exist_ok=True)
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Feature_Importance', exist_ok=True)
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Confusion_Matrix', exist_ok=True)
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Prediction_EvaluationMetrics', exist_ok=True)
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Trained_Models', exist_ok=True)
+os.makedirs(
+    '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Testing_Probabilities', exist_ok=True)
+os.makedirs(
+    '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Training_Probabilities', exist_ok=True)
+os.makedirs(
+    '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Feature_Importance', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Confusion_Matrix', exist_ok=True)
+os.makedirs(
+    '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics', exist_ok=True)
+os.makedirs('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
 
 # Load LighterModel data (UAM-aware data for training)
 logger.info("Loading processed LighterModel data...")
-lighter_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/LighterModel/LighterModel_processing.csv")
+lighter_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/LighterModel/LighterModel_processing.csv")
 
 # Define features and target for LighterModel
 y_lighter = lighter_data['tmode']
@@ -185,7 +189,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Training_Probabilities/all_folds_probabilities_Xgboost_LighterModel_training.csv',
+all_fold_probs_df.to_csv('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Training_Probabilities/all_folds_probabilities_Xgboost_LighterModel_training.csv',
                          index=False)
 
 logger.info("All fold probabilities have been saved to 'all_folds_probabilities_Xgboost_LighterModel_training.csv'.")
@@ -233,7 +237,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Testing_Probabilities/test_set_probabilities_Xgboost_LighterModel_testing.csv',
+test_probs_df.to_csv('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Testing_Probabilities/test_set_probabilities_Xgboost_LighterModel_testing.csv',
                      index=False)
 
 # Calculate test metrics
@@ -258,10 +262,11 @@ feature_importance_df = pd.DataFrame({
     'Importance': mean_feature_importance
 })
 feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Feature_Importance/fi_Xgboost_LighterModel.csv', index=False)
+feature_importance_df.to_csv('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Feature_Importance/fi_Xgboost_LighterModel.csv', index=False)
 
 # Save results
-with open('../../../Result/Vertiport_analysis/Probability_clustering/Prediction_EvaluationMetrics/Xgboost_LighterModel_evaluation.txt', 'w') as f:
+with open(
+        '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics/Xgboost_LighterModel_evaluation.txt', 'w') as f:
     f.write("Results for LighterModel XGBoost with 10-fold Cross-Validation:\n\n")
 
     # Write parameter stability analysis
@@ -336,7 +341,7 @@ with open('../../../Result/Vertiport_analysis/Probability_clustering/Prediction_
 conf_matrix_df = pd.DataFrame(test_cm, 
                              index=[class_names.get(cls, f"Class {cls}") for cls in classes], 
                              columns=[class_names.get(cls, f"Class {cls}") for cls in classes])
-conf_matrix_df.to_csv('../../../Result/Vertiport_analysis/Probability_clustering/Confusion_Matrix/Xgboost_LighterModel_confusion_matrix.csv')
+conf_matrix_df.to_csv('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Confusion_Matrix/Xgboost_LighterModel_confusion_matrix.csv')
 
 # Save the trained model and related data for Part 2
 model_data = {
@@ -352,8 +357,9 @@ model_data = {
     'test_roc_auc': test_roc_auc
 }
 
-with open('../../../Result/Vertiport_analysis/Probability_clustering/Trained_Models/xgboost_model_LighterModel.pkl', 'wb') as f:
+with open(
+        '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
     pickle.dump(model_data, f)
 
 logger.info("Step 1 complete: ML_Model trained, validated, and tested. Model saved for Part 2.")
-logger.info("Model saved to: ../../../Result/Vertiport_analysis/Probability_clustering/Trained_Models/xgboost_model_LighterModel.pkl") 
+logger.info("Model saved to: ../../../Result/Vertiport_analysis/Probability_clustering/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl")

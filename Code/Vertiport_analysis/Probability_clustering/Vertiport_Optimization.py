@@ -5,11 +5,11 @@ from sklearn.cluster import KMeans
 import random
 import os
 import pickle
+from scipy.special import softmax
 
 # Set random seeds for reproducibility
-RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
-random.seed(RANDOM_SEED)
+np.random.seed(42)
+random.seed(42)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,8 +21,8 @@ os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid'
 # Load the trained model from Part 1
 logger.info("Loading trained XGBoost model from Part 1...")
 with open(
-        'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Trained_Models/xgboost_model_LighterModel.pkl',
-        'rb') as f:
+        "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl","rb"
+    ) as f:
     model_data = pickle.load(f)
 
 final_model = model_data['final_model']
@@ -39,34 +39,22 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/synthetic_population_processing.csv")
+    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/synthetic_population_processing.csv")
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
 # =========================
-# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS (TRY MULTIPLE SEEDS)
-# =========================
+# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS # =========================
 logger.info(
     "Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data for 1% of the population...")
 od_points = np.vstack([
     synthetic_population[['originX', 'originY']].values,
     synthetic_population[['destinationX', 'destinationY']].values
 ])
-# kmeans = KMeans(n_clusters=74, init='k-means++', random_state=RANDOM_SEED, max_iter=1000) #k-means++ only for initialization
-# kmeans.fit(od_points)
-# vertiport_coords = kmeans.cluster_centers_
-# logger.info("Step 2 complete: Initial vertiport locations set.")
-# Try multiple seeds and pick the best initialization
-best_inertia = np.inf
-best_centers = None
-for seed in range(10):
-    kmeans_init = KMeans(n_clusters=74, init='k-means++', random_state=RANDOM_SEED + seed, max_iter=1000)
-    kmeans_init.fit(od_points)
-    if kmeans_init.inertia_ < best_inertia:
-        best_inertia = kmeans_init.inertia_
-        best_centers = kmeans_init.cluster_centers_
-vertiport_coords = best_centers
-logger.info(f"Step 2 complete: Initial vertiport locations set (best of 10 seeds, inertia={best_inertia:.2f}).")
+kmeans = KMeans(n_clusters=74, init='k-means++', random_state=42, max_iter=1000)
+kmeans.fit(od_points)
+vertiport_coords = kmeans.cluster_centers_
+logger.info("Step 2 complete: Initial vertiport locations set.")
 
 # =========================
 # 3. ITERATIVE OPTIMIZATION
@@ -97,10 +85,10 @@ patience = 20
 
 # UAM calculation function, based on assumptions from the literature
 VERTIPORT_K = 74
-UAM_CRUISE_SPEED=5833.33  #unit: meter/min, value:350 km/h
-UAM_COST_PER_M = 1000 #unit:pm, value: 1.0 €/pkm
-BASE_FARE = 18.4 #unit : €
-PRE_FLIGHT_TIME = 15 #unit min
+UAM_CRUISE_SPEED=5833.33  # unit: meter/min, value:350 km/h
+UAM_COST_PER_M = 1000 # unit:pm, value: 1.0 €/pkm
+BASE_FARE = 18.4 # unit : €
+PRE_FLIGHT_TIME = 15 # unit min
 
 
 # --- Weight normalization functions ---
@@ -182,18 +170,36 @@ for iteration in range(max_iter):
     uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
     logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
     uam_probs = proba[:, uam_class_idx]
-    # --- Diagnostics: Print UAM probability stats ---
     logger.info(
         f"UAM probability stats: min={np.min(uam_probs):.4f}, max={np.max(uam_probs):.4f}, mean={np.mean(uam_probs):.4f}, median={np.median(uam_probs):.4f}, frac_zero={(uam_probs == 0).mean():.4f}")
-    # --- Diagnostics: Check for NaN/infinite weights ---
     if np.isnan(uam_probs).any():
         logger.error("NaN found in UAM probabilities!")
         raise ValueError("NaN found in UAM probabilities!")
     if not np.isfinite(uam_probs).all():
         logger.error("Infinite value found in UAM probabilities!")
         raise ValueError("Infinite value found in UAM probabilities!")
-    # e. Use raw UAM probabilities as weights for both origins and destinations
-    weights = np.concatenate([uam_probs, uam_probs])
+
+    # --- Softmax normalization per cluster for origins and destinations ---
+    from scipy.spatial.distance import cdist
+    origins = synthetic_population[['originX', 'originY']].values
+    dests = synthetic_population[['destinationX', 'destinationY']].values
+    # Assign each point to its nearest vertiport (current centroids)
+    origin_assignments = np.argmin(cdist(origins, vertiport_coords), axis=1)
+    dest_assignments = np.argmin(cdist(dests, vertiport_coords), axis=1)
+    # Softmax-normalize weights within each cluster (origins)
+    norm_origin_weights = np.zeros_like(uam_probs)
+    for k in range(VERTIPORT_K):
+        idx = np.where(origin_assignments == k)[0]
+        if len(idx) > 0:
+            norm_origin_weights[idx] = softmax(uam_probs[idx])
+    # Softmax-normalize weights within each cluster (destinations)
+    norm_dest_weights = np.zeros_like(uam_probs)
+    for k in range(VERTIPORT_K):
+        idx = np.where(dest_assignments == k)[0]
+        if len(idx) > 0:
+            norm_dest_weights[idx] = softmax(uam_probs[idx])
+    # Concatenate for k-means
+    weights = np.concatenate([norm_origin_weights, norm_dest_weights])
     if np.isnan(weights).any():
         logger.error("NaN found in weights!")
         raise ValueError("NaN found in weights!")
@@ -201,15 +207,9 @@ for iteration in range(max_iter):
         logger.error("Infinite value found in weights!")
         raise ValueError("Infinite value found in weights!")
 
-    # Calculate weights for weighted k-means (without logging individual cluster weights)
-    from scipy.spatial.distance import cdist
-
-    origins = synthetic_population[['originX', 'originY']].values
-    dests = synthetic_population[['destinationX', 'destinationY']].values
     od_points_current = np.vstack([origins, dests])
-
     # f. Perform weighted k-means clustering
-    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=RANDOM_SEED, max_iter=1000)
+    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=42, max_iter=1000)
     kmeans.fit(od_points, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
@@ -225,7 +225,7 @@ for iteration in range(max_iter):
         cost_matrix = cdist(new_coords, prev_coords)
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         # print the shift of each vertiport pairwise
-        print( cost_matrix[row_ind, col_ind])
+        #print( cost_matrix[row_ind, col_ind])
         min_total_shift = cost_matrix[row_ind, col_ind].sum()
         logger.info(f"Assignment-based vertiport shift: {min_total_shift:.6f}")
         convergence_history.append(min_total_shift)
@@ -293,10 +293,6 @@ plt.grid(True)
 plt.tight_layout()
 plt.savefig(os.path.join(centroid_dir, 'convergence_plot.png'))
 plt.close()
-
-# --- Convergence Plot Guidance ---
-# After running, open convergence_plot.png. If the curve is flat, try increasing the threshold or reducing clusters. If oscillating, try smoothing. If slow decrease, try more aggressive early stopping.
-
 # =========================
 # 4. FINAL PREDICTION AND OUTPUT
 # =========================
@@ -331,7 +327,7 @@ np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/opti
 # =========================
 import csv
 
-report_path = '../../../Result/Vertiport_analysis/Probability_clustering/method_report.txt'
+report_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_report.txt'
 
 # Save summary CSV
 mean_uam_prob = float(np.mean(uam_probs))
@@ -340,7 +336,7 @@ min_uam_prob = float(np.min(uam_probs))
 max_uam_prob = float(np.max(uam_probs))
 final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
 iterations = len(centroid_history) - 1
-summary_path = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/method_summary.csv'
+summary_path = '/Result/Vertiport_analysis/Probability_clustering/Weighting/method_summary.csv'
 with open(summary_path, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability',

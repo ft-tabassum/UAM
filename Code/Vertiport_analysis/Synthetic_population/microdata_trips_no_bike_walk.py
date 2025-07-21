@@ -35,14 +35,11 @@ def select_shortest_pt_time(row):
     """
     Select the shortest time among time_bus, time_train, time_tram_metro.
     All values, including dummy values, are considered.
-    If any value is exactly 166.66666666666666, replace it with 99999.
     """
     pt_times = []
     for col in ['time_bus', 'time_train', 'time_tram_metro']:
         time_val = row.get(col, np.inf)  # Get time value for the column, default to infinity if not found
         if not pd.isna(time_val):  # Ensure the value is not NaN
-            if time_val == 166.66666666666666:
-                time_val = 99999
             pt_times.append(time_val)  # Add the time value to the list
 
     # Return the smallest time among the available ones
@@ -104,6 +101,10 @@ def process_combined_data():
         print(f"  - pp: {len(pp_data)} rows")
         print(f"  - trips: {len(trips_data)} rows")
         print()
+
+        # FILTER OUT BICYCLE AND WALK MODES
+        trips_data = trips_data[~trips_data['mode'].isin(['bicycle', 'walk'])]
+        print(f"Filtered trips: {len(trips_data)} rows remain after excluding 'bicycle' and 'walk' modes.")
 
         # Calculate household composition
         print("Calculating household composition...")
@@ -167,7 +168,7 @@ def process_combined_data():
         os.makedirs(output_dir, exist_ok=True)
 
         # Save the combined data
-        output_file = f"{output_dir}/microdata_trips.csv"
+        output_file = f"{output_dir}/trial_micro_trips_no_bike_walk.csv"
         final_data.to_csv(output_file, index=False)
 
         print(f"Successfully created combined dataset:")
@@ -197,7 +198,7 @@ def process_combined_data():
 
 # Main function to execute the combined data processing
 def main():
-    print("Starting Combined Data Processing and Calculations (FIXED VERSION)")
+    print("Starting Combined Data Processing and Calculations (NO BIKE/WALK VERSION)")
     print("=" * 60)
 
     result = process_combined_data()
