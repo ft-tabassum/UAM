@@ -3,6 +3,7 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import numpy as np
+import os
 
 # Load data of Survey
 #Features that are similar to "Synthetic_population" are considered here
@@ -13,6 +14,14 @@ data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
 
 # Step 2: Drop Education column explicitly
 data = data.drop(columns=['Education'], errors='ignore')
+
+# Convert 'tripLength-km' to meters and create 'tripLength-m'
+if 'tripLength-km' in data.columns:
+    # Create a new column in meters
+    data['tripLength-m'] = data['tripLength-km'] * 1000
+    # Drop the old column in km
+    data.drop(columns=['tripLength-km'], inplace=True)
+    print("Converted 'tripLength-km' to meters and created 'tripLength-m', removing the original column.")
 
 # Step 3: tmode mapping
 tmode_mapping = {
@@ -148,6 +157,11 @@ X_processed_df = pd.DataFrame(X_processed, columns=feature_names)
 X_processed_df['tmode'] = y.values
 
 # Step 13: Save the processed data to a CSV file
-output_file = "/Result/LighterModel/LighterModel_processing.csv"
+output_file = ("D:/Thesis/UAM/Result/Vertiport_analysis/LighterModel/LighterModel_processing.csv")
+
+# Ensure the output directory exists
+output_dir = os.path.dirname(output_file)
+os.makedirs(output_dir, exist_ok=True)
+
 X_processed_df.to_csv(output_file, index=False)
 print(f"Processed data saved to '{output_file}'")
