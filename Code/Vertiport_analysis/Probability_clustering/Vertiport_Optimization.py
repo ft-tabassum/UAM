@@ -43,6 +43,10 @@ synthetic_population = pd.read_csv(
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
+# After loading synthetic_population
+if 'tripLength-km' in synthetic_population.columns and 'tripLength-m' in synthetic_population.columns:
+    synthetic_population = synthetic_population.drop(columns=['tripLength-km'])
+
 # =========================
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS # =========================
 logger.info(
@@ -61,13 +65,13 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # =========================
 logger.info("Step 3: Iterative vertiport optimization with UAM probability weighting...")
 # Filter data to remove unrealistic values (keep only positive distance, time, and cost)
-if 'tripLength-km' in synthetic_population.columns and 'travel time_car' in synthetic_population.columns:
-    valid = (synthetic_population['travel time_car'] > 0) & (synthetic_population['tripLength-km'] > 0)
+if 'tripLength-m' in synthetic_population.columns and 'travel time_car' in synthetic_population.columns:
+    valid = (synthetic_population['travel time_car'] > 0) & (synthetic_population['tripLength-m'] > 0)
     filtered = synthetic_population[valid].copy()
     logger.info(f"Data filtering: {len(filtered)} out of {len(synthetic_population)} trips have valid car data")
 
-if 'TravelCost_Car' in synthetic_population.columns and 'tripLength-km' in synthetic_population.columns:
-    valid_cost = (synthetic_population['TravelCost_Car'] > 0) & (synthetic_population['tripLength-km'] > 0)
+if 'TravelCost_Car' in synthetic_population.columns and 'tripLength-m' in synthetic_population.columns:
+    valid_cost = (synthetic_population['TravelCost_Car'] > 0) & (synthetic_population['tripLength-m'] > 0)
     filtered_cost = synthetic_population[valid_cost].copy()
     logger.info(f"Data filtering: {len(filtered_cost)} out of {len(synthetic_population)} trips have valid cost data")
 
@@ -136,7 +140,7 @@ def predict_mode_probabilities(df, model,
 
 
 max_iter = 3000  #
-convergence_threshold = 1.0  # convergence threshold (1km)
+convergence_threshold = 1.0  # convergence threshold (1km)#wrong
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -170,6 +174,12 @@ for iteration in range(max_iter):
     uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
     logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
     uam_probs = proba[:, uam_class_idx]
+
+    # Set UAM probability to zero for trips shorter than 10,000 meters (10 km)
+    if 'tripLength-m' in synthetic_population.columns:
+        short_trip_mask = synthetic_population['tripLength-m'] < 10000
+        uam_probs[short_trip_mask] = 0.0
+
     logger.info(
         f"UAM probability stats: min={np.min(uam_probs):.4f}, max={np.max(uam_probs):.4f}, mean={np.mean(uam_probs):.4f}, median={np.median(uam_probs):.4f}, frac_zero={(uam_probs == 0).mean():.4f}")
     if np.isnan(uam_probs).any():
@@ -179,38 +189,17 @@ for iteration in range(max_iter):
         logger.error("Infinite value found in UAM probabilities!")
         raise ValueError("Infinite value found in UAM probabilities!")
 
-    # --- Softmax normalization per cluster for origins and destinations ---
-    from scipy.spatial.distance import cdist
+    # Use raw UAM probabilities as weights for k-means
+    weights = np.concatenate([uam_probs, uam_probs])
+
+    # Define origins and dests before stacking
     origins = synthetic_population[['originX', 'originY']].values
     dests = synthetic_population[['destinationX', 'destinationY']].values
-    # Assign each point to its nearest vertiport (current centroids)
-    origin_assignments = np.argmin(cdist(origins, vertiport_coords), axis=1)
-    dest_assignments = np.argmin(cdist(dests, vertiport_coords), axis=1)
-    # Softmax-normalize weights within each cluster (origins)
-    norm_origin_weights = np.zeros_like(uam_probs)
-    for k in range(VERTIPORT_K):
-        idx = np.where(origin_assignments == k)[0]
-        if len(idx) > 0:
-            norm_origin_weights[idx] = softmax(uam_probs[idx])
-    # Softmax-normalize weights within each cluster (destinations)
-    norm_dest_weights = np.zeros_like(uam_probs)
-    for k in range(VERTIPORT_K):
-        idx = np.where(dest_assignments == k)[0]
-        if len(idx) > 0:
-            norm_dest_weights[idx] = softmax(uam_probs[idx])
-    # Concatenate for k-means
-    weights = np.concatenate([norm_origin_weights, norm_dest_weights])
-    if np.isnan(weights).any():
-        logger.error("NaN found in weights!")
-        raise ValueError("NaN found in weights!")
-    if not np.isfinite(weights).all():
-        logger.error("Infinite value found in weights!")
-        raise ValueError("Infinite value found in weights!")
-
     od_points_current = np.vstack([origins, dests])
+
     # f. Perform weighted k-means clustering
     kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=42, max_iter=1000)
-    kmeans.fit(od_points, sample_weight=weights)
+    kmeans.fit(od_points_current, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
     # g. Check convergence
@@ -224,18 +213,18 @@ for iteration in range(max_iter):
 
         cost_matrix = cdist(new_coords, prev_coords)
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        # print the shift of each vertiport pairwise
-        #print( cost_matrix[row_ind, col_ind])
         min_total_shift = cost_matrix[row_ind, col_ind].sum()
-        logger.info(f"Assignment-based vertiport shift: {min_total_shift:.6f}")
-        convergence_history.append(min_total_shift)
+
+        # Reorder new_coords to match prev_coords order
+        new_coords_ordered = np.zeros_like(new_coords)
+        new_coords_ordered[col_ind] = new_coords[row_ind]
 
         # Check for convergence
         if min_total_shift < convergence_threshold:
             logger.info(
                 f"Converged after {iteration + 1} iterations with assignment-based shift: {min_total_shift:.6f}")
             converged = True
-            centroid_history.append(new_coords.copy())
+            centroid_history.append(new_coords_ordered.copy())
             break
 
         # Check for minimal improvement (early stopping)
@@ -246,13 +235,18 @@ for iteration in range(max_iter):
                 if no_improvement_count >= patience:
                     logger.info(f"Early stopping after {iteration + 1} iterations due to minimal improvement")
                     converged = True
-                    centroid_history.append(new_coords.copy())
+                    centroid_history.append(new_coords_ordered.copy())
                     break
             else:
                 no_improvement_count = 0
-    prev_coords = new_coords
-    vertiport_coords = new_coords
-    centroid_history.append(vertiport_coords.copy())
+        prev_coords = new_coords_ordered
+        vertiport_coords = new_coords_ordered
+        centroid_history.append(vertiport_coords.copy())
+    else:
+        # First iteration: no reordering needed
+        prev_coords = new_coords
+        vertiport_coords = new_coords
+        centroid_history.append(vertiport_coords.copy())
 
 if not converged:
     logger.warning(f"Did not converge within {max_iter} iterations. Final shift: {min_total_shift:.6f}")
