@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import os
 
 # Function to calculate Child_Household and Adult_Household based on age
 def calculate_household_composition(pp_data, hh_data):
@@ -14,11 +13,34 @@ def calculate_household_composition(pp_data, hh_data):
 
     # Calculate household composition
     def calculate_household_stats(group):
-        children = len(group[group['age'] <= 17])
-        adults = len(group[group['age'] >= 18])
+        child_count = len(group[group['age'] <= 17])
+
+        # Categorize based on number of children
+        if child_count == 0:
+            child_household = 0  # No child or prefer not to answer
+        elif child_count == 1:
+            child_household = 1  # 1 child
+        elif child_count == 2:
+            child_household = 2  # 2 children
+        else:
+            child_household = 3  # 3 or more children
+
+        adults_count = len(group[group['age'] >= 18])
+
+        if adults_count == 0:
+            adults_household = 0  # No adult or prefer not to answer
+        elif adults_count == 1:
+            adults_household = 1  # 1 adult
+        elif adults_count == 2:
+            adults_household = 2  # 2 adults
+        elif adults_count == 3:
+            adults_household = 3  # 3 adults
+        else:
+            adults_household = 4  # 4 or more adults
+
         return pd.Series({
-            'Child_Household': children,
-            'Adult_household': adults
+            'child_household': child_household,
+            'adults_household': adults_household
         })
 
     # Group by hhid and calculate household composition
@@ -38,7 +60,7 @@ def select_shortest_pt_time(row):
     If any value is exactly 166.66666666666666, replace it with 99999.
     """
     pt_times = []
-    for col in ['time_bus', 'time_train', 'time_tram_metro']:
+    for col in ['time_bus', 'time_train', 'time_tram_metro']: #time is in min
         time_val = row.get(col, np.inf)  # Get time value for the column, default to infinity if not found
         if not pd.isna(time_val):  # Ensure the value is not NaN
             if time_val == 166.66666666666666:
@@ -50,25 +72,22 @@ def select_shortest_pt_time(row):
 
 
 # Function to calculate travel costs for auto and public transport (PT)
-def calculate_travel_costs(distance, time_auto, time_pt):
-    """
-    Calculate travel costs based on distance and time.
-    NOTE: This function uses placeholder values. You should replace these with actual cost parameters
-    based on your specific study requirements or data from your files.
-    """
-    # Placeholder cost parameters (replace with actual values)
-    cost_per_km_auto = 0.15  # Replace with actual auto cost per km
-    cost_per_minute_auto = 0.10  # Replace with actual auto cost per minute
-    cost_per_km_pt = 0.05  # Replace with actual PT cost per km
-    cost_per_minute_pt = 0.05  # Replace with actual PT cost per minute
+def calculate_travel_costs(distance, time_pt):
+    """ Calculate travel costs based on distance and time. #distance is in "km" """
+
+    # Cost parameters
+    circuity_factor = 1.215 # (Kim et al., 2025)
+    cost_per_km_auto = 0.65  #unit: €/km (Manuscript Number: JTRP-D-24-00632R1)
+    base_fare_pt = 4.10 #MVV- single trip ticket
+    average_cost_per_km_pt = 0.26 # region trip-longer trip (Schröder & Gotzler, 2021)
 
     # Auto cost calculation
-    TravelCost_auto = (distance * cost_per_km_auto) + (time_auto * cost_per_minute_auto)
+    travel_cost_auto = distance * circuity_factor * cost_per_km_auto
 
     # PT cost calculation
-    TravelCost_PT = (distance * cost_per_km_pt) + (time_pt * cost_per_minute_pt) if not pd.isna(time_pt) else np.nan
+    travel_cost_pt = base_fare_pt + (distance * circuity_factor* average_cost_per_km_pt)  if not pd.isna(time_pt) else np.nan
 
-    return TravelCost_auto, TravelCost_PT
+    return travel_cost_auto, travel_cost_pt
 
 
 # Main function to process and combine all data with calculations
@@ -78,10 +97,7 @@ def process_combined_data():
 
     # Define file paths
     file_paths = {
-        'dd': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\dd_2011.csv",
-        'ee': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\ee_2011.csv",
         'hh': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\hh_2011.csv",
-        'jj': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\jj_2011.csv",
         'pp': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\pp_2011.csv",
         'trips': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\trips\trips.csv"
     }
@@ -89,21 +105,13 @@ def process_combined_data():
     try:
         # Read all data files
         print("Reading data files...")
-        dd_data = pd.read_csv(file_paths['dd'])
-        ee_data = pd.read_csv(file_paths['ee'])
         hh_data = pd.read_csv(file_paths['hh'])
-        jj_data = pd.read_csv(file_paths['jj'])
         pp_data = pd.read_csv(file_paths['pp'])
         trips_data = pd.read_csv(file_paths['trips'])
 
-        print(f"Successfully read all data files:")
-        print(f"  - dd: {len(dd_data)} rows")
-        print(f"  - ee: {len(ee_data)} rows")
-        print(f"  - hh: {len(hh_data)} rows")
-        print(f"  - jj: {len(jj_data)} rows")
-        print(f"  - pp: {len(pp_data)} rows")
-        print(f"  - trips: {len(trips_data)} rows")
-        print()
+        # FILTER OUT BICYCLE AND WALK MODES
+        trips_data = trips_data[~trips_data['mode'].isin(['bicycle', 'walk'])]
+        print(f"Filtered trips: {len(trips_data)} rows remain after excluding 'bicycle' and 'walk' modes.")
 
         # Calculate household composition
         print("Calculating household composition...")
@@ -124,7 +132,7 @@ def process_combined_data():
             suffixes=('', '_hh')
         )
 
-        # FIXED: Use INNER JOIN instead of LEFT JOIN to only include people with trips
+        # Merge with trips data (INNER JOIN - only people with trips)
         print("Merging with trips data (INNER JOIN - only people with trips)...")
         combined_data = combined_data.merge(
             trips_data[['trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY', 'id', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro', 'purpose']],
@@ -133,19 +141,37 @@ def process_combined_data():
             how='inner',  # Changed from 'left' to 'inner'
             suffixes=('', '_trips')
         )
+        #Filtering trips with distance greater than or equal 20 km
+        print("Filtering trips with distance >= 20 km...")
+        combined_data = combined_data[combined_data['distance'] >= 20]
 
-        # Calculate shortest PT time
+        # Calculate the shortest PT time
         print("Calculating shortest PT time...")
         combined_data['time_PT'] = combined_data.apply(lambda row: select_shortest_pt_time(row), axis=1)
 
         # Calculate travel costs
         print("Calculating travel costs...")
         costs = combined_data.apply(
-            lambda row: calculate_travel_costs(row['distance'], row['time_auto'], row['time_PT']),
-            axis=1
-        )
-        combined_data['TravelCost_auto'] = costs.apply(lambda x: x[0])
-        combined_data['TravelCost_PT'] = costs.apply(lambda x: x[1])
+            lambda row: calculate_travel_costs(row['distance'], row['time_PT']),
+            axis=1 )
+        combined_data['travel_cost_auto'] = costs.apply(lambda x: x[0])
+        combined_data['travel_cost_pt'] = costs.apply(lambda x: x[1])
+
+        # Separate travel times into in-vehicle and waiting times
+
+        # For auto
+        combined_data['in_vehicle_time_auto'] = combined_data['time_auto']  # In-vehicle time is same as time_auto
+        combined_data['waiting_time_auto'] = 0  # No waiting time for auto
+        # Rename time_auto to travel_time_auto
+        combined_data.rename(columns={'time_auto': 'travel_time_auto'}, inplace=True)
+
+        # For public transport
+        combined_data['waiting_time_pt'] = np.where(combined_data['time_PT'] > 100, 20,5)  # Waiting time is 20 if time_pt > 100, else 5
+        combined_data['in_vehicle_time_pt'] = combined_data['time_PT'] - combined_data['waiting_time_pt']  # In-vehicle time = time_pt - waiting_time
+        # Rename time_pt to travel_time_pt
+        combined_data.rename(columns={'time_PT': 'travel_time_pt'}, inplace=True)
+
+        print("Travel times separated and renamed successfully.")
 
         # Rename columns for trips data (id -> person_id, trip_id is already in trips data)
         combined_data.rename(columns={'id': 'person_id'}, inplace=True)
@@ -153,38 +179,18 @@ def process_combined_data():
         # Select and reorder final columns
         final_columns = [
             'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY',
-            'person_id', 'age', 'gender', 'Child_Household', 'occupation', 'Adult_household', 'driversLicense',
-            'income', 'education', 'disability', 'purpose', 'autos', 'distance', 'time_auto', 'time_PT',
-            'TravelCost_auto', 'TravelCost_PT'
+            'person_id', 'age', 'gender', 'child_Household', 'occupation', 'adult_household', 'driversLicense',
+            'income', 'disability', 'purpose', 'autos', 'distance', 'in_vehicle_time_auto', 'waiting_time_auto',
+            'travel_time_auto', 'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
         ]
 
         # Filter to only include columns that exist
         available_columns = [col for col in final_columns if col in combined_data.columns]
         final_data = combined_data[available_columns]
 
-        # Create output directory
-        output_dir = "../../../Result/Vertiport_analysis/Model_XgBoost/Synthetic_population"
-        os.makedirs(output_dir, exist_ok=True)
-
         # Save the combined data
-        output_file = f"{output_dir}/microdata_trips.csv"
+        output_file = "../../../Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
         final_data.to_csv(output_file, index=False)
-
-        print(f"Successfully created combined dataset:")
-        print(f"  - Output file: {output_file}")
-        print(f"  - Total rows: {len(final_data)}")
-        print(f"  - Columns: {list(final_data.columns)}")
-        print()
-
-        # Display some statistics
-        print("Data Summary:")
-        print(f"  - Average age: {final_data['age'].mean():.2f}")
-        print(f"  - Average household size (children): {final_data['Child_Household'].mean():.2f}")
-        print(f"  - Average household size (adults): {final_data['Adult_household'].mean():.2f}")
-        print(f"  - Average distance: {final_data['distance'].mean():.2f} km")
-        print(f"  - Average auto cost: ${final_data['TravelCost_auto'].mean():.2f}")
-        print(f"  - Average PT cost: ${final_data['TravelCost_PT'].mean():.2f}")
-
         return final_data
 
     except FileNotFoundError as e:
@@ -197,7 +203,7 @@ def process_combined_data():
 
 # Main function to execute the combined data processing
 def main():
-    print("Starting Combined Data Processing and Calculations (FIXED VERSION)")
+    print("Starting Combined Data Processing and Calculations")
     print("=" * 60)
 
     result = process_combined_data()

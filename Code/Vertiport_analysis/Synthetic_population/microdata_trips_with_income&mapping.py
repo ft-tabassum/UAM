@@ -3,14 +3,12 @@ import numpy as np
 import os
 
 def calculate_monthly_income(income):
-    """
-    Calculate Monthly_Income using the formula:
+    """ Calculate Monthly_Income using the formula:
     Monthly_Income = income * (1+0.0346)^13 * (1+0.2532)
     Where:
     - Inflation Rate = 25.32%
     - Annual Growth Rate = 3.46%
-    - Years = 13 (from 2011 to 2024)
-    """
+    - Years = 13 (from 2011 to 2024) """
     if pd.isna(income):
         return np.nan
     
@@ -23,12 +21,11 @@ def calculate_monthly_income(income):
     return monthly_income
 
 def categorize_monthly_income(monthly_income):
-    """
-    Categorize monthly income into predefined categories
-    """
+    """Categorize monthly income into predefined categories"""
     if pd.isna(monthly_income) or monthly_income <= 0:
         return 0  # 'I prefer not to answer'
-    
+    if monthly_income == 0:
+        return 1  # 'No income'
     if monthly_income < 1000:
         return 2  # 'Under € 1000'
     elif monthly_income < 2000:
@@ -47,9 +44,7 @@ def categorize_monthly_income(monthly_income):
         return 9  # '€ 7000 or more'
 
 def apply_mapping(df):
-    """
-    Apply mapping to categorical variables according to the documentation
-    """
+    """ Apply mapping to categorical variables according to the documentation"""
     print("Applying mappings...")
     
     # --- Age binning ---
@@ -83,17 +78,17 @@ def apply_mapping(df):
     # --- Gender mapping ---
     print("  - Mapping gender...")
     # 1=Female, 2=Male, 3=Diverse
-    gender_map = {1: 2, 2: 1, 'male': 2, 'female': 1, 'Male': 2, 'Female': 1, 'Diverse': 3}
-    df['gender'] = df['gender'].map(gender_map).fillna(3).astype(int)  # Default to Diverse (3)
+    gender_map = {'Male': 2, 'Female': 1, 'Diverse': 3}
+    df['gender'] = df['gender'].map(gender_map).fillna(3).astype(int)
 
     # --- Occupation mapping ---
     print("  - Mapping occupation...")
     # 1=employed, 2=unemployed, 3=student
     occupation_map = {
-        'employed': 1, 'Employed': 1, 1: 1,
-        'unemployed': 2, 'Unemployed': 2, 2: 2,
-        'student': 3, 'Student': 3, 3: 3
-    }
+        'I prefer not to answer': 0,
+        'Employed':1,
+        'Unemployed': 2,
+        'Student': 3 }
     df['occupation'] = df['occupation'].map(occupation_map).fillna(0).astype(int)
 
     # --- driversLicense mapping ---
@@ -102,12 +97,12 @@ def apply_mapping(df):
 
     # --- Disability mapping ---
     print("  - Mapping disability...")
-    df['disability'] = df['disability'].map({0: 0, 1: 1, '0': 0, '1': 1}).fillna(0).astype(int)
+    df['disability'] = df['disability'].map({0: 'no', 1: 'yes'}).fillna(0).astype(int)
 
     # --- NEW: Purpose mapping with new categories ---
     print("  - Mapping purpose with new categories...")
     # First, convert old purpose codes to new categories
-    # 1=HBW, 2=HBE, 3=HBS, 4=HBR, 5=HBO, 6=NHBW, 7=NHBO
+    # 1=HBW (House-based Work), 2=HBE (~ Education), 3=HBS (~ Shopping), 4=HBR (~ recreation), 5=HBO (~ other), 6=NHBW, 7=NHBO
     purpose_conversion = {
         1: 'Business trip',    # HBW -> Business trip
         2: 'Business trip',    # HBE -> Business trip  
@@ -153,12 +148,6 @@ def main():
         print(f"Input columns: {list(df.columns)}")
         print()
         
-        # Check if 'income' column exists
-        if 'income' not in df.columns:
-            print("Error: 'income' column not found in the input data!")
-            print(f"Available columns: {list(df.columns)}")
-            return
-        
         # Calculate Monthly_Income (this is actually annual income, we need to convert to monthly)
         print("Calculating Annual Income (adjusted for inflation and growth)...")
         print("Formula: Annual_Income = income * (1+0.0346)^13 * (1+0.2532)")
@@ -181,18 +170,13 @@ def main():
         if 'driversLicense' in df.columns:
             col_list = list(df.columns)
             drivers_license_idx = col_list.index('driversLicense')
+
             # Remove Monthly_Income_value and Monthly_Income from current position
             col_list.remove('Monthly_Income_value')
             col_list.remove('Monthly_Income')
             # Insert after driversLicense
-            col_list.insert(drivers_license_idx + 1, 'Monthly_Income_value')
-            col_list.insert(drivers_license_idx + 2, 'Monthly_Income')
+            col_list.insert(drivers_license_idx + 1, 'Monthly_Income')
             df = df[col_list]
-        
-        print(f"Income calculation and categorization completed.")
-        print(f"Sample Monthly_Income values:")
-        print(df[['Monthly_Income_value', 'Monthly_Income']].head(10))
-        print()
         
         # Apply mappings
         df = apply_mapping(df)
@@ -207,51 +191,7 @@ def main():
         print(f"Output shape: {df.shape}")
         print(f"Output columns: {list(df.columns)}")
         print()
-        
-        # Display mapping summary
-        print("=== MAPPING SUMMARY ===")
-        print("age: 0=missing, 1=1-17, 2=18-29, 3=30-39, 4=40-49, 5=50-59, 6=60-69, 7=70-79, 8=I prefer not to answer")
-        print("gender: 1=Female, 2=Male, 3=Diverse")
-        print("occupation: 1=employed, 2=unemployed, 3=student")
-        print("driversLicense: 1=True, 0=False")
-        print("disability: 0=no, 1=yes")
-        print("purpose: 0=Business trip, 1=Medical travel, 2=Other, 3=Tourism, 4=Visiting family or friends")
-        print("Monthly_Income: 0=I prefer not to answer, 1=No income, 2=Under €1000, 3=€1000-€2000, 4=€2000-€3000, 5=€3000-€4000, 6=€4000-€5000, 7=€5000-€6000, 8=€6000-€7000, 9=€7000+")
-        print()
-        
-        # Display some statistics
-        print("=== DATA SUMMARY ===")
-        print(f"Total records: {len(df)}")
-        print(f"Average Monthly_Income: €{df['Monthly_Income_value'].mean():.2f}")
-        
-        print(f"Age distribution:")
-        age_counts = df['age'].value_counts().sort_index()
-        for age_code, count in age_counts.items():
-            age_labels = {0: 'missing', 1: '1-17', 2: '18-29', 3: '30-39', 4: '40-49', 5: '50-59', 6: '60-69', 7: '70-79', 8: 'I prefer not to answer'}
-            print(f"  Age {age_code} ({age_labels.get(age_code, 'unknown')}): {count:,} records")
-        
-        print(f"Gender distribution:")
-        gender_counts = df['gender'].value_counts().sort_index()
-        for gender_code, count in gender_counts.items():
-            gender_labels = {1: 'Female', 2: 'Male', 3: 'Diverse'}
-            print(f"  Gender {gender_code} ({gender_labels.get(gender_code, 'unknown')}): {count:,} records")
-        
-        print(f"Purpose distribution:")
-        purpose_counts = df['purpose'].value_counts().sort_index()
-        for purpose_code, count in purpose_counts.items():
-            purpose_labels = {0: 'Business trip', 1: 'Medical travel', 2: 'Other', 3: 'Tourism', 4: 'Visiting family or friends'}
-            print(f"  Purpose {purpose_code} ({purpose_labels.get(purpose_code, 'unknown')}): {count:,} records")
-        
-        print(f"Monthly Income Category distribution:")
-        income_counts = df['Monthly_Income'].value_counts().sort_index()
-        for income_code, count in income_counts.items():
-            income_labels = {
-                0: 'I prefer not to answer', 1: 'No income', 2: 'Under €1000', 
-                3: '€1000-€2000', 4: '€2000-€3000', 5: '€3000-€4000', 
-                6: '€4000-€5000', 7: '€5000-€6000', 8: '€6000-€7000', 9: '€7000+'
-            }
-            print(f"  Income {income_code} ({income_labels.get(income_code, 'unknown')}): {count:,} records")
-        
+
     except FileNotFoundError:
         print(f"Error: Input file '{input_file}' not found!")
         print("Please make sure the microdata_trips.py script has been run successfully.")

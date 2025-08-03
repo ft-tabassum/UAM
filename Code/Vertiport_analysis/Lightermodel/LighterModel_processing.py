@@ -56,6 +56,16 @@ employment_mapping = {
 data['Employment'] = data['Employment'].map(employment_mapping)
 data['Employment'] = data['Employment'].fillna('I prefer not to answer')
 
+# Now map these standardized categories to numeric values like in df
+final_mapping = {
+    'I prefer not to answer': 0,
+    'Employed': 1,
+    'Unemployed': 2,
+    'Student': 3
+}
+# Apply the final numeric mapping
+data['Employment'] = data['Employment'].map(final_mapping).fillna(0).astype(int)
+
 print("Employment mapping applied:")
 for k, v in employment_mapping.items():
     print(f"  '{k}' -> '{v}'")

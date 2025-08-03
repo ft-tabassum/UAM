@@ -17,10 +17,9 @@ print(f"Columns: {list(data.columns)}")
 print()
 
 # Step 1: Define which columns to keep for processing
-# We'll keep the key features and drop some spatial/trip-specific columns
 features_to_keep = [
-    'person_id', 'age', 'gender', 'Child_Household', 'occupation', 
-    'Adult_household', 'driversLicense', 'Monthly_Income', 'disability', 'purpose', 
+    'person_id', 'age', 'gender', 'child_Household', 'occupation',
+    'adult_household', 'driversLicense', 'Monthly_Income', 'disability', 'purpose',
     'autos', 'distance', 'time_auto', 'time_PT', 
     'TravelCost_auto', 'TravelCost_PT'
 ]
@@ -37,11 +36,11 @@ print()
 ordinal_cols = ['Monthly_Income', 'age', 'gender', 'purpose']
 
 # Nominal columns (categorical without inherent order) - will be one-hot encoded
-nominal_cols = ['occupation', 'driversLicense', 'autos', 'Child_Household', 'Adult_household', 'disability']
+nominal_cols = ['occupation', 'driversLicense', 'autos', 'child_Household', 'adult_household']
 
 # Numerical columns (continuous variables)
 numerical_cols = [
-    'distance', 'time_auto', 'time_PT', 'TravelCost_auto', 'TravelCost_PT'
+    'disability', 'distance', 'time_auto', 'TravelCost_auto', 'time_PT', 'TravelCost_PT'
 ]
 
 print("Column types:")
@@ -137,10 +136,7 @@ print(f"Processed feature matrix shape: {X_processed_df.shape}")
 print(f"Feature names: {feature_names}")
 print()
 
-
-
 # Step 8: Rename columns to match LighterModel naming convention
-print("Renaming columns to match LighterModel...")
 
 # First, rename the occupation columns to Employment
 employment_rename_map = {}
@@ -164,25 +160,23 @@ for col in X_processed_df.columns:
             drivers_license_rename_map[col] = 'Driving_License_No'
         elif col == 'driversLicense_1':
             drivers_license_rename_map[col] = 'Driving_License_Yes'
-        else:
-            drivers_license_rename_map[col] = 'Driving_License_Unknown'
 
 # Rename disability columns
 disability_rename_map = {}
 for col in X_processed_df.columns:
     if col.startswith('disability_'):
         if col == 'disability_0':
-            disability_rename_map[col] = 'disability_No'
+            disability_rename_map[col] = 'Disability_No'
         else:
-            disability_rename_map[col] = 'disability_Yes'
+            disability_rename_map[col] = 'Disability_Yes'
 
 # Create a mapping for other column renaming
 column_rename_map = {
-    'distance': 'tripLength-km',
-    'time_auto': 'travel time_car',
-    'time_PT': 'travel time_PublicTransport',
-    'TravelCost_auto': 'TravelCost_Car',
-    'TravelCost_PT': 'TravelCost_PublicTransport'
+    'distance': 'Trip_Length-km', #km
+    'time_auto': 'Travel_Time_Car',  #min
+    'time_PT': 'Travel_time_PublicTransport',
+    'TravelCost_auto': 'Travel_Cost_Car',
+    'TravelCost_PT': 'Travel_Cost_PublicTransport'
 }
 
 # Combine all rename mappings
@@ -204,14 +198,17 @@ for col in reference_cols:
         X_processed_df[col] = data[col].values
 
 # After renaming columns and before saving the processed data
-if 'tripLength-km' in X_processed_df.columns:
-    X_processed_df['tripLength-m'] = X_processed_df['tripLength-km'] * 1000
+if 'Trip_Length-km' in X_processed_df.columns:
+    X_processed_df['tripLength-m'] = X_processed_df['Trip_Length-km'] * 1000
+
     # Reorder columns to place 'tripLength-m' after 'tripLength-km'
     cols = list(X_processed_df.columns)
-    km_idx = cols.index('tripLength-km')
+    km_idx = cols.index('Trip_Length-km')
+
     # Remove 'tripLength-m' and insert after 'tripLength-km'
-    cols.remove('tripLength-m')
-    cols.insert(km_idx + 1, 'tripLength-m')
+    cols.remove('Trip_Length-m')
+    cols.insert(km_idx + 1, 'Trip_Length-m')
+    cols.remove('Trip_Length-km')
     X_processed_df = X_processed_df[cols]
 
 # Step 10: Save the processed data
@@ -230,7 +227,7 @@ print(f"Total records: {len(X_processed_df)}")
 print(f"Total features: {len(X_processed_df.columns)}")
 
 # Show some statistics for key numerical features
-numerical_features = ['tripLength-m', 'travel time_car', 'travel time_PublicTransport', 'TravelCost_Car', 'TravelCost_PublicTransport']
+numerical_features = ['Trip_Length-m', 'Travel_Time_Car', 'Travel_time_PublicTransport', 'Travel_Cost_Car', 'Travel_Cost_PublicTransport']
 for feature in numerical_features:
     if feature in X_processed_df.columns:
         print(f"  {feature}: mean={X_processed_df[feature].mean():.2f}, std={X_processed_df[feature].std():.2f}")
