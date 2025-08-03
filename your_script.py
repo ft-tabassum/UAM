@@ -278,12 +278,12 @@ def main():
         X_processed_df = rename_columns(X_processed_df)
         
         # Step 4: Add reference columns and trip length
-        X_processed_df = add_reference_columns_and_trip_length(df, X_processed_df)
+        df_processed = add_reference_columns_and_trip_length(df, X_processed_df)
 
         # Step 5: Save processed data
-        X_processed_df.to_csv(output_file, index=False)
+        df_processed.to_csv(output_file, index=False)
         print(f"Processed data saved to {output_file}")
-        print(f"Final data shape: {X_processed_df.shape}")
+        print(f"Final data shape: {df_processed.shape}")
 
     except FileNotFoundError:
         print(f"Error: Input file '{input_file}' not found!")
