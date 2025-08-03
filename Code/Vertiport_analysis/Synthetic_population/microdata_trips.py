@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 
 # Function to calculate Child_Household and Adult_Household based on age
 def calculate_household_composition(pp_data, hh_data):
@@ -44,7 +45,7 @@ def calculate_household_composition(pp_data, hh_data):
         })
 
     # Group by hhid and calculate household composition
-    household_stats = merged_data.groupby('hhid').apply(calculate_household_stats).reset_index()
+    household_stats = merged_data.groupby('hhid').apply(calculate_household_stats, include_groups=False).reset_index()
 
     # Merge back to pp_data
     result = pp_data.merge(household_stats, on='hhid', how='left')
@@ -97,9 +98,9 @@ def process_combined_data():
 
     # Define file paths
     file_paths = {
-        'hh': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\hh_2011.csv",
-        'pp': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\pp_2011.csv",
-        'trips': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\trips\trips.csv"
+        'hh': "data/hh_2011.csv",  # Relative path
+        'pp': "data/pp_2011.csv",  # Relative path  
+        'trips': "data/trips.csv"  # Relative path
     }
 
     try:
@@ -179,7 +180,7 @@ def process_combined_data():
         # Select and reorder final columns
         final_columns = [
             'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY',
-            'person_id', 'age', 'gender', 'child_Household', 'occupation', 'adult_household', 'driversLicense',
+            'person_id', 'age', 'gender', 'child_household', 'occupation', 'adults_household', 'driversLicense',
             'income', 'disability', 'purpose', 'autos', 'distance', 'in_vehicle_time_auto', 'waiting_time_auto',
             'travel_time_auto', 'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
         ]
@@ -190,6 +191,11 @@ def process_combined_data():
 
         # Save the combined data
         output_file = "../../../Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+        
+        # Create output directory if it doesn't exist
+        output_dir = os.path.dirname(output_file)
+        os.makedirs(output_dir, exist_ok=True)
+        
         final_data.to_csv(output_file, index=False)
         return final_data
 
