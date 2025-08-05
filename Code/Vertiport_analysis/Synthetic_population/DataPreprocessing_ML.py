@@ -2,14 +2,13 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-import numpy as np
-import os
+
 
 # Load data
-input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips_with_income&mapping.csv"
+input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/Mapping.csv"
 data = pd.read_csv(input_file)
 
-print("=== TRIAL DATA PROCESSING SCRIPT ===")
+print("=== DATA PROCESSING SCRIPT ===")
 print("=" * 60)
 print(f"Input file: {input_file}")
 print(f"Data shape: {data.shape}")
@@ -18,10 +17,10 @@ print()
 
 # Step 1: Define which columns to keep for processing
 features_to_keep = [
-    'person_id', 'age', 'gender', 'child_Household', 'occupation',
-    'adult_household', 'driversLicense', 'Monthly_Income', 'disability', 'purpose',
-    'autos', 'distance', 'time_auto', 'time_PT', 
-    'TravelCost_auto', 'TravelCost_PT'
+    'person_id', 'age', 'gender', 'child_household', 'occupation',
+    'adults_household', 'driversLicense', 'monthly_income', 'disability', 'purpose',
+    'autos', 'distance', 'in_vehicle_time_auto', 'waiting_time_auto', 'travel_time_auto',
+    'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
 ]
 
 # Create a copy with only the features we want to process
@@ -32,15 +31,17 @@ print(f"Features: {features_to_keep}")
 print()
 
 # Step 2: Define ordinal and nominal columns
+
 # Ordinal columns (categorical with inherent order)
-ordinal_cols = ['Monthly_Income', 'age', 'gender', 'purpose']
+ordinal_cols = ['monthly_income', 'age', 'gender' ]
 
 # Nominal columns (categorical without inherent order) - will be one-hot encoded
-nominal_cols = ['occupation', 'driversLicense', 'autos', 'child_Household', 'adult_household']
+nominal_cols = ['occupation','disability', 'driversLicense', 'autos', 'child_household', 'adults_household', 'purpose']
 
 # Numerical columns (continuous variables)
 numerical_cols = [
-    'disability', 'distance', 'time_auto', 'TravelCost_auto', 'time_PT', 'TravelCost_PT'
+    'distance', 'in_vehicle_time_auto', 'waiting_time_auto', 'travel_time_auto',
+    'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
 ]
 
 print("Column types:")
@@ -136,6 +137,20 @@ print(f"Processed feature matrix shape: {X_processed_df.shape}")
 print(f"Feature names: {feature_names}")
 print()
 
+# Debug: Check what columns we have after one-hot encoding
+print("Columns after one-hot encoding:")
+print(list(X_processed_df.columns))
+print()
+
+# Check for occupation, disability, and purpose columns
+occupation_cols = [col for col in X_processed_df.columns if col.startswith('occupation_')]
+disability_cols = [col for col in X_processed_df.columns if col.startswith('disability_')]
+purpose_cols = [col for col in X_processed_df.columns if col.startswith('purpose_')]
+print(f"Occupation columns found: {occupation_cols}")
+print(f"Disability columns found: {disability_cols}")
+print(f"Purpose columns found: {purpose_cols}")
+print()
+
 # Step 8: Rename columns to match LighterModel naming convention
 
 # First, rename the occupation columns to Employment
@@ -149,8 +164,11 @@ for col in X_processed_df.columns:
             employment_rename_map[col] = 'Employment_Unemployed'
         elif col == 'occupation_3':
             employment_rename_map[col] = 'Employment_Student'
-        else:
+        elif col == 'occupation_0':
             employment_rename_map[col] = 'Employment_I prefer not to answer'
+        else:
+            # Handle any other occupation values
+            employment_rename_map[col] = f'Employment_Other_{col.split("_")[1]}'
 
 # Rename driversLicense columns to Driving_License
 drivers_license_rename_map = {}
@@ -160,6 +178,8 @@ for col in X_processed_df.columns:
             drivers_license_rename_map[col] = 'Driving_License_No'
         elif col == 'driversLicense_1':
             drivers_license_rename_map[col] = 'Driving_License_Yes'
+        else:
+            drivers_license_rename_map[col] = f'Driving_License_Other_{col.split("_")[1]}'
 
 # Rename disability columns
 disability_rename_map = {}
@@ -167,20 +187,34 @@ for col in X_processed_df.columns:
     if col.startswith('disability_'):
         if col == 'disability_0':
             disability_rename_map[col] = 'Disability_No'
-        else:
+        elif col == 'disability_1':
             disability_rename_map[col] = 'Disability_Yes'
+        else:
+            # Handle any other disability values
+            disability_rename_map[col] = f'Disability_Other_{col.split("_")[1]}'
 
-# Create a mapping for other column renaming
-column_rename_map = {
-    'distance': 'Trip_Length-km', #km
-    'time_auto': 'Travel_Time_Car',  #min
-    'time_PT': 'Travel_time_PublicTransport',
-    'TravelCost_auto': 'Travel_Cost_Car',
-    'TravelCost_PT': 'Travel_Cost_PublicTransport'
-}
+# Rename purpose columns to Trip_Purpose
+purpose_rename_map = {}
+for col in X_processed_df.columns:
+    if col.startswith('purpose_'):
+        # Map purpose values to Trip_Purpose categories based on the mapping from Mapping.py
+        # 0=Business trip, 1=Medical travel, 2=Other, 3=Tourism, 4=Visiting family or friends
+        if col == 'purpose_0':
+            purpose_rename_map[col] = 'Business trip'
+        elif col == 'purpose_1':
+            purpose_rename_map[col] = 'Medical trip'
+        elif col == 'purpose_2':
+            purpose_rename_map[col] = 'Other trip'
+        elif col == 'purpose_3':
+            purpose_rename_map[col] = 'Tourism trip'
+        elif col == 'purpose_4':
+            purpose_rename_map[col] = 'Visit trip'
+        else:
+            # Handle any other purpose values
+            purpose_rename_map[col] = f'Trip_Purpose_Other_{col.split("_")[1]}'
 
 # Combine all rename mappings
-all_rename_map = {**employment_rename_map, **drivers_license_rename_map, **disability_rename_map, **column_rename_map}
+all_rename_map = {**employment_rename_map, **drivers_license_rename_map, **disability_rename_map, **purpose_rename_map}
 
 # Rename the columns
 X_processed_df = X_processed_df.rename(columns=all_rename_map)
@@ -198,21 +232,21 @@ for col in reference_cols:
         X_processed_df[col] = data[col].values
 
 # After renaming columns and before saving the processed data
-if 'Trip_Length-km' in X_processed_df.columns:
-    X_processed_df['tripLength-m'] = X_processed_df['Trip_Length-km'] * 1000
+if 'distance' in X_processed_df.columns:
+    X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
 
-    # Reorder columns to place 'tripLength-m' after 'tripLength-km'
+    # Reorder columns to place 'Trip_Length-m' after 'Trip_Length-km'
     cols = list(X_processed_df.columns)
-    km_idx = cols.index('Trip_Length-km')
+    km_idx = cols.index('distance')
 
-    # Remove 'tripLength-m' and insert after 'tripLength-km'
-    cols.remove('Trip_Length-m')
-    cols.insert(km_idx + 1, 'Trip_Length-m')
-    cols.remove('Trip_Length-km')
+    # Remove 'Trip_Length-m' and insert after 'Trip_Length-km'
+    cols.remove('trip_length')
+    cols.insert(km_idx + 1, 'trip_length')
+    cols.remove('distance')
     X_processed_df = X_processed_df[cols]
 
 # Step 10: Save the processed data
-output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/synthetic_population_processing.csv"
+output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv"
 X_processed_df.to_csv(output_file, index=False)
 
 print("=== PROCESSING COMPLETED ===")

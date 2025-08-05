@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import os
+
 
 def calculate_monthly_income(income):
     """ Calculate Monthly_Income using the formula:
@@ -83,13 +83,43 @@ def apply_mapping(df):
 
     # --- Occupation mapping ---
     print("  - Mapping occupation...")
-    # 1=employed, 2=unemployed, 3=student
+    # First, let's see what occupation values we have
+    print(f"  Original occupation unique values: {df['occupation'].unique()}")
+    print(f"  Original occupation value counts: {df['occupation'].value_counts().sort_index()}")
+    
+    # Map numeric occupation codes to our target categories
+    # Assuming original codes: 1=employed, 2=unemployed, 3=student, 0/other=prefer not to answer
     occupation_map = {
+        0: 0,  # 'I prefer not to answer'
+        1: 1,  # 'Employed'
+        2: 2,  # 'Unemployed' 
+        3: 3,  # 'Student'
         'I prefer not to answer': 0,
-        'Employed':1,
+        'Employed': 1,
         'Unemployed': 2,
-        'Student': 3 }
+        'Student': 3
+    }
     df['occupation'] = df['occupation'].map(occupation_map).fillna(0).astype(int)
+    
+    print(f"  After mapping occupation unique values: {df['occupation'].unique()}")
+    print(f"  After mapping occupation value counts: {df['occupation'].value_counts().sort_index()}")
+    
+    # Ensure all occupation categories are present (add dummy rows if needed)
+    occupation_categories = [0, 1, 2, 3]
+    missing_categories = set(occupation_categories) - set(df['occupation'].unique())
+    if missing_categories:
+        print(f"  Adding dummy rows for missing occupation categories: {missing_categories}")
+        # Create dummy rows for missing categories
+        dummy_rows = []
+        for cat in missing_categories:
+            dummy_row = df.iloc[0].copy()  # Copy first row as template
+            dummy_row['occupation'] = cat
+            dummy_row['trip_id'] = f"dummy_occ_{cat}"  # Unique trip_id for dummy
+            dummy_rows.append(dummy_row)
+        
+        # Add dummy rows to dataframe
+        df = pd.concat([df, pd.DataFrame(dummy_rows)], ignore_index=True)
+        print(f"  Added {len(dummy_rows)} dummy rows for missing occupation categories")
 
     # --- driversLicense mapping ---
     print("  - Mapping driversLicense...")
@@ -97,23 +127,50 @@ def apply_mapping(df):
 
     # --- Disability mapping ---
     print("  - Mapping disability...")
-    df['disability'] = df['disability'].map({0: 'no', 1: 'yes'}).fillna(0).astype(int)
+    # The disability column should already be 0/1, so we just ensure it's integer
+    df['disability'] = df['disability'].astype(int)
+    
+    print(f"  Disability unique values: {df['disability'].unique()}")
+    print(f"  Disability value counts: {df['disability'].value_counts().sort_index()}")
+    
+    # Ensure all disability categories are present (add dummy rows if needed)
+    disability_categories = [0, 1]
+    missing_disability = set(disability_categories) - set(df['disability'].unique())
+    if missing_disability:
+        print(f"  Adding dummy rows for missing disability categories: {missing_disability}")
+        # Create dummy rows for missing categories
+        dummy_rows = []
+        for cat in missing_disability:
+            dummy_row = df.iloc[0].copy()  # Copy first row as template
+            dummy_row['disability'] = cat
+            dummy_row['trip_id'] = f"dummy_dis_{cat}"  # Unique trip_id for dummy
+            dummy_rows.append(dummy_row)
+        
+        # Add dummy rows to dataframe
+        df = pd.concat([df, pd.DataFrame(dummy_rows)], ignore_index=True)
+        print(f"  Added {len(dummy_rows)} dummy rows for missing disability categories")
 
-    # --- NEW: Purpose mapping with new categories ---
+    # Purpose mapping with new categories ---
     print("  - Mapping purpose with new categories...")
-    # First, convert old purpose codes to new categories
-    # 1=HBW (House-based Work), 2=HBE (~ Education), 3=HBS (~ Shopping), 4=HBR (~ recreation), 5=HBO (~ other), 6=NHBW, 7=NHBO
+    print(f"  Original purpose unique values: {df['purpose'].unique()}")
+    print(f"  Original purpose value counts: {df['purpose'].value_counts().sort_index()}")
+    
+    # Map string purpose values to new categories
+    # HBW, HBE, NHBW = Business trip
+    # HBS -> Visiting family or friends  
+    # HBR -> Tourism
+    # HBO, NHBO -> Other
     purpose_conversion = {
-        1: 'Business trip',    # HBW -> Business trip
-        2: 'Business trip',    # HBE -> Business trip  
-        3: 'Visiting family or friends',  # HBS -> Visiting family or friends
-        4: 'Tourism',          # HBR -> Tourism
-        5: 'Other',            # HBO -> Other
-        6: 'Business trip',    # NHBW -> Business trip
-        7: 'Other'             # NHBO -> Other
+        'HBW': 'Business trip',    # House-based Work
+        'HBE': 'Business trip',    # House-based Education
+        'NHBW': 'Business trip',   # Non-House-based Work
+        'HBS': 'Visiting family or friends',  # House-based Shopping
+        'HBR': 'Tourism',          # House-based Recreation
+        'HBO': 'Other',            # House-based Other
+        'NHBO': 'Other'            # Non-House-based Other
     }
     
-    # Convert old purpose codes to new categories
+    # Convert string purpose values to new categories
     df['purpose_category'] = df['purpose'].map(purpose_conversion).fillna('Other')
     
     # Now map categories to final codes
@@ -130,15 +187,35 @@ def apply_mapping(df):
     # Remove the temporary category column
     df = df.drop(columns=['purpose_category'])
     
+    print(f"  After mapping purpose unique values: {df['purpose'].unique()}")
+    print(f"  After mapping purpose value counts: {df['purpose'].value_counts().sort_index()}")
+    
+    # Ensure all purpose categories are present (add dummy rows if needed)
+    purpose_categories = [0, 1, 2, 3, 4]  # Business trip, Medical travel, Other, Tourism, Visiting family or friends
+    missing_purpose = set(purpose_categories) - set(df['purpose'].unique())
+    if missing_purpose:
+        print(f"  Adding dummy rows for missing purpose categories: {missing_purpose}")
+        # Create dummy rows for missing categories
+        dummy_rows = []
+        for cat in missing_purpose:
+            dummy_row = df.iloc[0].copy()  # Copy first row as template
+            dummy_row['purpose'] = cat
+            dummy_row['trip_id'] = f"dummy_purpose_{cat}"  # Unique trip_id for dummy
+            dummy_rows.append(dummy_row)
+        
+        # Add dummy rows to dataframe
+        df = pd.concat([df, pd.DataFrame(dummy_rows)], ignore_index=True)
+        print(f"  Added {len(dummy_rows)} dummy rows for missing purpose categories")
+    
     return df
 
 def main():
-    print("=== INCOME CALCULATION AND MAPPING SCRIPT (UPDATED) ===")
+    print("=== INCOME CALCULATION AND MAPPING SCRIPT  ===")
     print("=" * 60)
     
     # Input and output file paths
     input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
-    output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips_with_income&mapping.csv"
+    output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/Mapping.csv"
     
     try:
         # Read the input data
@@ -161,7 +238,7 @@ def main():
         
         # Categorize monthly income
         print("Categorizing Monthly Income...")
-        df['Monthly_Income'] = df['Monthly_Income_value'].apply(categorize_monthly_income)
+        df['monthly_income'] = df['Monthly_Income_value'].apply(categorize_monthly_income)
         
         # Remove the original 'income' and 'Annual_Income' columns
         df = df.drop(columns=['income', 'Annual_Income'])
@@ -173,9 +250,9 @@ def main():
 
             # Remove Monthly_Income_value and Monthly_Income from current position
             col_list.remove('Monthly_Income_value')
-            col_list.remove('Monthly_Income')
+            col_list.remove('monthly_income')
             # Insert after driversLicense
-            col_list.insert(drivers_license_idx + 1, 'Monthly_Income')
+            col_list.insert(drivers_license_idx + 1, 'monthly_income')
             df = df[col_list]
         
         # Apply mappings

@@ -95,6 +95,7 @@ def process_combined_data():
     print("Starting combined data processing...")
     print("=" * 60)
 
+
     # Define file paths
     file_paths = {
         'hh': r"D:\Files_D\Study\Thesis\data\travel_demand_2021\travel_demand_2021\sp\hh_2011.csv",
@@ -141,7 +142,7 @@ def process_combined_data():
             how='inner',  # Changed from 'left' to 'inner'
             suffixes=('', '_trips')
         )
-        #Filtering trips with distance greater than or equal 20 km
+        #Filtering trips with distance greater than or equal 20 km ***distance:km***
         print("Filtering trips with distance >= 20 km...")
         combined_data = combined_data[combined_data['distance'] >= 20]
 
@@ -179,7 +180,7 @@ def process_combined_data():
         # Select and reorder final columns
         final_columns = [
             'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY',
-            'person_id', 'age', 'gender', 'child_Household', 'occupation', 'adult_household', 'driversLicense',
+            'person_id', 'age', 'gender', 'child_household', 'occupation', 'adults_household', 'driversLicense',
             'income', 'disability', 'purpose', 'autos', 'distance', 'in_vehicle_time_auto', 'waiting_time_auto',
             'travel_time_auto', 'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
         ]
