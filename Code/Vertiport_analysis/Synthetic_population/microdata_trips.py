@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-# Function to calculate Child_Household and Adult_Household based on age
+#------Function to calculate Child_Household and Adult_Household based on age-----
 def calculate_household_composition(pp_data, hh_data):
     """
     Calculate Child_Household and Adult_household based on hhid and age.
@@ -52,7 +52,7 @@ def calculate_household_composition(pp_data, hh_data):
     return result
 
 
-# Function to select the shortest public transport time
+#-------Function to select the shortest public transport time------
 def select_shortest_pt_time(row):
     """
     Select the shortest time among time_bus, time_train, time_tram_metro.
@@ -71,7 +71,7 @@ def select_shortest_pt_time(row):
     return min(pt_times) if pt_times else np.nan
 
 
-# Function to calculate travel costs for auto and public transport (PT)
+#---------Function to calculate travel costs for auto and public transport (PT)-------------
 def calculate_travel_costs(distance, time_pt):
     """ Calculate travel costs based on distance and time. #distance is in "km" """
 
@@ -90,7 +90,7 @@ def calculate_travel_costs(distance, time_pt):
     return travel_cost_auto, travel_cost_pt
 
 
-# Main function to process and combine all data with calculations
+#----------Main function to process and combine all data with calculations----------
 def process_combined_data():
     print("Starting combined data processing...")
     print("=" * 60)
@@ -158,8 +158,7 @@ def process_combined_data():
         combined_data['travel_cost_auto'] = costs.apply(lambda x: x[0])
         combined_data['travel_cost_pt'] = costs.apply(lambda x: x[1])
 
-        # Separate travel times into in-vehicle and waiting times
-
+        #----------- Separate travel times into in-vehicle and waiting times----------------
         # For auto
         combined_data['in_vehicle_time_auto'] = combined_data['time_auto']  # In-vehicle time is same as time_auto
         combined_data['waiting_time_auto'] = 0  # No waiting time for auto
@@ -167,7 +166,7 @@ def process_combined_data():
         combined_data.rename(columns={'time_auto': 'travel_time_auto'}, inplace=True)
 
         # For public transport
-        combined_data['waiting_time_pt'] = np.where(combined_data['time_PT'] > 100, 20,5)  # Waiting time is 20 if time_pt > 100, else 5
+        combined_data['waiting_time_pt'] = np.where(combined_data['distance'] <= 30, 5, 20)  # Waiting time is 5min for distance <= 30 km, else 20min
         combined_data['in_vehicle_time_pt'] = combined_data['time_PT'] - combined_data['waiting_time_pt']  # In-vehicle time = time_pt - waiting_time
         # Rename time_pt to travel_time_pt
         combined_data.rename(columns={'time_PT': 'travel_time_pt'}, inplace=True)
