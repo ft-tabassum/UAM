@@ -31,9 +31,9 @@ os.makedirs(
     '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics', exist_ok=True)
 os.makedirs('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
 
-# Load LighterModel data (UAM-aware data for training) # fix the code
+# Load LighterModel data (UAM-aware data for training)
 logger.info("Loading processed LighterModel data...")
-lighter_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/LighterModel/LighterModel_processing.csv")
+lighter_data = pd.read_csv("D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/LighterModel/LighterModelProcessing_ML.csv")
 
 # Define features and target for LighterModel
 y_lighter = lighter_data['tmode']
@@ -356,9 +356,8 @@ model_data = {
     'test_f1': test_f1,
     'test_roc_auc': test_roc_auc
 }
-
-with open(
-        '../../../Result/Vertiport_analysis/Model_XgfBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
+os.makedirs('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
+with open( '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
     pickle.dump(model_data, f)
 
 logger.info("Step 1 complete: ML_Model trained, validated, and tested. Model saved for Part 2.")

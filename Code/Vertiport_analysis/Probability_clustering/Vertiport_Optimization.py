@@ -39,13 +39,10 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/synthetic_population_processing.csv")
+    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv")
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
-# After loading synthetic_population
-if 'tripLength-km' in synthetic_population.columns and 'tripLength-m' in synthetic_population.columns:
-    synthetic_population = synthetic_population.drop(columns=['tripLength-km'])
 
 # =========================
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS # =========================
