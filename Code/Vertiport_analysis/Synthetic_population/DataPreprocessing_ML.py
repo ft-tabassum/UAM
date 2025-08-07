@@ -200,15 +200,15 @@ for col in X_processed_df.columns:
         # Map purpose values to Trip_Purpose categories based on the mapping from Mapping.py
         # 0=Business trip, 1=Medical travel, 2=Other, 3=Tourism, 4=Visiting family or friends
         if col == 'purpose_0':
-            purpose_rename_map[col] = 'Business trip'
+            purpose_rename_map[col] = 'purpose_Business_trip'
         elif col == 'purpose_1':
-            purpose_rename_map[col] = 'Medical trip'
+            purpose_rename_map[col] = 'purpose_Medical_trip'
         elif col == 'purpose_2':
-            purpose_rename_map[col] = 'Other trip'
+            purpose_rename_map[col] = 'purpose_Other_trip'
         elif col == 'purpose_3':
-            purpose_rename_map[col] = 'Tourism trip'
+            purpose_rename_map[col] = 'purpose_Tourism_trip'
         elif col == 'purpose_4':
-            purpose_rename_map[col] = 'Visit trip'
+            purpose_rename_map[col] = 'purpose_Visit_trip'
         else:
             # Handle any other purpose values
             purpose_rename_map[col] = f'Trip_Purpose_Other_{col.split("_")[1]}'
