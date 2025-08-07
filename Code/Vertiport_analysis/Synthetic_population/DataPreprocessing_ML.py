@@ -232,18 +232,18 @@ for col in reference_cols:
         X_processed_df[col] = data[col].values
 
 # After renaming columns and before saving the processed data
-#if 'distance' in X_processed_df.columns:
-#    X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
+if 'distance' in X_processed_df.columns:
+    X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
 
     # Reorder columns to place 'Trip_Length-m' after 'Trip_Length-km'
-  #  cols = list(X_processed_df.columns)
-  #  km_idx = cols.index('distance')
+    cols = list(X_processed_df.columns)
+    km_idx = cols.index('distance')
 
     # Remove 'Trip_Length-m' and insert after 'Trip_Length-km'
-    #cols.remove('trip_length')
-   # cols.insert(km_idx + 1, 'trip_length')
-  #  cols.remove('distance')
-   # X_processed_df = X_processed_df[cols]
+    cols.remove('trip_length')
+    cols.insert(km_idx + 1, 'trip_length')
+    cols.remove('distance')
+    X_processed_df = X_processed_df[cols]
 
 # Step 10: Save the processed data
 output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv"

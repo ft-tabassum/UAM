@@ -78,8 +78,8 @@ def calculate_travel_costs(distance, time_pt):
     # Cost parameters
     circuity_factor = 1.215 # (Kim et al., 2025)
     cost_per_km_auto = 0.65  #unit: €/km (Manuscript Number: JTRP-D-24-00632R1)
-    base_fare_pt = 4.10 #MVV- single trip ticket
-    average_cost_per_km_pt = 0.26 # region trip-longer trip (Schröder & Gotzler, 2021)
+    base_fare_pt = 4.10 # euro, MVV- single trip ticket
+    average_cost_per_km_pt = 0.26 # euro, region trip-longer trip (Schröder & Gotzler, 2021)
 
     # Auto cost calculation
     travel_cost_auto = distance * circuity_factor * cost_per_km_auto

@@ -55,7 +55,7 @@ od_points = np.vstack([
 ])
 kmeans = KMeans(n_clusters=74, init='k-means++', random_state=42, max_iter=1000)
 kmeans.fit(od_points)
-vertiport_coords = kmeans.cluster_centers_
+vertiport_coords = kmeans.cluster_centers_  # This is in meters
 logger.info("Step 2 complete: Initial vertiport locations set.")
 
 # =========================
@@ -63,11 +63,11 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # =========================
 
 # Set car speed and cost
-average_car_speed = 25.1 #unit: km/h, (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
-cost_per_km_car = 0.65  #unit: €/km (Manuscript Number: JTRP-D-24-00632R1)
-logger.info(f"Using car speed: {average_car_speed :.2f} m/min, car cost per m: {cost_per_km_car:.2f} €/m")
+average_car_speed = 418.33  #unit: m/min     ,25.1 km/h, (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
+cost_per_m_car = 0.00065   #unit:€/m        ,0.65 €/km (Manuscript Number: JTRP-D-24-00632R1)
+logger.info(f"Using car speed: {average_car_speed:.2f} m/min, car cost per m: {cost_per_m_car:.6f} €/m")
 
-# --- Centroid history tracking ---
+# --- Centroid history tracking --- (CHECK)
 centroid_history = [vertiport_coords.copy()]
 convergence_history = []  # Track centroid shifts per iteration
 improvement_threshold = 0.01  # Stop if improvement is less than 1% for 20 iterations
@@ -76,56 +76,59 @@ patience = 20
 
 # UAM calculation function, based on assumptions from the literature
 vertiport_k = 74
-uam_cruise_speed= 350  # unit: km/h
-uam_cost_km = 1 # unit: €/pkm
+uam_cruise_speed= 5833.33   # unit:m/min     ,350 km/h
+uam_cost_m = 0.001  # unit: €/pm,           1 €/pkm
 base_fare_uam = 18.4 # unit : €
-pre_flight_time = 15 # unit min
+pre_flight_time = 15 # unit : min
 circuity_factor = 1.215 # (Kim et al., 2025) # for car
 
-# --- Weight normalization functions ---
-def calculate_uam_time_cost(df, vertiport_coords, car_speed =average_car_speed, car_cost =cost_per_km_car, base_fare= base_fare_uam,
-                            uam_speed=uam_cruise_speed, uam_cost_km= uam_cost_km,
+# --- calculate UAM time and cost  function---
+def calculate_uam_time_cost(df, vertiport_coords, car_speed =average_car_speed, car_cost =cost_per_m_car, base_fare= base_fare_uam,
+                            uam_speed=uam_cruise_speed, cost_uam_m= uam_cost_m,
                             pre_flight_time=pre_flight_time):
     from scipy.spatial.distance import cdist
 
     #origin(x,y) and destination (x,y) are in meter
     origins = df[['originX', 'originY']].values
     dests = df[['destinationX', 'destinationY']].values
+    
+    # Now both origins/dests and vertiport_coords are in meters
     origin_v_idx = np.argmin(cdist(origins, vertiport_coords), axis=1)
     dest_v_idx = np.argmin(cdist(dests, vertiport_coords), axis=1)
     origin_v = vertiport_coords[origin_v_idx]
     dest_v = vertiport_coords[dest_v_idx]
 
-    # first and last mile car distances
+    # first and last mile car distances (in m)
     first_mile_dist = np.linalg.norm(origins - origin_v, axis=1) *  circuity_factor
     last_mile_dist = np.linalg.norm(dests - dest_v, axis=1) *  circuity_factor
 
-    # UAM distance (Euclidean distance)
-    uam_dist = np.linalg.norm(origin_v - dest_v,
-                              axis=1)  # if the origin and destination is the same, the probability is zero
-    # first, last, airborne and total time calculation
+    # UAM distance (Euclidean distance in m)
+    uam_dist = np.linalg.norm(origin_v - dest_v, axis=1)
+    
+    # first, last, airborne and total time calculation in min
     first_mile_time = first_mile_dist / car_speed  # unit: min
     last_mile_time = last_mile_dist / car_speed   # unit: min
-    airborne_time = uam_dist / uam_speed
-    total_time = pre_flight_time + first_mile_time + airborne_time + last_mile_time
+    airborne_time = uam_dist / uam_speed  # unit: min
+    total_time = pre_flight_time + first_mile_time + airborne_time + last_mile_time # unit: min
 
-    #first, last and travel cost calculation
+    #first, last and travel cost calculation in €
     first_mile_cost = first_mile_dist * car_cost
     last_mile_cost = last_mile_dist * car_cost
-    uam_travel_cost = base_fare + (uam_cost_km * uam_dist) + first_mile_cost + last_mile_cost
+    uam_travel_cost = base_fare + (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
+    
     df = df.copy()
-    df['travel_time_Uam'] = total_time
-    df['in_vehicle_time_Uam']= airborne_time
-    df['waiting_time_Uam']= total_time-airborne_time
+    df['travel_time_Uam'] = total_time # min
+    df['in_vehicle_time_Uam']= airborne_time # min
+    df['waiting_time_Uam']= total_time - airborne_time # min
     df['travel_cost_Uam'] = uam_travel_cost
-    df['uam_first_mile_m'] = first_mile_dist
-    df['uam_last_mile_m'] = last_mile_dist
-    df['uam_air_m'] = uam_dist
-    df['uam_origin_vertiport'] = origin_v_idx
-    df['uam_dest_vertiport'] = dest_v_idx
+    df['uam_first_mile'] = first_mile_dist #m
+    df['uam_last_mile'] = last_mile_dist #m
+    df['uam_air'] = uam_dist #m
+    df['uam_origin_vertiport'] = origin_v_idx #vertiport index
+    df['uam_dest_vertiport'] = dest_v_idx #vertiport index
     return df
 
-
+# --- predict mode probabilities function---
 def predict_mode_probabilities(df, model,
                                feature_cols):  # features are arranged identically to how they were during training
     X = df[feature_cols]
@@ -133,7 +136,7 @@ def predict_mode_probabilities(df, model,
 
 
 max_iter = 3000  #
-convergence_threshold = 1000  # convergence threshold (1km)#wrong
+convergence_threshold = 1000 # convergence threshold (1000m)
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -146,16 +149,17 @@ min_total_shift = float('nan')
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
     # a. Calculate UAM travel time and cost for each trip
-    synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed,
-                                                            cost_per_km_car)
-    # b. Add these UAM features to the synthetic population data (already done in synthetic_population_with_uam)
-    # c. Predict mode probabilities
+    synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords, average_car_speed,
+                                                            cost_per_m_car)
+
+    # b. Predict mode probabilities
     for col in feature_cols:  # Feature Alignment Safeguards
         if col not in synthetic_population_with_uam.columns:
             synthetic_population_with_uam[col] = 0.0
     synthetic_population_with_uam = synthetic_population_with_uam[feature_cols]
     proba = predict_mode_probabilities(synthetic_population_with_uam, final_model, feature_cols)
-    # d. Use UAM probability as weights for weighted k-means
+
+    # c. Use UAM probability as weights for weighted k-means
     uam_class_idx = None
     for i, cls in enumerate(classes):
         if 'uam' in str(cls).lower() or cls == 4:
@@ -163,18 +167,13 @@ for iteration in range(max_iter):
             break
     if uam_class_idx is None:
         uam_class_idx = len(classes) - 1
+
     # Log which class is being used for UAM weighting
     uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
     logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
     uam_probs = proba[:, uam_class_idx]
 
-    # Set UAM probability to zero for trips shorter than 10,000 meters (10 km)
-    if 'tripLength-m' in synthetic_population.columns:
-        short_trip_mask = synthetic_population['tripLength-m'] < 10000
-        uam_probs[short_trip_mask] = 0.0
-
-    logger.info(
-        f"UAM probability stats: min={np.min(uam_probs):.4f}, max={np.max(uam_probs):.4f}, mean={np.mean(uam_probs):.4f}, median={np.median(uam_probs):.4f}, frac_zero={(uam_probs == 0).mean():.4f}")
+    # Checking for NaN or Infinite Values in UAM Probabilities
     if np.isnan(uam_probs).any():
         logger.error("NaN found in UAM probabilities!")
         raise ValueError("NaN found in UAM probabilities!")
@@ -192,8 +191,8 @@ for iteration in range(max_iter):
 
     # f. Perform weighted k-means clustering
     kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000)
-    kmeans.fit(od_points_current, sample_weight=weights)
-    new_coords = kmeans.cluster_centers_
+    kmeans.fit(od_points_current, sample_weight=weights)  # od_points_current is in meters
+    new_coords = kmeans.cluster_centers_  # Output is in meters because input was in meters
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
     # g. Check convergence
     # Robust convergence check using the Hungarian (assignment) algorithm:
@@ -204,9 +203,10 @@ for iteration in range(max_iter):
         from scipy.optimize import linear_sum_assignment
         from scipy.spatial.distance import cdist
 
-        cost_matrix = cdist(new_coords, prev_coords)
+        cost_matrix = cdist(new_coords, prev_coords) # cost_matrix is in meters
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         min_total_shift = cost_matrix[row_ind, col_ind].sum()
+        convergence_history.append(min_total_shift)
 
         # Reorder new_coords to match prev_coords order
         new_coords_ordered = np.zeros_like(new_coords)
@@ -232,12 +232,12 @@ for iteration in range(max_iter):
                     break
             else:
                 no_improvement_count = 0
-        prev_coords = new_coords_ordered
+        prev_coords = new_coords_ordered # prev_coords gets updated  here
         vertiport_coords = new_coords_ordered
         centroid_history.append(vertiport_coords.copy())
     else:
         # First iteration: no reordering needed
-        prev_coords = new_coords
+        prev_coords = new_coords # prev_coords gets set to meters here
         vertiport_coords = new_coords
         centroid_history.append(vertiport_coords.copy())
 
@@ -285,8 +285,8 @@ plt.close()
 # =========================
 logger.info("Step 4: Final prediction with optimized vertiports and saving results...")
 # Calculate UAM features (full DataFrame)
-synthetic_population_with_uam_full = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed,
-                                                             cost_per_km_car)
+synthetic_population_with_uam_full = calculate_uam_time_cost(synthetic_population, vertiport_coords, average_car_speed,
+                                                             cost_per_m_car)
 # For prediction, use only model features:
 synthetic_population_with_uam = synthetic_population_with_uam_full.copy()
 for col in feature_cols:  # Feature Alignment Safeguards
@@ -299,8 +299,8 @@ for i, cls in enumerate(classes):
     class_name = class_names.get(cls, f"Class_{cls}")
     output[f'prob_mode_{class_name}'] = proba[:, i]
 # Add UAM columns from the full DataFrame
-for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel time_Uam', 'TravelCost_Uam', 'uam_first_mile_m',
-            'uam_last_mile_m', 'uam_air_m']:
+for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'travel_cost_Uam', 'uam_first_mile',
+            'uam_last_mile', 'uam_air']:
     output[col] = synthetic_population_with_uam_full[col]
 os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
 output.to_csv(
@@ -316,6 +316,9 @@ import csv
 
 report_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_report.txt'
 
+# Create directory for summary file
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Weighting', exist_ok=True)
+
 # Save summary CSV
 mean_uam_prob = float(np.mean(uam_probs))
 std_uam_prob = float(np.std(uam_probs))
@@ -323,7 +326,7 @@ min_uam_prob = float(np.min(uam_probs))
 max_uam_prob = float(np.max(uam_probs))
 final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
 iterations = len(centroid_history) - 1
-summary_path = '/Result/Vertiport_analysis/Probability_clustering/Weighting/method_summary.csv'
+summary_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_summary.csv'
 with open(summary_path, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability',

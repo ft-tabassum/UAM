@@ -17,11 +17,11 @@ if 'Education' in data.columns:
     print("Dropped Education column")
 
 # 2) Convert 'tripLength' to meters and create 'trip_length'
-#if 'tripLength' in data.columns:
-#    # Assuming tripLength is in kilometers, convert to meters
-#   data['trip_length'] = data['tripLength'] * 1000
-#  data.drop('tripLength', axis=1, inplace=True)
-#   print("Created trip_length column (converted from km to meters)")
+if 'tripLength' in data.columns:
+ # Assuming tripLength is in kilometers, convert to meters
+ data['trip_length'] = data['tripLength'] * 1000
+ data.drop('tripLength', axis=1, inplace=True)
+ print("Created trip_length column (converted from km to meters)")
 
 # 3) 'tmode' mapping
 tmode_mapping = {
