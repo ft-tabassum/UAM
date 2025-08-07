@@ -6,7 +6,7 @@ from sklearn.pipeline import Pipeline
 
 # Load data
 input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/Mapping.csv"
-data = pd.read_csv(input_file)
+data = pd.read_csv(input_file, low_memory=False)
 
 print("=== DATA PROCESSING SCRIPT ===")
 print("=" * 60)
@@ -38,7 +38,7 @@ ordinal_cols = ['monthly_income', 'age', 'gender' ]
 # Nominal columns (categorical without inherent order) - will be one-hot encoded
 nominal_cols = ['occupation','disability', 'driversLicense', 'autos', 'child_household', 'adults_household', 'purpose']
 
-# Numerical columns (continuous variables)
+# Numerical columns (continuous variables) ** distance: km **
 numerical_cols = [
     'distance', 'in_vehicle_time_auto', 'waiting_time_auto', 'travel_time_auto',
     'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
@@ -232,18 +232,18 @@ for col in reference_cols:
         X_processed_df[col] = data[col].values
 
 # After renaming columns and before saving the processed data
-if 'distance' in X_processed_df.columns:
-    X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
+#if 'distance' in X_processed_df.columns:
+#    X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
 
     # Reorder columns to place 'Trip_Length-m' after 'Trip_Length-km'
-    cols = list(X_processed_df.columns)
-    km_idx = cols.index('distance')
+  #  cols = list(X_processed_df.columns)
+  #  km_idx = cols.index('distance')
 
     # Remove 'Trip_Length-m' and insert after 'Trip_Length-km'
-    cols.remove('trip_length')
-    cols.insert(km_idx + 1, 'trip_length')
-    cols.remove('distance')
-    X_processed_df = X_processed_df[cols]
+    #cols.remove('trip_length')
+   # cols.insert(km_idx + 1, 'trip_length')
+  #  cols.remove('distance')
+   # X_processed_df = X_processed_df[cols]
 
 # Step 10: Save the processed data
 output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv"
@@ -253,18 +253,5 @@ print("=== PROCESSING COMPLETED ===")
 print(f"Output file: {output_file}")
 print(f"Final shape: {X_processed_df.shape}")
 print(f"Final columns: {list(X_processed_df.columns)}")
-print()
-
-# Step 11: Display summary statistics
-print("=== DATA SUMMARY ===")
-print(f"Total records: {len(X_processed_df)}")
-print(f"Total features: {len(X_processed_df.columns)}")
-
-# Show some statistics for key numerical features
-numerical_features = ['Trip_Length-m', 'Travel_Time_Car', 'Travel_time_PublicTransport', 'Travel_Cost_Car', 'Travel_Cost_PublicTransport']
-for feature in numerical_features:
-    if feature in X_processed_df.columns:
-        print(f"  {feature}: mean={X_processed_df[feature].mean():.2f}, std={X_processed_df[feature].std():.2f}")
-
 print()
 print("Processing completed successfully!") 

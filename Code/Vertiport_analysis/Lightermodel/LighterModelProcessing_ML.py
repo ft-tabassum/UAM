@@ -17,11 +17,11 @@ if 'Education' in data.columns:
     print("Dropped Education column")
 
 # 2) Convert 'tripLength' to meters and create 'trip_length'
-if 'tripLength' in data.columns:
-    # Assuming tripLength is in kilometers, convert to meters
-    data['trip_length'] = data['tripLength'] * 1000
-    data.drop('tripLength', axis=1, inplace=True)
-    print("Created trip_length column (converted from km to meters)")
+#if 'tripLength' in data.columns:
+#    # Assuming tripLength is in kilometers, convert to meters
+#   data['trip_length'] = data['tripLength'] * 1000
+#  data.drop('tripLength', axis=1, inplace=True)
+#   print("Created trip_length column (converted from km to meters)")
 
 # 3) 'tmode' mapping
 tmode_mapping = {
@@ -29,7 +29,7 @@ tmode_mapping = {
     'Public Transport': 1,
     'Car-sharing': 2,
     'Ride-hailing': 3,
-    'UAM': 4
+    'UAM': 4#
 }
 if 'tmode' in data.columns:
     data['tmode'] = data['tmode'].map(tmode_mapping)
@@ -166,7 +166,7 @@ if 'Monthly_Income' in data.columns:
 ordinal_columns = ['Monthly_Income', 'Gender', 'Age']
 nominal_columns = ['tmode', 'Employment', 'disability', 'Driving_License', 'autos', 'Child_Household',
                    'Adult_household', 'purpose']
-numerical_columns = ['trip_length', 'travel_time_auto', 'in_vehicle_time_auto', 'waiting_time_auto', 'travel_cost_auto',
+numerical_columns = ['distance', 'travel_time_auto', 'in_vehicle_time_auto', 'waiting_time_auto', 'travel_cost_auto',
                      'travel_time_pt', 'in_vehicle_time_pt', 'waiting_time_pt', 'travel_cost_pt',
                      'travel_time_CarSharing', 'in_vehicle_time_CarSharing', 'waiting_time_CarSharing',
                      'travel_cost_CarSharing',

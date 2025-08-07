@@ -44,8 +44,9 @@ synthetic_population = pd.read_csv(
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
 
-# =========================
-# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS # =========================
+# ==========================================
+# 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
+# ==========================================
 logger.info(
     "Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data for 1% of the population...")
 od_points = np.vstack([
@@ -60,22 +61,11 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # =========================
 # 3. ITERATIVE OPTIMIZATION
 # =========================
-logger.info("Step 3: Iterative vertiport optimization with UAM probability weighting...")
-# Filter data to remove unrealistic values (keep only positive distance, time, and cost)
-if 'tripLength-m' in synthetic_population.columns and 'travel time_car' in synthetic_population.columns:
-    valid = (synthetic_population['travel time_car'] > 0) & (synthetic_population['tripLength-m'] > 0)
-    filtered = synthetic_population[valid].copy()
-    logger.info(f"Data filtering: {len(filtered)} out of {len(synthetic_population)} trips have valid car data")
-
-if 'TravelCost_Car' in synthetic_population.columns and 'tripLength-m' in synthetic_population.columns:
-    valid_cost = (synthetic_population['TravelCost_Car'] > 0) & (synthetic_population['tripLength-m'] > 0)
-    filtered_cost = synthetic_population[valid_cost].copy()
-    logger.info(f"Data filtering: {len(filtered_cost)} out of {len(synthetic_population)} trips have valid cost data")
 
 # Set car speed and cost
-avg_car_speed = 667  # unit: m/min , Default car speed in 40 km/h
-car_cost_per_m = 0.00025  # unit:€/m , Default car cost in 0.25 €/km
-logger.info(f"Using car speed: {avg_car_speed:.2f} m/min, car cost per m: {car_cost_per_m:.2f} €/m")
+average_car_speed = 25.1 #unit: km/h, (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
+cost_per_km_car = 0.65  #unit: €/km (Manuscript Number: JTRP-D-24-00632R1)
+logger.info(f"Using car speed: {average_car_speed :.2f} m/min, car cost per m: {cost_per_km_car:.2f} €/m")
 
 # --- Centroid history tracking ---
 centroid_history = [vertiport_coords.copy()]
@@ -85,43 +75,49 @@ no_improvement_count = 0
 patience = 20
 
 # UAM calculation function, based on assumptions from the literature
-VERTIPORT_K = 74
-UAM_CRUISE_SPEED=5833.33  # unit: meter/min, value:350 km/h
-UAM_COST_PER_M = 1000 # unit:pm, value: 1.0 €/pkm
-BASE_FARE = 18.4 # unit : €
-PRE_FLIGHT_TIME = 15 # unit min
-
+vertiport_k = 74
+uam_cruise_speed= 350  # unit: km/h
+uam_cost_km = 1 # unit: €/pkm
+base_fare_uam = 18.4 # unit : €
+pre_flight_time = 15 # unit min
+circuity_factor = 1.215 # (Kim et al., 2025) # for car
 
 # --- Weight normalization functions ---
-def calculate_uam_time_cost(df, vertiport_coords, car_speed, car_cost_m, base_fare=BASE_FARE,
-                            uam_speed=UAM_CRUISE_SPEED, uam_cost_m=UAM_COST_PER_M,
-                            pre_flight_time=PRE_FLIGHT_TIME):
+def calculate_uam_time_cost(df, vertiport_coords, car_speed =average_car_speed, car_cost =cost_per_km_car, base_fare= base_fare_uam,
+                            uam_speed=uam_cruise_speed, uam_cost_km= uam_cost_km,
+                            pre_flight_time=pre_flight_time):
     from scipy.spatial.distance import cdist
-    # Road network factor for car distances (accounts for road network)
-    ROAD_NETWORK_FACTOR = 1.4
 
+    #origin(x,y) and destination (x,y) are in meter
     origins = df[['originX', 'originY']].values
     dests = df[['destinationX', 'destinationY']].values
     origin_v_idx = np.argmin(cdist(origins, vertiport_coords), axis=1)
     dest_v_idx = np.argmin(cdist(dests, vertiport_coords), axis=1)
     origin_v = vertiport_coords[origin_v_idx]
     dest_v = vertiport_coords[dest_v_idx]
-    # Apply road network factor to car distances (first and last mile)
-    first_mile_dist = np.linalg.norm(origins - origin_v, axis=1) * ROAD_NETWORK_FACTOR
-    last_mile_dist = np.linalg.norm(dests - dest_v, axis=1) * ROAD_NETWORK_FACTOR
+
+    # first and last mile car distances
+    first_mile_dist = np.linalg.norm(origins - origin_v, axis=1) *  circuity_factor
+    last_mile_dist = np.linalg.norm(dests - dest_v, axis=1) *  circuity_factor
+
     # UAM distance (Euclidean distance)
     uam_dist = np.linalg.norm(origin_v - dest_v,
                               axis=1)  # if the origin and destination is the same, the probability is zero
+    # first, last, airborne and total time calculation
     first_mile_time = first_mile_dist / car_speed  # unit: min
     last_mile_time = last_mile_dist / car_speed   # unit: min
     airborne_time = uam_dist / uam_speed
     total_time = pre_flight_time + first_mile_time + airborne_time + last_mile_time
-    first_mile_cost = first_mile_dist * car_cost_m
-    last_mile_cost = last_mile_dist * car_cost_m
-    uam_cost = base_fare + (uam_cost_m * uam_dist) + first_mile_cost + last_mile_cost
+
+    #first, last and travel cost calculation
+    first_mile_cost = first_mile_dist * car_cost
+    last_mile_cost = last_mile_dist * car_cost
+    uam_travel_cost = base_fare + (uam_cost_km * uam_dist) + first_mile_cost + last_mile_cost
     df = df.copy()
-    df['travel time_Uam'] = total_time
-    df['TravelCost_Uam'] = uam_cost
+    df['travel_time_Uam'] = total_time
+    df['in_vehicle_time_Uam']= airborne_time
+    df['waiting_time_Uam']= total_time-airborne_time
+    df['travel_cost_Uam'] = uam_travel_cost
     df['uam_first_mile_m'] = first_mile_dist
     df['uam_last_mile_m'] = last_mile_dist
     df['uam_air_m'] = uam_dist
@@ -137,7 +133,7 @@ def predict_mode_probabilities(df, model,
 
 
 max_iter = 3000  #
-convergence_threshold = 1.0  # convergence threshold (1km)#wrong
+convergence_threshold = 1000  # convergence threshold (1km)#wrong
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -151,7 +147,7 @@ for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
     # a. Calculate UAM travel time and cost for each trip
     synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed,
-                                                            car_cost_per_m)
+                                                            cost_per_km_car)
     # b. Add these UAM features to the synthetic population data (already done in synthetic_population_with_uam)
     # c. Predict mode probabilities
     for col in feature_cols:  # Feature Alignment Safeguards
@@ -195,7 +191,7 @@ for iteration in range(max_iter):
     od_points_current = np.vstack([origins, dests])
 
     # f. Perform weighted k-means clustering
-    kmeans = KMeans(n_clusters=VERTIPORT_K, init='k-means++', random_state=42, max_iter=1000)
+    kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000)
     kmeans.fit(od_points_current, sample_weight=weights)
     new_coords = kmeans.cluster_centers_
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
@@ -290,7 +286,7 @@ plt.close()
 logger.info("Step 4: Final prediction with optimized vertiports and saving results...")
 # Calculate UAM features (full DataFrame)
 synthetic_population_with_uam_full = calculate_uam_time_cost(synthetic_population, vertiport_coords, avg_car_speed,
-                                                             car_cost_per_m)
+                                                             cost_per_km_car)
 # For prediction, use only model features:
 synthetic_population_with_uam = synthetic_population_with_uam_full.copy()
 for col in feature_cols:  # Feature Alignment Safeguards
