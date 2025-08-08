@@ -3,9 +3,7 @@ import numpy as np
 import logging
 from sklearn.cluster import KMeans
 import random
-import os
 import pickle
-from scipy.special import softmax
 
 # Set random seeds for reproducibility
 np.random.seed(42)
@@ -15,9 +13,6 @@ random.seed(42)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Create output directories
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
-
 # Load the trained model from Part 1
 logger.info("Loading trained XGBoost model from Part 1...")
 with open(
@@ -25,8 +20,8 @@ with open(
     ) as f:
     model_data = pickle.load(f)
 
-final_model = model_data['final_model']
-feature_names = model_data['feature_names']
+final_model = model_data['final_model'] # model
+feature_names = model_data['feature_names'] # feature
 classes = model_data['classes']
 class_names = model_data.get('class_names', {})  # Get class names if available
 best_params = model_data['best_params']
@@ -39,7 +34,7 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv")
+    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv" , low_memory=False)
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
@@ -67,12 +62,13 @@ average_car_speed = 418.33  #unit: m/min     ,25.1 km/h, (TomTom- munich: https:
 cost_per_m_car = 0.00065   #unit:€/m        ,0.65 €/km (Manuscript Number: JTRP-D-24-00632R1)
 logger.info(f"Using car speed: {average_car_speed:.2f} m/min, car cost per m: {cost_per_m_car:.6f} €/m")
 
-# --- Centroid history tracking --- (CHECK)
+# --- Centroid history tracking ---
 centroid_history = [vertiport_coords.copy()]
 convergence_history = []  # Track centroid shifts per iteration
-improvement_threshold = 0.01  # Stop if improvement is less than 1% for 20 iterations
-no_improvement_count = 0
-patience = 20
+weight_history = []  # Track weights per iteration
+uam_prob_history = []  # Track UAM probabilities per iteration
+distance_change_history = []  # Track distance matrix changes per iteration
+prob_change_history = []  # Track probability changes per iteration
 
 # UAM calculation function, based on assumptions from the literature
 vertiport_k = 74
@@ -134,9 +130,37 @@ def predict_mode_probabilities(df, model,
     X = df[feature_cols]
     return model.predict_proba(X)
 
+# --- Layout similarity check functions ---
+def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
+    """ Check if the pairwise distance matrix between vertiports is stable
+    Returns: (is_stable, max_change)
+    """
+    from scipy.spatial.distance import pdist, squareform
+    
+    # Calculate pairwise distance matrices
+    prev_distances = squareform(pdist(prev_coords))
+    new_distances = squareform(pdist(new_coords))
+    
+    # Calculate relative change in distances
+    relative_change = np.abs(new_distances - prev_distances) / (prev_distances + 1e-8)
+    max_change = np.max(relative_change)
+    
+    return max_change < threshold, max_change
 
-max_iter = 3000  #
-convergence_threshold = 1000 # convergence threshold (1000m)
+def check_probability_similarity(prev_probs, new_probs, threshold=0.01):
+    """ Check if UAM probabilities are stable between iterations
+    Returns: (is_stable, max_change)
+    """
+    # Calculate relative change in probabilities
+    relative_change = np.abs(new_probs - prev_probs) / (prev_probs + 1e-8)
+    max_change = np.max(relative_change)
+    
+    return max_change < threshold, max_change
+
+
+max_iter = 5000
+distance_stability_threshold = 0.05  # 5% relative change threshold 
+probability_stability_threshold = 0.05  # 5% relative change threshold for probabilities
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -144,13 +168,18 @@ feature_cols = feature_names
 # Using raw probabilities as weights without normalizing
 logger.info("Using raw UAM probabilities as weights")
 
+# Initialize prev_uam_probs for weight smoothing
+prev_uam_probs = None
+
+# Initialize min_total_shift for convergence tracking
 min_total_shift = float('nan')
 
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
     # a. Calculate UAM travel time and cost for each trip
     synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords, average_car_speed,
-                                                            cost_per_m_car)
+                                                            cost_per_m_car)    # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations 
+    synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
 
     # b. Predict mode probabilities
     for col in feature_cols:  # Feature Alignment Safeguards
@@ -183,6 +212,13 @@ for iteration in range(max_iter):
 
     # Use raw UAM probabilities as weights for k-means
     weights = np.concatenate([uam_probs, uam_probs])
+    
+    # Store current UAM probabilities for next iteration
+    prev_uam_probs = uam_probs.copy()
+    
+    # Track weights and probabilities for this iteration
+    weight_history.append(weights.copy())
+    uam_prob_history.append(uam_probs.copy())
 
     # Define origins and dests before stacking
     origins = synthetic_population[['originX', 'originY']].values
@@ -190,7 +226,8 @@ for iteration in range(max_iter):
     od_points_current = np.vstack([origins, dests])
 
     # f. Perform weighted k-means clustering
-    kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000)
+    kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000, 
+                    tol=1e-4, n_init=10)  # More stable parameters
     kmeans.fit(od_points_current, sample_weight=weights)  # od_points_current is in meters
     new_coords = kmeans.cluster_centers_  # Output is in meters because input was in meters
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
@@ -205,33 +242,38 @@ for iteration in range(max_iter):
 
         cost_matrix = cdist(new_coords, prev_coords) # cost_matrix is in meters
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        min_total_shift = cost_matrix[row_ind, col_ind].sum()
+        min_total_shift = cost_matrix[row_ind, col_ind].sum()  #check
         convergence_history.append(min_total_shift)
 
         # Reorder new_coords to match prev_coords order
         new_coords_ordered = np.zeros_like(new_coords)
         new_coords_ordered[col_ind] = new_coords[row_ind]
 
-        # Check for convergence
-        if min_total_shift < convergence_threshold:
-            logger.info(
-                f"Converged after {iteration + 1} iterations with assignment-based shift: {min_total_shift:.6f}")
+        # NEW: Check distance matrix stability
+        distance_stable, distance_change = check_distance_matrix_stability(prev_coords, new_coords_ordered, distance_stability_threshold)
+        
+        # NEW: Check probability similarity
+        prob_stable, prob_change = check_probability_similarity(prev_uam_probs, uam_probs, probability_stability_threshold)
+        
+        # Track convergence metrics
+        distance_change_history.append(distance_change)
+        prob_change_history.append(prob_change)
+        
+        logger.info(f"Iteration {iteration + 1}: Coordinate shift = {min_total_shift:.2f}m, Distance matrix change = {distance_change:.6f} (stable: {distance_stable}), Probability change = {prob_change:.6f} (stable: {prob_stable})")
+
+        # Check for convergence (layout-based + probability-based only)
+        # Require at least 3 iterations before allowing convergence
+        layout_converged = distance_stable
+        probability_converged = prob_stable
+        
+        if (layout_converged or probability_converged) and iteration >= 2:
+            if layout_converged:
+                logger.info(f"Converged after {iteration + 1} iterations with distance matrix stability: {distance_change:.6f}")
+            if probability_converged:
+                logger.info(f"Converged after {iteration + 1} iterations with probability stability: {prob_change:.6f}")
             converged = True
             centroid_history.append(new_coords_ordered.copy())
             break
-
-        # Check for minimal improvement (early stopping)
-        if len(convergence_history) > 1:
-            improvement = (convergence_history[-2] - convergence_history[-1]) / convergence_history[-2]
-            if improvement < improvement_threshold:
-                no_improvement_count += 1
-                if no_improvement_count >= patience:
-                    logger.info(f"Early stopping after {iteration + 1} iterations due to minimal improvement")
-                    converged = True
-                    centroid_history.append(new_coords_ordered.copy())
-                    break
-            else:
-                no_improvement_count = 0
         prev_coords = new_coords_ordered # prev_coords gets updated  here
         vertiport_coords = new_coords_ordered
         centroid_history.append(vertiport_coords.copy())
@@ -248,8 +290,32 @@ logger.info("Step 3 complete: Vertiport optimization finished.")
 
 # Save centroid history after optimization
 centroid_history = np.array(centroid_history)  # shape: (num_iterations+1, 20, 2)
+
+# Create directory before saving
+import os
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
+
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/vertiport_centroid_history.npy',
         centroid_history)
+
+# Save weight and probability histories
+weight_history = np.array(weight_history)  # shape: (num_iterations, 2*num_trips)
+uam_prob_history = np.array(uam_prob_history)  # shape: (num_iterations, num_trips)
+distance_change_history = np.array(distance_change_history)  # shape: (num_iterations,)
+prob_change_history = np.array(prob_change_history)  # shape: (num_iterations,)
+
+# Create directory for all history files
+os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
+
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/weight_history.npy', weight_history)
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/uam_prob_history.npy', uam_prob_history)
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/distance_change_history.npy', distance_change_history)
+np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/prob_change_history.npy', prob_change_history)
+
+logger.info(f"Weight history saved: {weight_history.shape}")
+logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
+logger.info(f"Distance change history saved: {distance_change_history.shape}")
+logger.info(f"Probability change history saved: {prob_change_history.shape}")
 
 # --- Save final vertiport coordinates (always) ---
 import os
@@ -284,30 +350,32 @@ plt.close()
 # 4. FINAL PREDICTION AND OUTPUT
 # =========================
 logger.info("Step 4: Final prediction with optimized vertiports and saving results...")
-# Calculate UAM features (full DataFrame)
-synthetic_population_with_uam_full = calculate_uam_time_cost(synthetic_population, vertiport_coords, average_car_speed,
-                                                             cost_per_m_car)
-# For prediction, use only model features:
-synthetic_population_with_uam = synthetic_population_with_uam_full.copy()
-for col in feature_cols:  # Feature Alignment Safeguards
-    if col not in synthetic_population_with_uam.columns:
-        synthetic_population_with_uam[col] = 0.0
-synthetic_population_with_uam = synthetic_population_with_uam[feature_cols]
-proba = predict_mode_probabilities(synthetic_population_with_uam, final_model, feature_cols)
+# Use the final results from the last iteration (no need to recalculate)
 output = synthetic_population.copy()
 for i, cls in enumerate(classes):
     class_name = class_names.get(cls, f"Class_{cls}")
-    output[f'prob_mode_{class_name}'] = proba[:, i]
-# Add UAM columns from the full DataFrame
+    output[f'prob_mode_{class_name}'] = proba[:, i]  # Use existing proba from last iteration
+# Add UAM columns from the existing DataFrame
 for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'travel_cost_Uam', 'uam_first_mile',
             'uam_last_mile', 'uam_air']:
-    output[col] = synthetic_population_with_uam_full[col]
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
-output.to_csv(
-    '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_raw_weights.csv',
-    index=False)
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_raw_weights.npy',
-        vertiport_coords)
+    output[col] = synthetic_population_with_uam_full[col]  # Use the FULL DataFrame with UAM calculations
+
+# Save main prediction file with error handling
+try:
+    os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
+    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_raw_weights.csv'
+    output.to_csv(output_path, index=False)
+    logger.info(f"Main prediction file saved: {output_path}")
+except Exception as e:
+    logger.error(f"Error saving main prediction file: {e}")
+
+# Save optimized coordinates with error handling
+try:
+    np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_raw_weights.npy',
+            vertiport_coords)
+    logger.info("Optimized coordinates saved successfully")
+except Exception as e:
+    logger.error(f"Error saving optimized coordinates: {e}")
 
 # =========================
 # 5. SAVE SUMMARY AND REPORT
@@ -316,47 +384,58 @@ import csv
 
 report_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_report.txt'
 
-# Create directory for summary file
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Weighting', exist_ok=True)
+# Save summary and report with error handling
+try:
+    # Create directory for summary file
+    os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Weighting', exist_ok=True)
 
-# Save summary CSV
-mean_uam_prob = float(np.mean(uam_probs))
-std_uam_prob = float(np.std(uam_probs))
-min_uam_prob = float(np.min(uam_probs))
-max_uam_prob = float(np.max(uam_probs))
-final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
-iterations = len(centroid_history) - 1
-summary_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_summary.csv'
-with open(summary_path, 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability',
-                     'Min_UAM_Probability', 'Max_UAM_Probability'])
-    writer.writerow([
-        'raw_weights', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob, max_uam_prob
-    ])
+    # Calculate statistics
+    mean_uam_prob = float(np.mean(uam_probs))
+    std_uam_prob = float(np.std(uam_probs))
+    min_uam_prob = float(np.min(uam_probs))
+    max_uam_prob = float(np.max(uam_probs))
+    final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
+    iterations = len(centroid_history) - 1
+    
+    # Save summary CSV
+    summary_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/method_summary.csv'
+    with open(summary_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability',
+                         'Min_UAM_Probability', 'Max_UAM_Probability'])
+        writer.writerow([
+            'raw_weights', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob, max_uam_prob
+        ])
+    logger.info(f"Summary CSV saved: {summary_path}")
 
-# Save detailed text report
-with open(report_path, 'w') as f:
-    f.write(f"VERTIPORT OPTIMIZATION REPORT\n")
-    f.write(f"{'=' * 50}\n")
-    from datetime import datetime
+    # Save detailed text report
+    with open(report_path, 'w') as f:
+        f.write(f"VERTIPORT OPTIMIZATION REPORT\n")
+        f.write(f"{'=' * 50}\n")
+        from datetime import datetime
 
-    f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-    f.write(f"SUMMARY:\n")
-    f.write(f"{'-' * 20}\n")
-    f.write(f"Method: raw_weights (no normalization)\n")
-    f.write(f"Converged: {converged}\n")
-    f.write(f"Iterations: {iterations}\n")
-    f.write(f"Final Shift: {final_shift:.6f}\n")
-    f.write(f"Mean UAM Probability: {mean_uam_prob:.4f}\n")
-    f.write(f"UAM Probability Std: {std_uam_prob:.4f}\n")
-    f.write(f"UAM Probability Range: [{min_uam_prob:.4f}, {max_uam_prob:.4f}]\n")
-    f.write(f"\nCONVERGENCE HISTORY (first 20 shown):\n")
-    for i, shift in enumerate(convergence_history[:20]):
-        f.write(f"  Iter {i + 1}: {shift:.6f}\n")
-    if len(convergence_history) > 20:
-        f.write(f"  ... ({len(convergence_history) - 20} more)\n")
-    f.write(f"\nAll results saved to Result/Vertiport_analysis/Probability_clustering/\n")
-
-logger.info("Step 5 complete: Summary and report saved.")
-logger.info("Results saved with raw UAM probability weights") 
+        f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"SUMMARY:\n")
+        f.write(f"{'-' * 20}\n")
+        f.write(f"Method: raw_weights (no normalization)\n")
+        f.write(f"Converged: {converged}\n")
+        f.write(f"Iterations: {iterations}\n")
+        f.write(f"Final Shift: {final_shift:.6f}\n")
+        f.write(f"Mean UAM Probability: {mean_uam_prob:.4f}\n")
+        f.write(f"UAM Probability Std: {std_uam_prob:.4f}\n")
+        f.write(f"UAM Probability Range: [{min_uam_prob:.4f}, {max_uam_prob:.4f}]\n")
+        f.write(f"\nCONVERGENCE HISTORY (first 20 shown):\n")
+        for i, shift in enumerate(convergence_history[:20]):
+            f.write(f"  Iter {i + 1}: {shift:.6f}\n")
+        if len(convergence_history) > 20:
+            f.write(f"  ... ({len(convergence_history) - 20} more)\n")
+        f.write(f"\nAll results saved to Result/Vertiport_analysis/Probability_clustering/\n")
+    
+    logger.info(f"Detailed report saved: {report_path}")
+    logger.info("Step 5 complete: Summary and report saved.")
+    
+except Exception as e:
+    logger.error(f"Error saving summary and report: {e}")
+logger.info("Results saved with raw UAM probability weights")
+print(f"Iterations: {len(centroid_history) - 1}")
+print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}") 
