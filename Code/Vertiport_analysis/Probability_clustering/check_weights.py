@@ -124,7 +124,7 @@ def check_weights():
         plt.title("Weight vs UAM prob (final)")
 
     plt.tight_layout()
-    plt.savefig('weight_analysis_improved.png', dpi=200, bbox_inches='tight')
+    plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/weight_analysis_improved.png', dpi=200, bbox_inches='tight')
     plt.show()
 
     # Build CSV with aligned convergence shift (pad/truncate if needed)
@@ -146,7 +146,7 @@ def check_weights():
         'weight_std': [np.std(weight_history[i]) for i in range(iters)],
         'shift': shift_vals
     })
-    out_df.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/weight_analysis_detailed.csv', index=False)
+    out_df.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/weight_analysis_detailed.csv', index=False)
     print("Saved detailed CSV and improved plot: weight_analysis_improved.png / weight_analysis_detailed.csv")
 
 if __name__ == "__main__":
