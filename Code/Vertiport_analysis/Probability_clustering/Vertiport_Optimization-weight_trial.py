@@ -604,8 +604,7 @@ for iteration in range(max_iter):
                 )
                 logger.info(f"Intermediate visualization saved: centroids_iteration_{iteration + 1}.png")
 
-            # Check for convergence (multiple criteria)
-
+            # Check for convergence
             layout_converged = distance_stable
             probability_converged = prob_stable
             coordinate_converged = min_total_shift < coordinate_threshold
@@ -618,16 +617,7 @@ for iteration in range(max_iter):
                 centroid_history.append(new_coords_ordered.copy())
                 break
 
-            # Backup convergence: Small coordinate shifts with probability stability
-            #elif coordinate_converged and probability_converged and iteration >= 10:
-            #    logger.info(
-            #        f"Converged after {iteration + 1} iterations with coordinate stability: {min_total_shift:.2f}m AND probability stability: {prob_change:.6f}")
-            #    converged = True
-            #    centroid_history.append(new_coords_ordered.copy())
-            #    break
-
-
-            prev_coords = new_coords_ordered  # prev_coords gets updated  here
+            prev_coords = new_coords_ordered                            # prev_coords gets updated  here
             vertiport_coords = new_coords_ordered
             centroid_history.append(vertiport_coords.copy())
         else:
@@ -651,14 +641,13 @@ np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/vert
         centroid_history)
 
 # Save weight and probability histories
-weight_history = np.array(weight_history)  # shape: (num_iterations, 2*num_trips)
-uam_prob_history = np.array(uam_prob_history)  # shape: (num_iterations, num_trips)
+weight_history = np.array(weight_history)                    # shape: (num_iterations, 2*num_trips)
+uam_prob_history = np.array(uam_prob_history)                # shape: (num_iterations, num_trips)
 distance_change_history = np.array(distance_change_history)  # shape: (num_iterations,)
-prob_change_history = np.array(prob_change_history)  # shape: (num_iterations,)
+prob_change_history = np.array(prob_change_history)          # shape: (num_iterations,)
 
-# Create directory for all history files
+# Create directory & save all history files
 os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
-
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/weight_history.npy', weight_history)
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/uam_prob_history.npy', uam_prob_history)
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/distance_change_history.npy',
@@ -671,19 +660,18 @@ logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
 logger.info(f"Distance change history saved: {distance_change_history.shape}")
 logger.info(f"Probability change history saved: {prob_change_history.shape}")
 
-# --- Save final vertiport coordinates ---
+# Save final vertiport coordinates
 # Save as .npy
 np.save(os.path.join(centroid_dir, 'optimized_vertiport_coords_final.npy'), vertiport_coords)
-
 # Save as .csv
 pd.DataFrame(vertiport_coords, columns=['X', 'Y']).to_csv(
     os.path.join(centroid_dir, 'optimized_vertiport_coords_final.csv'), index=False)
 
-# --- Save convergence history ---
+# Save convergence history
 pd.DataFrame({'iteration': list(range(1, len(convergence_history) + 1)), 'shift': convergence_history}).to_csv(
     os.path.join(centroid_dir, 'convergence_history.csv'), index=False)
 
-# --- Save convergence plot ---
+# Save convergence plot
 plt.figure(figsize=(8, 5))
 plt.plot(range(1, len(convergence_history) + 1), convergence_history, marker='o')
 plt.xlabel('Iteration')
@@ -694,7 +682,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(centroid_dir, 'convergence_plot.png'))
 plt.close()
 
-# --- Save visualization of centroids and demand points ---
+# Save visualization of centroids and demand points
 # Plot initial state
 initial_plot_path = os.path.join(centroid_dir, 'initial_centroids_and_demand.png')
 plot_centroids_and_demand(
@@ -712,10 +700,9 @@ plot_centroids_and_demand(
     synthetic_population[['originX', 'originY']].values,
     synthetic_population[['destinationX', 'destinationY']].values,
     len(centroid_history) - 1,
-    final_plot_path
-)
+    final_plot_path)
 
-# Create animation-like visualization showing centroid evolution
+# Create animation-like visualization showing centroid evolution (change it to iteration 0 and final)
 if len(centroid_history) > 1:
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     axes = axes.flatten()
