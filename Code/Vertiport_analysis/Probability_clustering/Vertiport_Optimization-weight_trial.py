@@ -6,6 +6,7 @@ import random
 import pickle
 import os
 import matplotlib.pyplot as plt
+from scipy import stats
 
 # Set random seeds for reproducibility
 np.random.seed(42)
@@ -161,17 +162,18 @@ def check_probability_similarity(prev_probs, new_probs, threshold=0.01):
 
 
 max_iter = 5000
-distance_stability_threshold = 0.05  # 5% relative change threshold 
-probability_stability_threshold = 0.05  # 5% relative change threshold for probabilities
+distance_stability_threshold = 0.10  # 10% relative change threshold (more lenient)
+probability_stability_threshold = 0.01  # 1% relative change threshold for probabilities
+coordinate_threshold = 50000  # 50km coordinate shift threshold for backup convergence (more strict)
 converged = False
 prev_coords = None
 feature_cols = feature_names
 
-# Using raw probabilities as weights without normalizing
-logger.info("Using raw UAM probabilities as weights")
+# Using normalized probabilities as weights for better stability
+logger.info("Testing with adaptive weights and stability controls")
 
-# Initialize prev_uam_probs for weight smoothing
-prev_uam_probs = None
+
+#prev_uam_probs = None
 
 # Initialize min_total_shift for convergence tracking
 min_total_shift = float('nan')
@@ -205,6 +207,213 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
+
+# --- Weight analysis functions ---
+def analyze_weight_skewness(weights, iteration, save_dir):
+    """Analyze weight distribution and skewness with descriptive stats and plots"""
+    from scipy import stats
+    
+    # Calculate descriptive statistics
+    stats_dict = {
+        'iteration': iteration,
+        'count': len(weights),
+        'mean': np.mean(weights),
+        'std': np.std(weights),
+        'min': np.min(weights),
+        'max': np.max(weights),
+        'median': np.median(weights),
+        'skewness': stats.skew(weights),
+        'kurtosis': stats.kurtosis(weights),
+        'q25': np.percentile(weights, 25),
+        'q75': np.percentile(weights, 75),
+        'iqr': np.percentile(weights, 75) - np.percentile(weights, 25),
+        'cv': np.std(weights) / np.mean(weights) if np.mean(weights) != 0 else 0,  # Coefficient of variation
+        'zero_count': np.sum(weights == 0),
+        'zero_pct': np.sum(weights == 0) / len(weights) * 100,
+        'high_weight_pct': np.sum(weights > np.percentile(weights, 90)) / len(weights) * 100
+    }
+    
+    # Create comprehensive weight analysis plots
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle(f'Weight Distribution Analysis - Iteration {iteration}', fontsize=16, fontweight='bold')
+    
+    # 1. Histogram with density curve
+    axes[0, 0].hist(weights, bins=50, density=True, alpha=0.7, color='skyblue', edgecolor='black')
+    axes[0, 0].axvline(stats_dict['mean'], color='red', linestyle='--', label=f"Mean: {stats_dict['mean']:.4f}")
+    axes[0, 0].axvline(stats_dict['median'], color='green', linestyle='--', label=f"Median: {stats_dict['median']:.4f}")
+    axes[0, 0].set_xlabel('Weight Value')
+    axes[0, 0].set_ylabel('Density')
+    axes[0, 0].set_title('Weight Distribution Histogram')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 2. Box plot
+    axes[0, 1].boxplot(weights, vert=True)
+    axes[0, 1].set_ylabel('Weight Value')
+    axes[0, 1].set_title('Weight Box Plot')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 3. Q-Q plot for normality check
+    stats.probplot(weights, dist="norm", plot=axes[0, 2])
+    axes[0, 2].set_title('Q-Q Plot (Normal Distribution)')
+    axes[0, 2].grid(True, alpha=0.3)
+    
+    # 4. Cumulative distribution
+    sorted_weights = np.sort(weights)
+    cumulative_prob = np.arange(1, len(sorted_weights) + 1) / len(sorted_weights)
+    axes[1, 0].plot(sorted_weights, cumulative_prob, 'b-', linewidth=2)
+    axes[1, 0].set_xlabel('Weight Value')
+    axes[1, 0].set_ylabel('Cumulative Probability')
+    axes[1, 0].set_title('Cumulative Distribution Function')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 5. Weight vs rank (for skewness visualization)
+    rank = np.arange(1, len(weights) + 1)
+    axes[1, 1].scatter(rank, weights, alpha=0.6, s=10)
+    axes[1, 1].set_xlabel('Rank')
+    axes[1, 1].set_ylabel('Weight Value')
+    axes[1, 1].set_title('Weight vs Rank')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # 6. Weight concentration analysis
+    weight_bins = np.linspace(0, np.max(weights), 11)
+    bin_counts, _ = np.histogram(weights, bins=weight_bins)
+    bin_centers = (weight_bins[:-1] + weight_bins[1:]) / 2
+    axes[1, 2].bar(bin_centers, bin_counts, width=weight_bins[1]-weight_bins[0], alpha=0.7)
+    axes[1, 2].set_xlabel('Weight Range')
+    axes[1, 2].set_ylabel('Count')
+    axes[1, 2].set_title('Weight Concentration by Range')
+    axes[1, 2].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, f'weight_analysis_iteration_{iteration}.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return stats_dict
+
+def print_weight_summary(stats_dict):
+    """Print a formatted summary of weight statistics"""
+    print(f"\n{'='*60}")
+    print(f"WEIGHT ANALYSIS SUMMARY - Iteration {stats_dict['iteration']}")
+    print(f"{'='*60}")
+    print(f"Basic Statistics:")
+    print(f"  Count: {stats_dict['count']:,}")
+    print(f"  Mean: {stats_dict['mean']:.6f}")
+    print(f"  Std: {stats_dict['std']:.6f}")
+    print(f"  Min: {stats_dict['min']:.6f}")
+    print(f"  Max: {stats_dict['max']:.6f}")
+    print(f"  Median: {stats_dict['median']:.6f}")
+    print(f"  Q25: {stats_dict['q25']:.6f}")
+    print(f"  Q75: {stats_dict['q75']:.6f}")
+    print(f"  IQR: {stats_dict['iqr']:.6f}")
+    
+    print(f"\nDistribution Shape:")
+    print(f"  Skewness: {stats_dict['skewness']:.4f} ({'Right-skewed' if stats_dict['skewness'] > 0.5 else 'Left-skewed' if stats_dict['skewness'] < -0.5 else 'Symmetric'})")
+    print(f"  Kurtosis: {stats_dict['kurtosis']:.4f} ({'Heavy-tailed' if stats_dict['kurtosis'] > 3 else 'Light-tailed' if stats_dict['kurtosis'] < 3 else 'Normal'})")
+    print(f"  CV (Coefficient of Variation): {stats_dict['cv']:.4f} ({'High variability' if stats_dict['cv'] > 1 else 'Low variability'})")
+    
+    print(f"\nWeight Concentration:")
+    print(f"  Zero weights: {stats_dict['zero_count']:,} ({stats_dict['zero_pct']:.2f}%)")
+    print(f"  Top 10% weights: {stats_dict['high_weight_pct']:.2f}% of total")
+    
+    # Skewness interpretation
+    skew = stats_dict['skewness']
+    if abs(skew) < 0.5:
+        skew_interpretation = "Approximately symmetric"
+    elif skew > 0.5:
+        skew_interpretation = f"Right-skewed (tail extends to high values)"
+    else:
+        skew_interpretation = f"Left-skewed (tail extends to low values)"
+    
+    print(f"\nSkewness Interpretation: {skew_interpretation}")
+    print(f"{'='*60}\n")
+
+# --- Custom Weighted K-Means Implementation ---
+def weighted_kmeans(X, w, K, gamma=0.8, alpha=0.3, max_iter=300, tol=1e-4, random_state=None):
+    """
+    Weighted K-Means with probability-weight compression (gamma) and damped centroid updates (alpha).
+    
+    Parameters
+    ----------
+    X : (n_samples, n_features) array
+        Data points
+    w : (n_samples,) array
+        Weights for each data point
+    K : int
+        Number of clusters
+    gamma : float in (0, 1]
+        Weight compression exponent (smaller = more compression)
+    alpha : float in (0, 1]
+        Damping factor for centroid updates
+    max_iter : int
+        Maximum iterations
+    tol : float
+        Convergence tolerance (max centroid shift)
+    random_state : int or None
+        Random seed
+        
+    Returns
+    -------
+    labels : (n_samples,) array
+        Cluster labels
+    centers : (K, n_features) array
+        Final cluster centers
+    history : dict
+        Tracking info: 'max_shift', 'n_changed', 'inertia'
+    """
+
+    rng = np.random.default_rng(random_state)
+    eps = 1e-12
+
+    # compress weights
+    w = w ** gamma
+    w = w / w.mean()  # normalize mean weight to 1
+
+    # initialize centers
+    init_idx = rng.choice(len(X), K, replace=False)
+    centers = X[init_idx].copy()
+
+    history = {'max_shift': [], 'n_changed': [], 'inertia': []}
+    labels = np.full(len(X), -1)
+
+    for it in range(max_iter):
+        # assign labels
+        dists = np.linalg.norm(X[:, None, :] - centers[None, :, :], axis=2)
+        new_labels = np.argmin(dists, axis=1)
+
+        # track changes
+        n_changed = np.sum(new_labels != labels)
+        labels = new_labels
+
+        # compute inertia (weighted sum of squared distances)
+        inertia = np.sum(w * np.min(dists**2, axis=1))
+
+        # update centers with damping
+        max_shift = 0.0
+        for k in range(K):
+            mask = labels == k
+            if np.any(mask):
+                wk = w[mask]
+                Xk = X[mask]
+                mu_w = (wk[:, None] * Xk).sum(axis=0) / (wk.sum() + eps)
+                new_center = (1 - alpha) * centers[k] + alpha * mu_w
+                shift = np.linalg.norm(new_center - centers[k])
+                centers[k] = new_center
+                max_shift = max(max_shift, shift)
+            else:
+                # reinitialize empty cluster
+                centers[k] = X[rng.integers(len(X))]
+
+        # store history
+        history['max_shift'].append(max_shift)
+        history['n_changed'].append(n_changed)
+        history['inertia'].append(inertia)
+
+        # check convergence
+        if max_shift < tol:
+            break
+
+    return labels, centers, history
 
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
@@ -242,27 +451,79 @@ for iteration in range(max_iter):
         logger.error("Infinite value found in UAM probabilities!")
         raise ValueError("Infinite value found in UAM probabilities!")
 
-    # Use raw UAM probabilities as weights for k-means
-    weights = np.concatenate([uam_probs, uam_probs])
+    # Use adaptive weights with stability controls
+    uam_probs_normalized = (uam_probs - np.min(uam_probs)) / (np.max(uam_probs) - np.min(uam_probs) + 1e-8)
+    
+    # Apply stability controls to prevent extreme weight changes
+    if iteration > 0 and prev_uam_probs is not None:
+        # Calculate weight change ratio
+        prev_normalized = (prev_uam_probs - np.min(prev_uam_probs)) / (np.max(prev_uam_probs) - np.min(prev_uam_probs) + 1e-8)
+        weight_change_ratio = np.abs(uam_probs_normalized - prev_normalized) / (prev_normalized + 1e-8)
+        
+        # If weight changes are too extreme, dampen them
+        max_allowed_change = 0.5  # Maximum 50% change in weights
+        if np.max(weight_change_ratio) > max_allowed_change:
+            # Apply dampening: blend current and previous weights
+            dampening_factor = 0.3  # Use 30% new, 70% previous
+            uam_probs_normalized = dampening_factor * uam_probs_normalized + (1 - dampening_factor) * prev_normalized
+            logger.info(f"Applied weight dampening due to extreme changes (max change: {np.max(weight_change_ratio):.3f})")
+    
+
+    # The custom weighted_kmeans will handle weight compression, so we can be less aggressive here
+    uam_probs_normalized = np.sqrt(uam_probs_normalized)  # Reduce extreme values
+    weights = np.concatenate([uam_probs_normalized, uam_probs_normalized])
+    
+    # Log weight statistics for debugging
+    logger.info(f"Iteration {iteration + 1} weight stats - Min: {np.min(weights):.6f}, Max: {np.max(weights):.6f}, Mean: {np.mean(weights):.6f}")
+    
+    # Analyze weight skewness and distribution (every 5 iterations or first 3)
+    if (iteration + 1) % 5 == 0 or iteration < 3:
+        weight_stats = analyze_weight_skewness(weights, iteration + 1, centroid_dir)
+        print_weight_summary(weight_stats)
+        logger.info(f"Weight analysis plots saved for iteration {iteration + 1}")
     
     # Store current UAM probabilities for next iteration
     prev_uam_probs = uam_probs.copy()
-    
-    # Track weights and probabilities for this iteration
-    weight_history.append(weights.copy())
-    uam_prob_history.append(uam_probs.copy())
 
     # Define origins and dests before stacking
     origins = synthetic_population[['originX', 'originY']].values
     dests = synthetic_population[['destinationX', 'destinationY']].values
     od_points_current = np.vstack([origins, dests])
 
-    # f. Perform weighted k-means clustering
-    kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000, 
-                    tol=1e-4, n_init=10)  # More stable parameters
-    kmeans.fit(od_points_current, sample_weight=weights)  # od_points_current is in meters
-    new_coords = kmeans.cluster_centers_  # Output is in meters because input was in meters
-    logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
+        # Track weights and probabilities for this iteration
+    weight_history.append(weights.copy())
+    uam_prob_history.append(uam_probs.copy())
+    
+    # f. Perform custom weighted k-means clustering with stability controls
+    # Use more conservative parameters for better convergence
+    gamma = 0.6  # Weight compression (more aggressive than default 0.8)
+    alpha = 0.2  # Damping factor (more conservative than default 0.3)
+    tol = 1e-3   # Convergence tolerance
+    
+    labels, new_coords, kmeans_history = weighted_kmeans(
+        X=od_points_current, 
+        w=weights, 
+        K=vertiport_k, 
+        gamma=gamma, 
+        alpha=alpha, 
+        max_iter=200, 
+        tol=tol, 
+        random_state=42
+    )
+    
+    logger.info(f'Custom weighted KMeans finished in {len(kmeans_history["max_shift"])} iterations')
+    logger.info(f'Final max shift: {kmeans_history["max_shift"][-1]:.6f}, Final inertia: {kmeans_history["inertia"][-1]:.2f}')
+    
+    # Track KMeans performance metrics
+    if 'kmeans_iterations' not in locals():
+        kmeans_iterations = []
+        kmeans_max_shifts = []
+        kmeans_inertias = []
+    
+    kmeans_iterations.append(len(kmeans_history["max_shift"]))
+    kmeans_max_shifts.append(kmeans_history["max_shift"][-1])
+    kmeans_inertias.append(kmeans_history["inertia"][-1])
+    
     # g. Check convergence
     # Robust convergence check using the Hungarian (assignment) algorithm:
     # Computes the minimum total shift between new and previous vertiport coordinates,
@@ -281,10 +542,10 @@ for iteration in range(max_iter):
         new_coords_ordered = np.zeros_like(new_coords)
         new_coords_ordered[col_ind] = new_coords[row_ind]
 
-        #Check distance matrix stability
+        # NEW: Check distance matrix stability
         distance_stable, distance_change = check_distance_matrix_stability(prev_coords, new_coords_ordered, distance_stability_threshold)
         
-        # Check probability similarity
+        # NEW: Check probability similarity
         prob_stable, prob_change = check_probability_similarity(prev_uam_probs, uam_probs, probability_stability_threshold)
         
         # Track convergence metrics
@@ -305,17 +566,29 @@ for iteration in range(max_iter):
             )
             logger.info(f"Intermediate visualization saved: centroids_iteration_{iteration + 1}.png")
 
-        # Check for convergence (layout-based + probability-based)
+        # Check for convergence (multiple criteria)
         # Require at least 3 iterations before allowing convergence
         layout_converged = distance_stable
         probability_converged = prob_stable
-
-        # layout-based or probability-based
-        if (layout_converged or probability_converged) and iteration >= 2:
-            if layout_converged:
-                logger.info(f"Converged after {iteration + 1} iterations with distance matrix stability: {distance_change:.6f}")
-            if probability_converged:
-                logger.info(f"Converged after {iteration + 1} iterations with probability stability: {prob_change:.6f}")
+        coordinate_converged = min_total_shift < coordinate_threshold
+        
+        # Primary convergence: Both layout and probability stable
+        if (layout_converged and probability_converged) and iteration >= 2:
+            logger.info(f"Converged after {iteration + 1} iterations with BOTH distance matrix stability: {distance_change:.6f} AND probability stability: {prob_change:.6f}")
+            converged = True
+            centroid_history.append(new_coords_ordered.copy())
+            break
+        
+        # Backup convergence: Small coordinate shifts with probability stability
+        elif coordinate_converged and probability_converged and iteration >= 10:
+            logger.info(f"Converged after {iteration + 1} iterations with coordinate stability: {min_total_shift:.2f}m AND probability stability: {prob_change:.6f}")
+            converged = True
+            centroid_history.append(new_coords_ordered.copy())
+            break
+        
+        # Emergency stop: If we've run too many iterations, take the best solution
+        elif iteration >= 25:  # Maximum 25 iterations (reduced from 50)
+            logger.warning(f"Reached maximum iterations ({iteration + 1}). Taking current solution as best available.")
             converged = True
             centroid_history.append(new_coords_ordered.copy())
             break
@@ -361,7 +634,7 @@ logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
 logger.info(f"Distance change history saved: {distance_change_history.shape}")
 logger.info(f"Probability change history saved: {prob_change_history.shape}")
 
-# --- Save final vertiport coordinates---
+# --- Save final vertiport coordinates ---
 # Save as .npy
 np.save(os.path.join(centroid_dir, 'optimized_vertiport_coords_final.npy'), vertiport_coords)
 
@@ -460,7 +733,7 @@ for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'tr
 # Save main prediction file with error handling
 try:
     os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
-    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_raw_weights.csv'
+    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_adaptive_weights.csv'
     output.to_csv(output_path, index=False)
     logger.info(f"Main prediction file saved: {output_path}")
 except Exception as e:
@@ -468,7 +741,7 @@ except Exception as e:
 
 # Save optimized coordinates with error handling
 try:
-    np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_raw_weights.npy',
+    np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/optimized_vertiport_coords_adaptive_weights.npy',
             vertiport_coords)
     logger.info("Optimized coordinates saved successfully")
 except Exception as e:
@@ -501,7 +774,7 @@ try:
         writer.writerow(['Method', 'Converged', 'Iterations', 'Final_Shift', 'Mean_UAM_Probability', 'Std_UAM_Probability',
                          'Min_UAM_Probability', 'Max_UAM_Probability'])
         writer.writerow([
-            'raw_weights', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob, max_uam_prob
+            'adaptive_weights', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob, max_uam_prob
         ])
     logger.info(f"Summary CSV saved: {summary_path}")
 
@@ -514,7 +787,7 @@ try:
         f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write(f"SUMMARY:\n")
         f.write(f"{'-' * 20}\n")
-        f.write(f"Method: raw_weights (no normalization)\n")
+        f.write(f"Method: adaptive_weights (using UAM probabilities with stability controls)\n")
         f.write(f"Converged: {converged}\n")
         f.write(f"Iterations: {iterations}\n")
         f.write(f"Final Shift: {final_shift:.6f}\n")
@@ -533,6 +806,121 @@ try:
     
 except Exception as e:
     logger.error(f"Error saving summary and report: {e}")
-logger.info("Results saved with raw UAM probability weights")
+logger.info("Results saved with adaptive weights and stability controls")
+
+# Final comprehensive weight analysis
+logger.info("Performing final comprehensive weight analysis...")
+final_weight_stats = analyze_weight_skewness(weights, len(centroid_history), centroid_dir)
+print_weight_summary(final_weight_stats)
+
+# Save weight statistics history
+if len(weight_history) > 0:
+    # Create comprehensive statistics DataFrame
+    stats_data = {
+        'iteration': list(range(1, len(weight_history) + 1)),
+        'mean_weight': [np.mean(w) for w in weight_history],
+        'std_weight': [np.std(w) for w in weight_history],
+        'min_weight': [np.min(w) for w in weight_history],
+        'max_weight': [np.max(w) for w in weight_history],
+        'median_weight': [np.median(w) for w in weight_history],
+        'skewness': [stats.skew(w) for w in weight_history],
+        'kurtosis': [stats.kurtosis(w) for w in weight_history],
+        'cv': [np.std(w) / np.mean(w) if np.mean(w) != 0 else 0 for w in weight_history],
+        'zero_pct': [np.sum(w == 0) / len(w) * 100 for w in weight_history],
+        'high_weight_pct': [np.sum(w > np.percentile(w, 90)) / len(w) * 100 for w in weight_history]
+    }
+    
+    # Add KMeans performance metrics if available
+    if 'kmeans_iterations' in locals() and len(kmeans_iterations) > 0:
+        stats_data.update({
+            'kmeans_iterations': kmeans_iterations,
+            'kmeans_max_shift': kmeans_max_shifts,
+            'kmeans_inertia': kmeans_inertias
+        })
+    
+    weight_stats_df = pd.DataFrame(stats_data)
+    
+    weight_stats_path = os.path.join(centroid_dir, 'weight_statistics_history.csv')
+    weight_stats_df.to_csv(weight_stats_path, index=False)
+    logger.info(f"Weight statistics history saved: {weight_stats_path}")
+    
+    # Plot weight evolution over iterations
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Weight Distribution Evolution Over Iterations', fontsize=16, fontweight='bold')
+    
+    # Mean and std evolution
+    axes[0, 0].plot(weight_stats_df['iteration'], weight_stats_df['mean_weight'], 'b-', label='Mean', linewidth=2)
+    axes[0, 0].fill_between(weight_stats_df['iteration'], 
+                           weight_stats_df['mean_weight'] - weight_stats_df['std_weight'],
+                           weight_stats_df['mean_weight'] + weight_stats_df['std_weight'],
+                           alpha=0.3, label='±1 Std')
+    axes[0, 0].set_xlabel('Iteration')
+    axes[0, 0].set_ylabel('Weight Value')
+    axes[0, 0].set_title('Mean Weight Evolution')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Skewness evolution
+    axes[0, 1].plot(weight_stats_df['iteration'], weight_stats_df['skewness'], 'r-', linewidth=2)
+    axes[0, 1].axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    axes[0, 1].set_xlabel('Iteration')
+    axes[0, 1].set_ylabel('Skewness')
+    axes[0, 1].set_title('Weight Skewness Evolution')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Coefficient of variation evolution
+    axes[1, 0].plot(weight_stats_df['iteration'], weight_stats_df['cv'], 'g-', linewidth=2)
+    axes[1, 0].set_xlabel('Iteration')
+    axes[1, 0].set_ylabel('Coefficient of Variation')
+    axes[1, 0].set_title('Weight Variability Evolution')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Weight concentration evolution
+    axes[1, 1].plot(weight_stats_df['iteration'], weight_stats_df['zero_pct'], 'orange', label='Zero weights %', linewidth=2)
+    axes[1, 1].plot(weight_stats_df['iteration'], weight_stats_df['high_weight_pct'], 'purple', label='Top 10% weights %', linewidth=2)
+    axes[1, 1].set_xlabel('Iteration')
+    axes[1, 1].set_ylabel('Percentage')
+    axes[1, 1].set_title('Weight Concentration Evolution')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    weight_evolution_path = os.path.join(centroid_dir, 'weight_evolution_analysis.png')
+    plt.savefig(weight_evolution_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    logger.info(f"Weight evolution analysis saved: {weight_evolution_path}")
+    
+    # Additional KMeans performance visualization if metrics are available
+    if 'kmeans_iterations' in weight_stats_df.columns:
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig.suptitle('Custom Weighted K-Means Performance Metrics', fontsize=16, fontweight='bold')
+        
+        # KMeans iterations per outer iteration
+        axes[0].plot(weight_stats_df['iteration'], weight_stats_df['kmeans_iterations'], 'b-o', linewidth=2)
+        axes[0].set_xlabel('Outer Iteration')
+        axes[0].set_ylabel('KMeans Iterations')
+        axes[0].set_title('KMeans Convergence Speed')
+        axes[0].grid(True, alpha=0.3)
+        
+        # KMeans max shift
+        axes[1].plot(weight_stats_df['iteration'], weight_stats_df['kmeans_max_shift'], 'r-o', linewidth=2)
+        axes[1].set_xlabel('Outer Iteration')
+        axes[1].set_ylabel('Max Centroid Shift')
+        axes[1].set_title('KMeans Final Shift')
+        axes[1].grid(True, alpha=0.3)
+        
+        # KMeans inertia
+        axes[2].plot(weight_stats_df['iteration'], weight_stats_df['kmeans_inertia'], 'g-o', linewidth=2)
+        axes[2].set_xlabel('Outer Iteration')
+        axes[2].set_ylabel('Inertia')
+        axes[2].set_title('KMeans Final Inertia')
+        axes[2].grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        kmeans_performance_path = os.path.join(centroid_dir, 'kmeans_performance_analysis.png')
+        plt.savefig(kmeans_performance_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        logger.info(f"KMeans performance analysis saved: {kmeans_performance_path}")
+
 print(f"Iterations: {len(centroid_history) - 1}")
 print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}") 
