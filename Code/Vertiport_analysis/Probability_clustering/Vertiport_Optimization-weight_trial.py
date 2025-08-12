@@ -27,8 +27,8 @@ with open(
 final_model = model_data['final_model']  # model
 feature_names = model_data['feature_names']  # feature
 classes = model_data['classes']
-class_names = model_data.get('class_names', {})  # Get class names if available
-best_params = model_data['best_params']
+class_names = model_data.get('class_names', {})  # class names
+best_params = model_data['best_params'] # parameters
 
 logger.info(f"Model loaded successfully. Test accuracy: {model_data['test_acc']:.4f}")
 logger.info("Class mapping:")
@@ -37,11 +37,11 @@ for class_num, class_name in class_names.items():
 
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
+# Sample 1% of the synthetic population data
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
-    low_memory=False)
-# Sample 1% of the synthetic population data
-synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
+    low_memory=False).sample(frac=0.01, random_state=42).reset_index(drop=True)
+
 
 # ==========================================
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
@@ -50,8 +50,7 @@ logger.info(
     "Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data for 1% of the population...")
 od_points = np.vstack([
     synthetic_population[['originX', 'originY']].values,
-    synthetic_population[['destinationX', 'destinationY']].values
-])
+    synthetic_population[['destinationX', 'destinationY']].values ])
 kmeans = KMeans(n_clusters=74, init='k-means++', random_state=42, max_iter=1000)
 kmeans.fit(od_points)
 vertiport_coords = kmeans.cluster_centers_  # This is in meters
@@ -60,41 +59,36 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # =========================
 # 3. ITERATIVE OPTIMIZATION
 # =========================
+# UAM travel time and travel cost calculation value, based on assumptions from the literature
+vertiport_k = 74                       # centriod        (Guo et al., 2025)
+uam_cruise_speed = 5833.33             # unit:m/min,     350 km/h
+uam_cost_m = 0.001                     # unit: €/pm,     1 €/pkm
+base_fare_uam = 18.4                   # unit : €        (Wu and Zhang, 2021)
+pre_flight_time = 15                   # unit : min      (Rothfeld, 2021)
+average_car_speed = 418.33             # unit: m/min,    25.1 km/h (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
+cost_per_m_car = 0.00065               # unit:€/m,       0.65 €/km (Manuscript Number: JTRP-D-24-00632R1)
+circuity_factor = 1.215                # for car         (Kim et al., 2025)
 
-# Set car speed and cost
-average_car_speed = 418.33  # unit: m/min     ,25.1 km/h, (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
-cost_per_m_car = 0.00065  # unit:€/m        ,0.65 €/km (Manuscript Number: JTRP-D-24-00632R1)
-logger.info(f"Using car speed: {average_car_speed:.2f} m/min, car cost per m: {cost_per_m_car:.6f} €/m")
-
-# --- Centroid history tracking ---
+# Centroid history tracking
 centroid_history = [vertiport_coords.copy()]
-convergence_history = []  # Track centroid shifts per iteration
-weight_history = []  # Track weights per iteration
-uam_prob_history = []  # Track UAM probabilities per iteration
+convergence_history = []      # Track centroid shifts per iteration
+weight_history = []           # Track weights per iteration
+uam_prob_history = []         # Track UAM probabilities per iteration
 distance_change_history = []  # Track distance matrix changes per iteration
-prob_change_history = []  # Track probability changes per iteration
+prob_change_history = []      # Track probability changes per iteration
 
-# UAM calculation function, based on assumptions from the literature
-vertiport_k = 74
-uam_cruise_speed = 5833.33  # unit:m/min     ,350 km/h
-uam_cost_m = 0.001  # unit: €/pm,           1 €/pkm
-base_fare_uam = 18.4  # unit : €
-pre_flight_time = 15  # unit : min
-circuity_factor = 1.215  # (Kim et al., 2025) # for car
-
-
-# --- calculate UAM time and cost  function---
+# function to calculate UAM time and travel cost
 def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, car_cost=cost_per_m_car,
-                            base_fare=base_fare_uam,
-                            uam_speed=uam_cruise_speed, cost_uam_m=uam_cost_m,
+                            base_fare=base_fare_uam,uam_speed=uam_cruise_speed, cost_uam_m=uam_cost_m,
                             pre_flight_time=pre_flight_time):
+
     from scipy.spatial.distance import cdist
 
     # origin(x,y) and destination (x,y) are in meter
     origins = df[['originX', 'originY']].values
     dests = df[['destinationX', 'destinationY']].values
 
-    # Now both origins/dests and vertiport_coords are in meters
+    # both origins/dests and vertiport_coords are in meters
     origin_v_idx = np.argmin(cdist(origins, vertiport_coords), axis=1)
     dest_v_idx = np.argmin(cdist(dests, vertiport_coords), axis=1)
     origin_v = vertiport_coords[origin_v_idx]
@@ -108,9 +102,9 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     uam_dist = np.linalg.norm(origin_v - dest_v, axis=1)
 
     # first, last, airborne and total time calculation in min
-    first_mile_time = first_mile_dist / car_speed  # unit: min
-    last_mile_time = last_mile_dist / car_speed  # unit: min
-    airborne_time = uam_dist / uam_speed  # unit: min
+    first_mile_time = first_mile_dist / car_speed                                    # unit: min
+    last_mile_time = last_mile_dist / car_speed                                      # unit: min
+    airborne_time = uam_dist / uam_speed                                             # unit: min
     total_time = pre_flight_time + first_mile_time + airborne_time + last_mile_time  # unit: min
 
     # first, last and travel cost calculation in €
@@ -131,18 +125,16 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     return df
 
 
-# --- predict mode probabilities function---
+# predict mode probabilities function
 def predict_mode_probabilities(df, model,
                                feature_cols):  # features are arranged identically to how they were during training
     X = df[feature_cols]
     return model.predict_proba(X)
 
-
-# --- Layout similarity check functions ---
+# functions for Layout similarity check: the stability of centroid positions (distance matrix)
 def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     """ Check if the pairwise distance matrix between vertiports is stable
-    Returns: (is_stable, max_change)
-    """
+    Returns: (is_stable, max_change) """
     from scipy.spatial.distance import pdist, squareform
 
     # Calculate pairwise distance matrices
@@ -155,30 +147,27 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
 
     return max_change < threshold, max_change
 
-
-def check_probability_similarity(prev_probs, new_probs, threshold=0.01):
+# function for probability similarity check
+def check_probability_similarity(prev_probs, new_probs, threshold=0.05):
     """ Check if UAM probabilities are stable between iterations
-    Returns: (is_stable, max_change)
-    """
+    Returns: (is_stable, max_change)"""
+
     # Calculate relative change in probabilities
     relative_change = np.abs(new_probs - prev_probs) / (prev_probs + 1e-8)
     max_change = np.max(relative_change)
 
     return max_change < threshold, max_change
 
-
 max_iter = 5000
-distance_stability_threshold = 0.10  # 10% relative change threshold (more lenient)
-probability_stability_threshold = 0.01  # 1% relative change threshold for probabilities
-coordinate_threshold = 1000  # 1km average shift per vertiport
+distance_stability_threshold = 0.01        # 1% relative change threshold
+probability_stability_threshold = 0.0001   # 0.01% relative change threshold for probabilities
+coordinate_threshold = 500                 # 500m average shift per vertiport
 converged = False
 prev_coords = None
 feature_cols = feature_names
 
-# Using normalized probabilities as weights for better stability
+# Using adaptive weights for better stability
 logger.info("Testing with adaptive weights and stability controls")
-
-# prev_uam_probs = None
 
 # Initialize min_total_shift for convergence tracking
 min_total_shift = float('nan')
@@ -187,8 +176,7 @@ min_total_shift = float('nan')
 centroid_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid'
 os.makedirs(centroid_dir, exist_ok=True)
 
-
-# --- Visualization function ---
+# Visualization function to plot centroid and demand
 def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_path):
     """Plot vertiport centroids and demand points"""
     plt.figure(figsize=(12, 10))
@@ -216,8 +204,7 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-
-# --- Weight analysis functions ---
+# Weight analysis functions
 def analyze_weight_skewness(weights, iteration, save_dir):
     """Analyze weight distribution and skewness with descriptive stats and plots"""
     from scipy import stats
@@ -300,7 +287,7 @@ def analyze_weight_skewness(weights, iteration, save_dir):
 
     return stats_dict
 
-
+# weight statistics
 def print_weight_summary(stats_dict):
     """Print a formatted summary of weight statistics"""
     print(f"\n{'=' * 60}")
@@ -342,7 +329,7 @@ def print_weight_summary(stats_dict):
     print(f"{'=' * 60}\n")
 
 
-# --- Custom Weighted K-Means Implementation ---
+# Custom Weighted K-Means Implementation
 def weighted_kmeans(X, w, K, gamma=0.8, alpha=0.3, max_iter=300, tol=1e-4, random_state=None):
     """
     Weighted K-Means with probability-weight compression (gamma) and damped centroid updates (alpha).
@@ -442,7 +429,7 @@ for iteration in range(max_iter):
         # FIRST ITERATION: Unweighted K-means
         logger.info("First iteration: Using unweighted K-means clustering")
 
-        # Use regular K-means without weights
+        # regular K-means without weights
         kmeans = KMeans(n_clusters=vertiport_k, init='k-means++', random_state=42, max_iter=1000)
         kmeans.fit(od_points_current)  # NO sample_weight
         new_coords = kmeans.cluster_centers_
@@ -473,11 +460,11 @@ for iteration in range(max_iter):
         # a. Calculate UAM travel time and cost for each trip
         synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords,
                                                                 average_car_speed,
-                                                                cost_per_m_car)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
+                                                                cost_per_m_car)    # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
         synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
 
         # b. Predict mode probabilities
-        for col in feature_cols:  # Feature Alignment Safeguards
+        for col in feature_cols:                                                   # Feature Alignment Safeguards
             if col not in synthetic_population_with_uam.columns:
                 synthetic_population_with_uam[col] = 0.0
         synthetic_population_with_uam = synthetic_population_with_uam[feature_cols]
@@ -492,12 +479,12 @@ for iteration in range(max_iter):
         if uam_class_idx is None:
             uam_class_idx = len(classes) - 1
 
-        # Log which class is being used for UAM weighting
+        # d. Log which class is being used for UAM weighting
         uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
         logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
         uam_probs = proba[:, uam_class_idx]
 
-        # Checking for NaN or Infinite Values in UAM Probabilities
+        # e. Checking for NaN or Infinite Values in UAM Probabilities
         if np.isnan(uam_probs).any():
             logger.error("NaN found in UAM probabilities!")
             raise ValueError("NaN found in UAM probabilities!")
@@ -505,10 +492,10 @@ for iteration in range(max_iter):
             logger.error("Infinite value found in UAM probabilities!")
             raise ValueError("Infinite value found in UAM probabilities!")
 
-        # Use adaptive weights with stability controls
+        # f. Use adaptive weights with stability controls
         uam_probs_normalized = (uam_probs - np.min(uam_probs)) / (np.max(uam_probs) - np.min(uam_probs) + 1e-8)
 
-        # Apply stability controls to prevent extreme weight changes
+        # g. Apply stability controls to prevent extreme weight changes
         if iteration > 1 and prev_uam_probs is not None:
             # Calculate weight change ratio
             prev_normalized = (prev_uam_probs - np.min(prev_uam_probs)) / (
@@ -516,41 +503,40 @@ for iteration in range(max_iter):
             weight_change_ratio = np.abs(uam_probs_normalized - prev_normalized) / (prev_normalized + 1e-8)
 
             # If weight changes are too extreme, dampen them
-            max_allowed_change = 0.5  # Maximum 50% change in weights
+            max_allowed_change = 0.5                                     # Maximum 50% change in weights
             if np.max(weight_change_ratio) > max_allowed_change:
                 # Apply dampening: blend current and previous weights
-                dampening_factor = 0.3  # Use 30% new, 70% previous
+                dampening_factor = 0.3                                   # Use 30% new, 70% previous
                 uam_probs_normalized = dampening_factor * uam_probs_normalized + (
                             1 - dampening_factor) * prev_normalized
                 logger.info(
                     f"Applied weight dampening due to extreme changes (max change: {np.max(weight_change_ratio):.3f})")
 
-        # The custom weighted_kmeans will handle weight compression, so we can be less aggressive here
-        uam_probs_normalized = np.sqrt(uam_probs_normalized)  # Reduce extreme values
+        # h. custom weighted_kmeans will handle weight compression
+        uam_probs_normalized = np.sqrt(uam_probs_normalized)              # Reduce extreme values
         weights = np.concatenate([uam_probs_normalized, uam_probs_normalized])
 
         # Log weight statistics for debugging
-        logger.info(
-            f"Iteration {iteration + 1} weight stats - Min: {np.min(weights):.6f}, Max: {np.max(weights):.6f}, Mean: {np.mean(weights):.6f}")
+        #logger.info(
+        #    f"Iteration {iteration + 1} weight stats - Min: {np.min(weights):.6f}, Max: {np.max(weights):.6f}, Mean: {np.mean(weights):.6f}")
 
-        # Analyze weight skewness and distribution (every 5 iterations or first few weighted iterations)
+        # i. Analyze weight skewness and distribution (every 5 iterations or first few weighted iterations)
         if (iteration + 1) % 5 == 0 or iteration < 5:
             weight_stats = analyze_weight_skewness(weights, iteration + 1, centroid_dir)
             print_weight_summary(weight_stats)
             logger.info(f"Weight analysis plots saved for iteration {iteration + 1}")
 
-        # Store current UAM probabilities for next iteration
+        # j. Store current UAM probabilities for next iteration
         prev_uam_probs = uam_probs.copy()
 
-        # Track weights and probabilities for this iteration
+        # k. Track weights and probabilities for this iteration
         weight_history.append(weights.copy())
         uam_prob_history.append(uam_probs.copy())
 
-        # f. Perform custom weighted k-means clustering with stability controls
-        # Use more conservative parameters for better convergence
-        gamma = 0.6  # Weight compression (more aggressive than default 0.8)
-        alpha = 0.2  # Damping factor (more conservative than default 0.3)
-        tol = 1e-3  # Convergence tolerance
+        # l. Perform custom weighted k-means clustering with stability controls
+        gamma = 0.6       # Weight compression (more aggressive than default 0.8)
+        alpha = 0.2       # Damping factor (more conservative than default 0.3)
+        tol = 1e-3        # Convergence tolerance
 
         labels, new_coords, kmeans_history = weighted_kmeans(
             X=od_points_current,
@@ -577,16 +563,12 @@ for iteration in range(max_iter):
         kmeans_max_shifts.append(kmeans_history["max_shift"][-1])
         kmeans_inertias.append(kmeans_history["inertia"][-1])
 
-        # g. Check convergence
-        # Robust convergence check using the Hungarian (assignment) algorithm:
-        # Computes the minimum total shift between new and previous vertiport coordinates,
-        # matching centroids optimally regardless of their order.
-        # This prevents false non-convergence due to centroid reordering between iterations.
+        # g. Check convergence:  using the Hungarian (assignment) algorithm: Computes the mean shift between new and previous vertiport coordinates, matching centroids optimally regardless of their order. This prevents false non-convergence due to centroid reordering between iterations.
         if prev_coords is not None:
             from scipy.optimize import linear_sum_assignment
             from scipy.spatial.distance import cdist
 
-            cost_matrix = cdist(new_coords, prev_coords)  # cost_matrix is in meters
+            cost_matrix = cdist(new_coords, prev_coords)            # cost_matrix is in meters
             row_ind, col_ind = linear_sum_assignment(cost_matrix)
             min_total_shift = cost_matrix[row_ind, col_ind].mean()  # Average shift per vertiport
             convergence_history.append(min_total_shift)
@@ -623,7 +605,7 @@ for iteration in range(max_iter):
                 logger.info(f"Intermediate visualization saved: centroids_iteration_{iteration + 1}.png")
 
             # Check for convergence (multiple criteria)
-            # Require at least 3 iterations before allowing convergence
+
             layout_converged = distance_stable
             probability_converged = prob_stable
             coordinate_converged = min_total_shift < coordinate_threshold
@@ -637,26 +619,20 @@ for iteration in range(max_iter):
                 break
 
             # Backup convergence: Small coordinate shifts with probability stability
-            elif coordinate_converged and probability_converged and iteration >= 10:
-                logger.info(
-                    f"Converged after {iteration + 1} iterations with coordinate stability: {min_total_shift:.2f}m AND probability stability: {prob_change:.6f}")
-                converged = True
-                centroid_history.append(new_coords_ordered.copy())
-                break
+            #elif coordinate_converged and probability_converged and iteration >= 10:
+            #    logger.info(
+            #        f"Converged after {iteration + 1} iterations with coordinate stability: {min_total_shift:.2f}m AND probability stability: {prob_change:.6f}")
+            #    converged = True
+            #    centroid_history.append(new_coords_ordered.copy())
+            #    break
 
-            # Emergency stop: If we've run too many iterations, take the best solution
-            elif iteration >= 25:  # Maximum 25 iterations (reduced from 50)
-                logger.warning(
-                    f"Reached maximum iterations ({iteration + 1}). Taking current solution as best available.")
-                converged = True
-                centroid_history.append(new_coords_ordered.copy())
-                break
+
             prev_coords = new_coords_ordered  # prev_coords gets updated  here
             vertiport_coords = new_coords_ordered
             centroid_history.append(vertiport_coords.copy())
         else:
             # This should not happen in weighted iterations, but just in case
-            prev_coords = new_coords  # prev_coords gets set to meters here
+            prev_coords = new_coords
             vertiport_coords = new_coords
             centroid_history.append(vertiport_coords.copy())
 
