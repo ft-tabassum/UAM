@@ -975,4 +975,4 @@ if len(weight_history) > 0:
         logger.info(f"KMeans performance analysis saved: {kmeans_performance_path}")
 
 print(f"Iterations: {len(centroid_history) - 1}")
-print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}") 
+print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}")
