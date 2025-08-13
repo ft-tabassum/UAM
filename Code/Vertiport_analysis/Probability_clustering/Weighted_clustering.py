@@ -552,9 +552,9 @@ if len(centroid_history) > 1:
     logger.info(f"  - Initial state: initial_centroids_and_demand.png")
     logger.info(f"  - Final state: final_centroids_and_demand.png")
     logger.info(f"  - Evolution: centroid_evolution.png")
-# =========================
+
 # 4. FINAL PREDICTION AND OUTPUT
-# =========================
+
 logger.info("Step 4: Final prediction with optimized vertiports and saving results...")
 
 # Recalculate UAM features and probabilities with final optimized vertiports
