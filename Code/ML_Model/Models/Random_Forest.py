@@ -36,7 +36,7 @@ base_pipeline = Pipeline([
     ('classifier', RandomForestClassifier(random_state=RANDOM_SEED))
 ])
 
-# Hyperparameter grid - focused on key parameters
+# Hyperparameter grid
 param_grid = {
     'classifier__n_estimators': [70, 80, 90],  # Moderate number of trees
     'classifier__max_depth': [8, 10, 12],  # Moderate tree depth
@@ -45,7 +45,7 @@ param_grid = {
     'classifier__max_features': ['sqrt']  # Using sqrt for feature selection
 }
 
-# Split data into train+val and test
+# Data splitting: Split data into train+val and test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
     X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y
 )
@@ -68,12 +68,12 @@ fold_metrics = {
 # Initialize a list to store the probabilities
 all_fold_probs = []
 
-# Perform cross-validation with GridSearchCV in each fold
+# Cross-validation: Perform cross-validation with GridSearchCV in each fold
 logger.info("Performing 10-fold cross-validation with GridSearchCV in each fold...")
 for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
     logger.info(f"Processing Fold {fold}/10...")
     
-    # Split data for this fold
+    # Split data (training and validation data) for this fold
     X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
     y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
     
@@ -180,6 +180,7 @@ final_model.fit(X_train_val, y_train_val)
 train_val_pred = final_model.predict(X_train_val)
 train_val_acc = accuracy_score(y_train_val, train_val_pred)
 
+# Test set-------------------------------------------------
 # Evaluate on test set
 test_pred = final_model.predict(X_test)
 test_proba = final_model.predict_proba(X_test)
