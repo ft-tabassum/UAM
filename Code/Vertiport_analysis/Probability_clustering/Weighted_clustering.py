@@ -195,7 +195,7 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
 
 
 # Weighted K-Means Implementation with probability-weight compression (gamma) and damping factor for centroid updates (alpha)
-def weighted_kmeans(X, w, K, gamma=0.95, alpha=0.35, max_iter=300, tol=1e-4,
+def weighted_kmeans(X, w, K, gamma= 0.95, alpha=0.35, max_iter=300, tol=1e-3,
                     random_state=None):  # Parameters- X : Data points; random_state : Random seed
 
     rng = np.random.default_rng(random_state)
@@ -203,6 +203,7 @@ def weighted_kmeans(X, w, K, gamma=0.95, alpha=0.35, max_iter=300, tol=1e-4,
 
     # compress weights to make weight distribution more uniform :reduces extreme values (bimodal distribution of weights)
     w = w ** gamma                                      # w : Weights for each data point
+    w = w / w.mean()                                    # weight normalized to 1
 
     # initialize centers
     init_idx = rng.choice(len(X), K, replace=False)

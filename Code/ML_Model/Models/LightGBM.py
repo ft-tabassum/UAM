@@ -116,6 +116,8 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     
     # Store feature importances
     feature_importances = best_model.named_steps['classifier'].feature_importances_
+    # Normalize feature importances to sum to 1 for consistency with other models
+    feature_importances = feature_importances / np.sum(feature_importances)
     fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate training accuracy
