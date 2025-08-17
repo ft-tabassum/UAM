@@ -203,7 +203,7 @@ def weighted_kmeans(X, w, K, gamma= 0.95, alpha=0.35, max_iter=300, tol=1e-3,
 
     # compress weights to make weight distribution more uniform :reduces extreme values (bimodal distribution of weights)
     w = w ** gamma                                      # w : Weights for each data point
-    w = w / w.mean()                                    # weight normalized to 1
+
 
     # initialize centers
     init_idx = rng.choice(len(X), K, replace=False)
