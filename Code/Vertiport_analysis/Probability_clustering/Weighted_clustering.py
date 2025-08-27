@@ -37,14 +37,16 @@ for class_num, class_name in class_names.items():
 
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
-# Sample 1% of the synthetic population data
+# Load full synthetic population data
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
-    low_memory=False).sample(frac=0.01, random_state=42).reset_index(drop=True)
+    low_memory=False)
+# Sample a larger percentage for better representation
+synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
-    "Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data for 1% of the population...")
+    "Step 2: Initializing k-means++ with 74 vertiports on O/D points from synthetic population data...")
 od_points = np.vstack([
     synthetic_population[['originX', 'originY']].values,
     synthetic_population[['destinationX', 'destinationY']].values])
@@ -170,9 +172,9 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
     """Plot vertiport centroids and demand points"""
     plt.figure(figsize=(12, 10))
 
-    # Plot demand points
-    plt.scatter(origins[:, 0], origins[:, 1], c='lightblue', s=20, alpha=0.6, label='Origins', marker='o')
-    plt.scatter(destinations[:, 0], destinations[:, 1], c='lightgreen', s=20, alpha=0.6, label='Destinations',
+    # Plot demand points 
+    plt.scatter(origins[:, 0], origins[:, 1], c='lightblue', s=0.2, alpha=0.6, label='Origins', marker='o')
+    plt.scatter(destinations[:, 0], destinations[:, 1], c='lightgreen', s=0.2, alpha=0.6, label='Destinations',
                 marker='s')
 
     # Plot vertiport centroids
@@ -530,9 +532,9 @@ if len(centroid_history) > 1:
 
             # Plot demand points
             ax.scatter(synthetic_population['originX'], synthetic_population['originY'],
-                       c='lightblue', s=10, alpha=0.4, marker='o')
+                       c='lightblue', s=0.2, alpha=0.4, marker='o')
             ax.scatter(synthetic_population['destinationX'], synthetic_population['destinationY'],
-                       c='lightgreen', s=10, alpha=0.4, marker='s')
+                       c='lightgreen', s=0.2, alpha=0.4, marker='s')
 
             # Plot centroids
             centroids = centroid_history[iter_idx]

@@ -16,12 +16,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Create output directories
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
+os.makedirs('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
 
 # Load the trained model from Part 1
 logger.info("Loading trained XGBoost model from Part 1...")
 with open(
-        "/Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl", "rb"
+        "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl", "rb"
     ) as f:
     model_data = pickle.load(f)
 
@@ -39,7 +39,7 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
-    "/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv")
+    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv")
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 
@@ -138,7 +138,7 @@ def predict_mode_probabilities(df, model,
 
 
 max_iter = 3000  #
-convergence_threshold = 1.0  # convergence threshold (1km)#wrong
+convergence_threshold = 500  # convergence threshold (1km)#wrong
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -225,18 +225,7 @@ for iteration in range(max_iter):
             centroid_history.append(new_coords_ordered.copy())
             break
 
-        # Check for minimal improvement (early stopping)
-        if len(convergence_history) > 1:
-            improvement = (convergence_history[-2] - convergence_history[-1]) / convergence_history[-2]
-            if improvement < improvement_threshold:
-                no_improvement_count += 1
-                if no_improvement_count >= patience:
-                    logger.info(f"Early stopping after {iteration + 1} iterations due to minimal improvement")
-                    converged = True
-                    centroid_history.append(new_coords_ordered.copy())
-                    break
-            else:
-                no_improvement_count = 0
+
         prev_coords = new_coords_ordered
         vertiport_coords = new_coords_ordered
         centroid_history.append(vertiport_coords.copy())

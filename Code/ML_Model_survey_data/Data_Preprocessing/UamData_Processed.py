@@ -21,9 +21,9 @@ data = data.drop(columns=cols_to_drop, errors='ignore')
 tmode_mapping = {
     'Car': 0,
     'Public Transport': 1,
-    'Car-sharing': 2,
-    'Ride-hailing': 3,
-    'UAM': 4
+    #'Car-sharing': 2,
+    #'Ride-hailing': 3,
+    'UAM':2                 #4
 }
 data['tmode'] = data['tmode'].map(tmode_mapping)
 data['tmode'] = data['tmode'].fillna(0).astype(int)
@@ -87,5 +87,5 @@ X_processed_df['tmode'] = y.values
 print(f"Processed data shape: {X_processed_df.shape}")
 print(X_processed_df.head())
 
-X_processed_df.to_csv("D://PythonProject//Result//Data_Preprocessing//Uamdata_processed.csv", index=False)
-print("Processed data saved to 'Uamdata_processed.csv'")
+X_processed_df.to_csv("D:/Thesis/UAM/Result/ML_Model_survey_data/Data_Preprocessing/Uamdata_processed.csv", index=False)
+print("Processed data saved to '../../Result/ML_Model_survey_data/Data_Preprocessing/Uamdata_processed.csv'")

@@ -58,18 +58,18 @@ def apply_mapping(df):
             return 0  # 'missing'
         if 1 <= age <= 17:
             return 1  # '1-17'
-        elif 18 <= age <= 29:
-            return 2  # '18-29'
-        elif 30 <= age <= 39:
-            return 3  # '30-39'
-        elif 40 <= age <= 49:
-            return 4  # '40-49'
-        elif 50 <= age <= 59:
-            return 5  # '50-59'
-        elif 60 <= age <= 69:
-            return 6  # '60-69'
-        elif 70 <= age <= 79:
-            return 7  # '70-79'
+        elif 18 <= age <= 25:
+            return 2  # '18-25'
+        elif 26 <= age <= 35:
+            return 3  # '26-35'
+        elif 36 <= age <= 45:
+            return 4  # '36-45'
+        elif 46 <= age <= 55:
+            return 5  # '46-55'
+        elif 56 <= age <= 65:
+            return 6  # '56-65'
+        elif 66 <= age <= 120:
+            return 7  # '66-120'
         else:
             return 8  # 'I prefer not to answer'
 
