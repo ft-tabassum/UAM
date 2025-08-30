@@ -20,11 +20,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data of UAM survey data
-data = pd.read_csv('D:/Thesis/UAM//Result/ML_Model/Data_Preprocessing/Uamdata_normalized.csv')
+data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
 
 # Define features and target
-y = data['tmode']
-X = data.drop(columns=['tmode'])
+X = data.drop(columns=['CHOICE'])
+y = data['CHOICE']
 
 # Original classes
 classes = np.unique(y)
@@ -33,10 +33,13 @@ n_classes = len(classes)
 # Create base pipeline
 base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
-    ('classifier', XGBClassifier(random_state=RANDOM_SEED))
+    ('classifier', XGBClassifier(
+        random_state=RANDOM_SEED,
+        eval_metric='mlogloss'  # Multi-class log loss
+    ))
 ])
 
-# Hyperparameter grid - focused on key parameters
+# Hyperparameter grid 
 param_grid = {
     'classifier__n_estimators': [90, 100, 110],  # Increased number of trees
     'classifier__max_depth': [3, 4, 5],  # XGBoost typically needs smaller depth
@@ -82,7 +85,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='accuracy',
+        scoring='accuracy',  # Using accuracy for better overall performance
         n_jobs=-1
     )
     
@@ -156,7 +159,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Probabilities/Training_Probabilities/all_folds_probabilities_XGBoost.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_XGBoost.csv', index=False)
 
 logger.info("All fold probabilities have been saved to 'all_folds_probabilities_XGBoost.csv'.")
 
@@ -195,7 +198,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Probabilities/Testing_Probabilities/test_set_probabilities_XGBoost.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/test_set_probabilities_XGBoost.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -219,7 +222,7 @@ feature_importance_df = pd.DataFrame({
     'Importance': mean_feature_importance
 })
 feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Feature_Importance/feature_importance_XGBoost.csv', index=False)
+feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Feature_Importance/feature_importance_XGBoost.csv', index=False)
 
 # Save results
 with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') as f:
@@ -265,7 +268,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGB
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model_survey_data Performance:\n")
+    f.write("\nFinal ML_Model Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -290,6 +293,6 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGB
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Confusion_Matrix/CM_XGBoost.csv', index=True)
+conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Confusion_Matrix/CM_XGBoost.csv', index=True)
 
 logger.info("Cross-validation completed. Results saved to Result_XGBoost.txt")

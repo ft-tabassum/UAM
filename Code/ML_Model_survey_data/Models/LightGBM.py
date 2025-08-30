@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearc
 from lightgbm import LGBMClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import label_binarize
 from collections import Counter
@@ -23,12 +24,26 @@ warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
+# Custom imputer that preserves feature names
+class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
+    def __init__(self, strategy='constant', fill_value=0):
+        self.strategy = strategy
+        self.fill_value = fill_value
+        
+    def fit(self, X, y=None):
+        return self
+        
+    def transform(self, X):
+        # Fill missing values while preserving DataFrame structure
+        X_filled = X.fillna(self.fill_value)
+        return X_filled
+
 # Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/ML_Model/Data_Preprocessing/Uamdata_normalized.csv")
+data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
 
 # Define features and target
-y = data['tmode']
-X = data.drop(columns=['tmode'])
+X = data.drop(columns=['CHOICE'])
+y = data['CHOICE']
 
 # Store feature names
 feature_names = X.columns.tolist()
@@ -39,25 +54,28 @@ n_classes = len(classes)
 
 # Create base pipeline
 base_pipeline = Pipeline([
-    ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+    ('imputer', FeaturePreservingImputer(strategy='constant', fill_value=0)),
     ('classifier', LGBMClassifier(
         random_state=RANDOM_SEED,
         verbose=-1,
-        min_gain_to_split=0.1,  # Increased minimum gain for splitting
-        min_data_in_leaf=30,    # Increased minimum samples in leaf
-        min_sum_hessian_in_leaf=1e-2,  # Increased minimum hessian
+        min_gain_to_split=0.05,  # Reduced for more splits
+        min_data_in_leaf=20,     # Reduced for more granular splits
+        min_sum_hessian_in_leaf=1e-3,  # Reduced for more flexibility
+        class_weight='balanced',  # Handle class imbalance
+        reg_alpha=0.1,           # L1 regularization
+        reg_lambda=0.1,          # L2 regularization
         n_jobs=-1  # Use all available cores
     ))
 ])
 
-# Define Parameter
+# Define Parameter 
 param_grid = {
-    'classifier__n_estimators': [50, 80],     # number of trees
-    'classifier__max_depth': [2, 3],          # tree depth
-    'classifier__learning_rate': [0.005, 0.01], # learning rate
-    'classifier__num_leaves': [15, 31],       # number of leaves
-    'classifier__reg_alpha': [0.1, 0.5],      #  L1 regularization
-    'classifier__reg_lambda': [0.1, 0.5]      #  L2 regularization
+    'classifier__n_estimators': [100, 200],               #  more trees
+    'classifier__max_depth': [4, 6],                      # deeper trees
+    'classifier__learning_rate': [0.05, 0.1],             # higher rates
+    'classifier__num_leaves': [63, 127],                  #  more leaves
+    'classifier__reg_alpha': [0.1, 0.5],                  
+    'classifier__reg_lambda': [0.1, 0.5]                  
 }
 
 # Split data into train+val and test
@@ -89,9 +107,8 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
     y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
     
-    # Convert to numpy arrays to avoid feature name warnings
-    X_train = X_train.values
-    X_val = X_val.values
+    # Keep as pandas DataFrames to maintain feature names
+    # X_train and X_val are already pandas DataFrames
     
     logger.info(f"Fold {fold} - Training data shape: {X_train.shape}")
     logger.info(f"Fold {fold} - Validation data shape: {X_val.shape}")
@@ -101,7 +118,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=3,
-        scoring='accuracy',  # Changed to accuracy
+        scoring='f1_weighted',  # Use F1-score for better class balance consideration
         n_jobs=-1,  # Use all available cores
         verbose=1
     )
@@ -178,7 +195,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 
 # After all folds are processed, concatenate all fold probabilities
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Prediction_EvaluationMetrics/all_folds_probabilities_LightGBM.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/all_folds_probabilities_LightGBM.csv', index=False)
 
 # Calculate and save feature importance analysis
 mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
@@ -187,7 +204,7 @@ feature_importance_df = pd.DataFrame({
     'Importance': mean_feature_importance
 })
 feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Prediction_EvaluationMetrics/feature_importance_LightGBM.csv', index=False)
+feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/feature_importance_LightGBM.csv', index=False)
 
 # Analyze parameter stability
 param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
@@ -203,15 +220,15 @@ logger.info(f"\nMost common best parameters across folds: {best_params}")
 
 # Train final model on all training+validation data using most common best parameters
 final_model = base_pipeline.set_params(**best_params)
-final_model.fit(X_train_val.values, y_train_val)
+final_model.fit(X_train_val, y_train_val)
 
 # Calculate training accuracy on full training set
-train_val_pred = final_model.predict(X_train_val.values)
+train_val_pred = final_model.predict(X_train_val)
 train_val_acc = accuracy_score(y_train_val, train_val_pred)
 
 # Evaluate on test set
-test_pred = final_model.predict(X_test.values)
-test_proba = final_model.predict_proba(X_test.values)
+test_pred = final_model.predict(X_test)
+test_proba = final_model.predict_proba(X_test)
 
 # Calculate per-class accuracy on test set
 test_class_acc = {}
@@ -224,7 +241,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model_survey_data/Prediction_EvaluationMetrics/test_set_probabilities_LightGBM.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/test_set_probabilities_LightGBM.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -291,7 +308,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Lig
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model_survey_data Performance:\n")
+    f.write("\nFinal ML_Model Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
