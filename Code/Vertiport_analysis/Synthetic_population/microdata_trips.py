@@ -85,7 +85,12 @@ def calculate_travel_costs(distance, time_pt):
     travel_cost_auto = distance * circuity_factor * cost_per_km_auto
 
     # PT cost calculation
-    travel_cost_pt = base_fare_pt + (distance * circuity_factor* average_cost_per_km_pt)  if not pd.isna(time_pt) else np.nan
+    if pd.isna(time_pt):
+        travel_cost_pt = np.nan
+    elif time_pt == 99999:
+        travel_cost_pt = 99999
+    else:
+        travel_cost_pt = base_fare_pt + (distance * circuity_factor * average_cost_per_km_pt)
 
     return travel_cost_auto, travel_cost_pt
 
@@ -136,7 +141,7 @@ def process_combined_data():
         # Merge with trips data (INNER JOIN - only people with trips)
         print("Merging with trips data (INNER JOIN - only people with trips)...")
         combined_data = combined_data.merge(
-            trips_data[['trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY', 'id', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro', 'purpose']],
+            trips_data[['trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY', 'id', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro', 'departure_time','departure_time_return']],
             left_on='id',
             right_on='id',
             how='inner',  # Changed from 'left' to 'inner'
@@ -158,30 +163,23 @@ def process_combined_data():
         combined_data['travel_cost_auto'] = costs.apply(lambda x: x[0])
         combined_data['travel_cost_pt'] = costs.apply(lambda x: x[1])
 
-        #----------- Separate travel times into in-vehicle and waiting times----------------
-        # For auto
-        combined_data['in_vehicle_time_auto'] = combined_data['time_auto']  # In-vehicle time is same as time_auto
-        combined_data['waiting_time_auto'] = 0  # No waiting time for auto
-        # Rename time_auto to travel_time_auto
-        combined_data.rename(columns={'time_auto': 'travel_time_auto'}, inplace=True)
+        #----------- Rename travel time columns----------------
+        # Rename time_auto to  autos_TT
+        combined_data.rename(columns={'time_auto': 'autos_TT'}, inplace=True)
+        # Rename time_pt to PT_TT
+        combined_data.rename(columns={'time_PT': 'PT_TT'}, inplace=True)
 
-        # For public transport
-        combined_data['waiting_time_pt'] = np.where(combined_data['distance'] <= 30, 5, 20)  # Waiting time is 5min for distance <= 30 km, else 20min
-        combined_data['in_vehicle_time_pt'] = combined_data['time_PT'] - combined_data['waiting_time_pt']  # In-vehicle time = time_pt - waiting_time
-        # Rename time_pt to travel_time_pt
-        combined_data.rename(columns={'time_PT': 'travel_time_pt'}, inplace=True)
-
-        print("Travel times separated and renamed successfully.")
+        print("Travel times renamed successfully.")
 
         # Rename columns for trips data (id -> person_id, trip_id is already in trips data)
         combined_data.rename(columns={'id': 'person_id'}, inplace=True)
 
         # Select and reorder final columns
         final_columns = [
-            'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY',
+            'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY','departure_time','departure_time_return',
             'person_id', 'age', 'gender', 'child_household', 'occupation', 'adults_household', 'driversLicense',
-            'income', 'disability', 'purpose', 'autos', 'distance', 'in_vehicle_time_auto', 'waiting_time_auto',
-            'travel_time_auto', 'in_vehicle_time_pt', 'waiting_time_pt', 'travel_time_pt', 'travel_cost_auto', 'travel_cost_pt'
+            'income', 'autos', 'distance', 'autos_TT', 'PT_TT', 
+            'travel_cost_auto', 'travel_cost_pt'
         ]
 
         # Filter to only include columns that exist
@@ -189,7 +187,7 @@ def process_combined_data():
         final_data = combined_data[available_columns]
 
         # Save the combined data
-        output_file = "../../../Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+        output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
         final_data.to_csv(output_file, index=False)
         return final_data
 

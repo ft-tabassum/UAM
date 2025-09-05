@@ -23,25 +23,23 @@ def calculate_monthly_income(income):
 def categorize_monthly_income(monthly_income):
     """Categorize monthly income into predefined categories"""
     if pd.isna(monthly_income) or monthly_income <= 0:
-        return 0  # 'I prefer not to answer'
-    if monthly_income == 0:
-        return 1  # 'No income'
+        return 0  # 'I prefer not to answer' or 'No income' (combined)
     if monthly_income < 1000:
-        return 2  # 'Under € 1000'
+        return 1  # 'Under € 1000'
     elif monthly_income < 2000:
-        return 3  # '€ 1000 to less than € 2000'
+        return 2  # '€ 1000 to less than € 2000'
     elif monthly_income < 3000:
-        return 4  # '€ 2000 to less than € 3000'
+        return 3  # '€ 2000 to less than € 3000'
     elif monthly_income < 4000:
-        return 5  # '€ 3000 to less than € 4000'
+        return 4  # '€ 3000 to less than € 4000'
     elif monthly_income < 5000:
-        return 6  # '€ 4000 to less than € 5000'
+        return 5  # '€ 4000 to less than € 5000'
     elif monthly_income < 6000:
-        return 7  # '€ 5000 to less than € 6000'
+        return 6  # '€ 5000 to less than € 6000'
     elif monthly_income < 7000:
-        return 8  # '€ 6000 to less than € 7000'
+        return 7  # '€ 6000 to less than € 7000'
     else:
-        return 9  # '€ 7000 or more'
+        return 8  # '€ 7000 or more'
 
 def apply_mapping(df):
     """ Apply mapping to categorical variables according to the documentation"""
@@ -55,7 +53,7 @@ def apply_mapping(df):
         try:
             age = int(age)
         except:
-            return 0  # 'missing'
+            return 0  # 'missing' or no ans
         if 1 <= age <= 17:
             return 1  # '1-17'
         elif 18 <= age <= 25:
@@ -68,17 +66,17 @@ def apply_mapping(df):
             return 5  # '46-55'
         elif 56 <= age <= 65:
             return 6  # '56-65'
-        elif 66 <= age <= 120:
-            return 7  # '66-120'
         else:
-            return 8  # 'I prefer not to answer'
+            return 7  # 65+
+
 
     df['age'] = df['age'].apply(bin_age)
 
     # --- Gender mapping ---
     print("  - Mapping gender...")
     # 1=Female, 2=Male, 3=Diverse
-    gender_map = {'Male': 2, 'Female': 1, 'Diverse': 3}
+    # Handle both numeric and string values
+    gender_map = {1: 1, 2: 2, 3: 3, 'Male': 2, 'Female': 1, 'Diverse': 3}
     df['gender'] = df['gender'].map(gender_map).fillna(3).astype(int)
 
     # --- Occupation mapping ---
@@ -125,88 +123,6 @@ def apply_mapping(df):
     print("  - Mapping driversLicense...")
     df['driversLicense'] = df['driversLicense'].map({True: 1, False: 0, 'True': 1, 'False': 0, 1: 1, 0: 0}).fillna(0).astype(int)
 
-    # --- Disability mapping ---
-    print("  - Mapping disability...")
-    # The disability column should already be 0/1, so we just ensure it's integer
-    df['disability'] = df['disability'].astype(int)
-    
-    print(f"  Disability unique values: {df['disability'].unique()}")
-    print(f"  Disability value counts: {df['disability'].value_counts().sort_index()}")
-    
-    # Ensure all disability categories are present (add dummy rows if needed)
-    disability_categories = [0, 1]
-    missing_disability = set(disability_categories) - set(df['disability'].unique())
-    if missing_disability:
-        print(f"  Adding dummy rows for missing disability categories: {missing_disability}")
-        # Create dummy rows for missing categories
-        dummy_rows = []
-        for cat in missing_disability:
-            dummy_row = df.iloc[0].copy()  # Copy first row as template
-            dummy_row['disability'] = cat
-            dummy_row['trip_id'] = f"dummy_dis_{cat}"  # Unique trip_id for dummy
-            dummy_rows.append(dummy_row)
-        
-        # Add dummy rows to dataframe
-        df = pd.concat([df, pd.DataFrame(dummy_rows)], ignore_index=True)
-        print(f"  Added {len(dummy_rows)} dummy rows for missing disability categories")
-
-    # Purpose mapping with new categories ---
-    print("  - Mapping purpose with new categories...")
-    print(f"  Original purpose unique values: {df['purpose'].unique()}")
-    print(f"  Original purpose value counts: {df['purpose'].value_counts().sort_index()}")
-    
-    # Map string purpose values to new categories
-    # HBW, HBE, NHBW = Business trip
-    # HBS -> Visiting family or friends  
-    # HBR -> Tourism
-    # HBO, NHBO -> Other
-    purpose_conversion = {
-        'HBW': 'Business trip',    # House-based Work
-        'HBE': 'Business trip',    # House-based Education
-        'NHBW': 'Business trip',   # Non-House-based Work
-        'HBS': 'Visiting family or friends',  # House-based Shopping
-        'HBR': 'Tourism',          # House-based Recreation
-        'HBO': 'Other',            # House-based Other
-        'NHBO': 'Other'            # Non-House-based Other
-    }
-    
-    # Convert string purpose values to new categories
-    df['purpose_category'] = df['purpose'].map(purpose_conversion).fillna('Other')
-    
-    # Now map categories to final codes
-    purpose_final_map = {
-        'Business trip': 0,
-        'Medical travel': 1,
-        'Other': 2,
-        'Tourism': 3,
-        'Visiting family or friends': 4
-    }
-    
-    df['purpose'] = df['purpose_category'].map(purpose_final_map).fillna(2).astype(int)
-    
-    # Remove the temporary category column
-    df = df.drop(columns=['purpose_category'])
-    
-    print(f"  After mapping purpose unique values: {df['purpose'].unique()}")
-    print(f"  After mapping purpose value counts: {df['purpose'].value_counts().sort_index()}")
-    
-    # Ensure all purpose categories are present (add dummy rows if needed)
-    purpose_categories = [0, 1, 2, 3, 4]  # Business trip, Medical travel, Other, Tourism, Visiting family or friends
-    missing_purpose = set(purpose_categories) - set(df['purpose'].unique())
-    if missing_purpose:
-        print(f"  Adding dummy rows for missing purpose categories: {missing_purpose}")
-        # Create dummy rows for missing categories
-        dummy_rows = []
-        for cat in missing_purpose:
-            dummy_row = df.iloc[0].copy()  # Copy first row as template
-            dummy_row['purpose'] = cat
-            dummy_row['trip_id'] = f"dummy_purpose_{cat}"  # Unique trip_id for dummy
-            dummy_rows.append(dummy_row)
-        
-        # Add dummy rows to dataframe
-        df = pd.concat([df, pd.DataFrame(dummy_rows)], ignore_index=True)
-        print(f"  Added {len(dummy_rows)} dummy rows for missing purpose categories")
-    
     return df
 
 def main():
