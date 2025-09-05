@@ -4,7 +4,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import matplotlib.pyplot as plt
 
 # Load data
-data = pd.read_csv('D:/Thesis/UAM/Result/MachineLearning_model/aft_processed.csv')
+data = pd.read_csv('/Result/DataPreprocessing_aft/aft_processed.csv')
 
 print("Original data shape:", data.shape)
 print("Original data info:")
@@ -73,7 +73,7 @@ print(f"\nSafety/Multi-modal features (still binary 0/1):")
 print(data_selective[safety_multimodal_cols].describe())
 
 # Save selective normalization
-data_selective.to_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv", index=False)
+data_selective.to_csv("D:/Thesis/UAM/Result/DataPreprocessing_aft/aft_normalized.csv", index=False)
 print(f"\nSelective normalization saved to: aft_normalized.csv")
 
 

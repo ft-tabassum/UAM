@@ -87,5 +87,5 @@ X_processed_df['tmode'] = y.values
 print(f"Processed data shape: {X_processed_df.shape}")
 print(X_processed_df.head())
 
-X_processed_df.to_csv("D:/Thesis/UAM/Result/ML_Model_survey_data/Data_Preprocessing/Uamdata_processed.csv", index=False)
-print("Processed data saved to '../../Result/ML_Model_survey_data/Data_Preprocessing/Uamdata_processed.csv'")
+X_processed_df.to_csv("D:/Thesis/UAM/Result/ML_Model_aft/Data_Preprocessing/Uamdata_processed.csv", index=False)
+print("Processed data saved to '../../Result/ML_Model_aft/Data_Preprocessing/Uamdata_processed.csv'")

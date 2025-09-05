@@ -219,7 +219,7 @@ else:
     print("✓ No unwanted columns found")
 
 # Save to CSV
-output_path = 'D:/Thesis/UAM/Result/MachineLearning_model/aft_processed.csv'
+output_path = '/Result/DataPreprocessing_aft/aft_processed.csv'
 X_processed_df.to_csv(output_path, index=False)
 print(f"\nProcessed data saved to '{output_path}'")
 

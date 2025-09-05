@@ -313,7 +313,7 @@ with open(
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
 
-    f.write("\nFinal ML_Model_survey_data Performance:\n")
+    f.write("\nFinal ML_Model_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -357,8 +357,8 @@ model_data = {
     'test_roc_auc': test_roc_auc
 }
 os.makedirs('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
-with open( '../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
+with open('../../../Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
     pickle.dump(model_data, f)
 
-logger.info("Step 1 complete: ML_Model_survey_data trained, validated, and tested. Model saved for Part 2.")
+logger.info("Step 1 complete: ML_Model_aft trained, validated, and tested. Model saved for Part 2.")
 logger.info("Model saved to: ../../../Result/Vertiport_analysis/Probability_clustering/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl")
