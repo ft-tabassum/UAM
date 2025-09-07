@@ -49,7 +49,7 @@ warnings.filterwarnings('ignore')
 
 # Load data of UAM survey data
 logger.info("Loading data...")
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 
 
@@ -167,7 +167,7 @@ fold_metrics = {
 # Function to get base model predictions using stratified cross-validation
 def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_grids, n_folds=10):
     logger.info("\n" + "=" * 50)
-    logger.info("Starting Base ML_Model Training")
+    logger.info("Starting Base ML_models_aft Training")
     logger.info("=" * 50)
 
     train_meta_features = np.zeros((X_train.shape[0], len(base_models)))
@@ -305,7 +305,7 @@ for name, model in base_models.items():
         feature_importances[name] = model.feature_importances_
 
 # Save results to text file
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Stacking.txt', 'w') as f:
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_Stacking.txt', 'w') as f:
     f.write("Results for Stacking with SVM Meta-learner (10-fold Cross-Validation):\n\n")
 
     f.write("Parameter Stability Analysis:\n\n")
@@ -363,7 +363,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Sta
     f.write(f"Mean F1-score: {val_f1:.4f}\n")
     f.write(f"Mean ROC AUC: {test_roc_auc:.4f}\n\n")
 
-    f.write("Final ML_Model Performance:\n")
+    f.write("Final ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {val_accuracy:.4f}\n")
     f.write(f"Test Set Accuracy: {test_accuracy:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_accuracy - val_accuracy:.4f}\n\n")
@@ -396,20 +396,20 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Sta
 logger.info("Results saved to 'Result_Stacking.txt'")
 
 # Save model
-model_path = 'D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/stacking_svm_model.joblib'
+model_path = '/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_svm_model.joblib'
 joblib.dump(best_svm, model_path)
-logger.info(f"\nML_Model saved as '{model_path}'")
+logger.info(f"\nML_models_aft saved as '{model_path}'")
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/stacking_svm_test_probabilities.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_svm_test_probabilities.csv', index=False)
 logger.info("Test set probabilities saved to 'stacking_svm_test_probabilities.csv'")
 
 # Save confusion matrix
 confusion_matrix_df = pd.DataFrame(test_cm,
                                    index=[f'True_{c}' for c in classes],
                                    columns=[f'Pred_{c}' for c in classes])
-confusion_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Confusion_Matrix/CM_Stacking.csv', index=True)
+confusion_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_Stacking.csv', index=True)
 logger.info("Confusion matrix saved to 'CM_Stacking.csv'")
 
 # Save feature importances
@@ -419,6 +419,6 @@ for name, importances in feature_importances.items():
         'Importance': importances
     }).sort_values('Importance', ascending=False)
     feature_importance_df.to_csv(
-        f'D:/Thesis/UAM/Result/ML_Model/Feature_Importance/stacking_svm_{name}_feature_importance.csv', index=False)
+        f'D:/Thesis/UAM/Result/ML_models_aft/Feature_Importance/stacking_svm_{name}_feature_importance.csv', index=False)
     logger.info(f"Feature importances for {name} saved to 'stacking_svm_{name}_feature_importance.csv'")
     

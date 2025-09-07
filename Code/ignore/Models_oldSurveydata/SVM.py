@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
-from xgboost import XGBClassifier
+from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -33,19 +33,14 @@ n_classes = len(classes)
 # Create base pipeline
 base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
-    ('classifier', XGBClassifier(
-        random_state=RANDOM_SEED,
-        eval_metric='mlogloss'  # Multi-class log loss
-    ))
+    ('classifier', SVC(probability=True, random_state=RANDOM_SEED))
 ])
 
-# Hyperparameter grid 
+# Hyperparameter grid - increased regularization
 param_grid = {
-    'classifier__n_estimators': [90, 100, 110],  # Increased number of trees
-    'classifier__max_depth': [3, 4, 5],  # XGBoost typically needs smaller depth
-    'classifier__learning_rate': [0.001, 0.005, 0.01],  # Smaller learning rates
-    'classifier__subsample': [0.8, 0.9, 1.0],  # Subsample ratio
-    'classifier__colsample_bytree': [0.8, 0.9, 1.0]  # Column sampling
+    'classifier__C': [0.1, 0.5, 1, 5],  # Lower C values for stronger regularization
+    'classifier__gamma': [0.01, 0.05, 0.1],  # Lower gamma values for smoother boundaries
+    'classifier__kernel': ['rbf']  # Keep RBF kernel
 }
 
 # Split data into train+val and test
@@ -56,16 +51,12 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
 # Setup cross-validation
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
-# Store feature names
-feature_names = X.columns.tolist()
-
 # Initialize storage for metrics
 fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
-    'feature_importances': []  # Added feature importances
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': []  # Added class_accuracies
 }
 
 # Initialize a list to store the probabilities
@@ -84,8 +75,8 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     grid_search = GridSearchCV(
         estimator=base_pipeline,
         param_grid=param_grid,
-        cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='accuracy',  # Using accuracy for better overall performance
+        cv=3,  # Keep 3-fold CV
+        scoring='accuracy',
         n_jobs=-1
     )
     
@@ -104,6 +95,11 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     val_pred = best_model.predict(X_val)
     val_proba = best_model.predict_proba(X_val)
     
+    # Append the probabilities to the list (add fold number as a column)
+    fold_probs_df = pd.DataFrame(val_proba, columns=classes)
+    fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
+    all_fold_probs.append(fold_probs_df)
+    
     # Calculate per-class accuracy
     class_acc = {}
     for cls in classes:
@@ -113,15 +109,6 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         else:
             class_acc[cls] = np.nan
     fold_metrics['class_accuracies'].append(class_acc)
-    
-    # Append the probabilities to the list (add fold number as a column)
-    fold_probs_df = pd.DataFrame(val_proba, columns=classes)
-    fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
-    all_fold_probs.append(fold_probs_df)
-    
-    # Store feature importances
-    feature_importances = best_model.named_steps['classifier'].feature_importances_
-    fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate metrics
     val_acc = accuracy_score(y_val, val_pred)
@@ -159,9 +146,9 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_XGBoost.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Training_Probabilities/all_folds_probabilities_SVM.csv', index=False)
 
-logger.info("All fold probabilities have been saved to 'all_folds_probabilities_XGBoost.csv'.")
+logger.info("All fold probabilities have been saved to 'all_folds_probabilities_SVM.csv'.")
 
 # Analyze parameter stability
 param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
@@ -187,18 +174,9 @@ train_val_acc = accuracy_score(y_train_val, train_val_pred)
 test_pred = final_model.predict(X_test)
 test_proba = final_model.predict_proba(X_test)
 
-# Calculate per-class accuracy on test set
-test_class_acc = {}
-for cls in classes:
-    mask = y_test == cls
-    if np.any(mask):
-        test_class_acc[cls] = accuracy_score(y_test[mask], test_pred[mask])
-    else:
-        test_class_acc[cls] = np.nan
-
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/test_set_probabilities_XGBoost.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/test_set_probabilities_SVM.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -215,18 +193,18 @@ except ValueError as e:
     logger.warning(f"ROC AUC calculation failed for test set: {str(e)}")
     test_roc_auc = np.nan
 
-# After all folds are processed, calculate and save feature importance analysis
-mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
-feature_importance_df = pd.DataFrame({
-    'Feature': feature_names,
-    'Importance': mean_feature_importance
-})
-feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Feature_Importance/feature_importance_XGBoost.csv', index=False)
+# Calculate per-class accuracy on test set
+test_class_acc = {}
+for cls in classes:
+    mask = y_test == cls
+    if np.any(mask):
+        test_class_acc[cls] = accuracy_score(y_test[mask], test_pred[mask])
+    else:
+        test_class_acc[cls] = np.nan
 
 # Save results
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') as f:
-    f.write("Results for XGBoost with 10-fold Cross-Validation:\n\n")
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_SVM.txt', 'w') as f:
+    f.write("Results for SVM with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
     f.write("Parameter Stability Analysis:\n")
@@ -245,18 +223,6 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGB
     f.write(f"Mean Validation Accuracy: {np.mean(fold_metrics['accuracies']):.4f} ± {np.std(fold_metrics['accuracies']):.4f}\n")
     f.write(f"Training-Validation Accuracy Gap: {np.mean(fold_metrics['train_accuracies']) - np.mean(fold_metrics['accuracies']):.4f}\n\n")
     
-    # Write per-class accuracy analysis
-    f.write("Per-class Accuracy Analysis:\n")
-    mean_class_acc = {}
-    std_class_acc = {}
-    for cls in classes:
-        accs = [fold_acc[cls] for fold_acc in fold_metrics['class_accuracies'] if not np.isnan(fold_acc[cls])]
-        if accs:
-            mean_class_acc[cls] = np.mean(accs)
-            std_class_acc[cls] = np.std(accs)
-            f.write(f"Class {cls}: {mean_class_acc[cls]:.4f} ± {std_class_acc[cls]:.4f}\n")
-    f.write("\n")
-    
     f.write("Cross-validation Results (10 folds):\n")
     f.write(f"Mean Accuracy: {np.mean(fold_metrics['accuracies']):.4f} ± {np.std(fold_metrics['accuracies']):.4f}\n")
     f.write(f"Mean Precision: {np.mean(fold_metrics['precisions']):.4f} ± {np.std(fold_metrics['precisions']):.4f}\n")
@@ -268,7 +234,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGB
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model Performance:\n")
+    f.write("\nFinal ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -279,20 +245,18 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_XGB
     f.write(f"Recall: {test_rec:.4f}\n")
     f.write(f"F1-score: {test_f1:.4f}\n")
     f.write(f"ROC AUC: {test_roc_auc:.4f}\n")
+    f.write("\nTest Set Confusion Matrix:\n")
+    f.write(f"{test_cm}\n")
+
+    # Write per-class accuracy analysis
     f.write("\nTest Set Per-class Accuracy:\n")
     for cls, acc in test_class_acc.items():
         if not np.isnan(acc):
             f.write(f"Class {cls}: {acc:.4f}\n")
-    f.write("\nTest Set Confusion Matrix:\n")
-    f.write(f"{test_cm}\n")
-
-    f.write("\nTop 10 Most Important Features:\n")
-    for _, row in feature_importance_df.head(10).iterrows():
-        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
     f.write("\n")
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Confusion_Matrix/CM_XGBoost.csv', index=True)
+conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_SVM.csv', index=True)
 
-logger.info("Cross-validation completed. Results saved to Result_XGBoost.txt")
+logger.info("Cross-validation completed. Results saved to Result_SVM.txt")

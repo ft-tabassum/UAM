@@ -18,7 +18,7 @@ logger = logging.getLogger()
 # Load the trained model from Part 1
 logger.info("Loading trained XGBoost model from Part 1...")
 with open(
-        "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl", "rb"
+        "/Result/Vertiport_analysis/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl", "rb"
     ) as f:
     model_data = pickle.load(f)
 
@@ -36,7 +36,7 @@ for class_num, class_name in class_names.items():
 # Load synthetic population data (UAM-unaware data for prediction)
 logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv", low_memory=False)
+    "/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv", low_memory=False)
 # Sample 1% of the synthetic population data
 synthetic_population = synthetic_population.sample(frac=0.01, random_state=42).reset_index(drop=True)
 

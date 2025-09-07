@@ -135,7 +135,7 @@ def main():
     print(X_processed_df['CHOICE'].value_counts().sort_index())
     
     # Save processed data
-    output_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/LighterModel/LighterModelProcessing_aft.csv"
+    output_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_LightGBM/Lighter_LGBM_DataPreprocessing/LighterModelProcessing_aft.csv"
     X_processed_df.to_csv(output_path, index=False)
     print(f"\nProcessed data saved to: {output_path}")
     

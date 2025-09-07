@@ -1,156 +1,26 @@
 import pandas as pd
 import numpy as np
 import logging
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from xgboost import XGBClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import label_binarize
-from sklearn.base import BaseEstimator, ClassifierMixin
 from collections import Counter
-import warnings
-import time
 import random
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
-torch.manual_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
-
-warnings.filterwarnings('ignore')
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-
-
-class CustomDataset(Dataset):
-    """Simple dataset class for PyTorch."""
-    def __init__(self, X, y):
-        self.X = torch.FloatTensor(X)
-        self.y = torch.LongTensor(y)
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-
-class SimpleNeuralNetwork(nn.Module, BaseEstimator, ClassifierMixin):
-    """Simple neural network with scikit-learn compatibility."""
-    def __init__(self, input_size, hidden_sizes=[128, 64], dropout_rate=0.4, 
-                 learning_rate=0.001, batch_size=32, weight_decay=0.001):
-        super().__init__()
-        self.input_size = input_size
-        self.hidden_sizes = hidden_sizes
-        self.dropout_rate = dropout_rate
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
-        self.weight_decay = weight_decay
-        
-        # Build network layers
-        layers = []
-        prev_size = input_size
-        
-        for hidden_size in hidden_sizes:
-            layers.extend([
-                nn.Linear(prev_size, hidden_size),
-                nn.ReLU(),
-                nn.BatchNorm1d(hidden_size),
-                nn.Dropout(dropout_rate)
-            ])
-            prev_size = hidden_size
-        
-        layers.append(nn.Linear(prev_size, 3))  # 3 classes: Car(0), Public Transport(1), UAM(2)
-        self.network = nn.Sequential(*layers)
-        
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.to(self.device)
-    
-    def forward(self, x):
-        return self.network(x)
-    
-    def fit(self, X, y):
-        """Train the model."""
-        # Create dataset and dataloader
-        dataset = CustomDataset(X, y)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        
-        # Setup training
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
-        
-        # Training loop with early stopping
-        self.train()
-        best_loss = float('inf')
-        patience_counter = 0
-        patience = 5  # Restored to reasonable patience
-        
-        for epoch in range(25):  # Increased to 25 epochs for better training
-            epoch_loss = 0
-            for batch_X, batch_y in dataloader:
-                batch_X, batch_y = batch_X.to(self.device), batch_y.to(self.device)
-                
-                optimizer.zero_grad()
-                outputs = self(batch_X)
-                loss = criterion(outputs, batch_y)
-                loss.backward()
-                optimizer.step()
-                
-                epoch_loss += loss.item()
-            
-            avg_loss = epoch_loss / len(dataloader)
-            
-            # Early stopping
-            if avg_loss < best_loss:
-                best_loss = avg_loss
-                patience_counter = 0
-            else:
-                patience_counter += 1
-                
-            if patience_counter >= patience:
-                break
-        
-        return self
-    
-    def predict(self, X):
-        """Make predictions."""
-        self.eval()
-        dataset = CustomDataset(X, np.zeros(len(X)))  # Dummy labels
-        dataloader = DataLoader(dataset, batch_size=self.batch_size)
-        
-        predictions = []
-        with torch.no_grad():
-            for inputs, _ in dataloader:
-                inputs = inputs.to(self.device)
-                outputs = self(inputs)
-                _, preds = torch.max(outputs, 1)
-                predictions.extend(preds.cpu().numpy())
-        
-        return np.array(predictions)
-    
-    def predict_proba(self, X):
-        """Predict class probabilities."""
-        self.eval()
-        dataset = CustomDataset(X, np.zeros(len(X)))  # Dummy labels
-        dataloader = DataLoader(dataset, batch_size=self.batch_size)
-        
-        probabilities = []
-        with torch.no_grad():
-            for inputs, _ in dataloader:
-                inputs = inputs.to(self.device)
-                outputs = self(inputs)
-                probs = torch.softmax(outputs, dim=1)
-                probabilities.extend(probs.cpu().numpy())
-        
-        return np.array(probabilities)
-
 # Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -160,13 +30,22 @@ y = data['CHOICE']
 classes = np.unique(y)
 n_classes = len(classes)
 
-# Hyperparameter grid - full version for best accuracy
+# Create base pipeline
+base_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+    ('classifier', XGBClassifier(
+        random_state=RANDOM_SEED,
+        eval_metric='mlogloss'  # Multi-class log loss
+    ))
+])
+
+# Hyperparameter grid 
 param_grid = {
-    'hidden_sizes': [[128, 64], [256, 128]],  # All options for best performance
-    'learning_rate': [0.0005, 0.001],                     # All learning rates
-    'dropout_rate': [0.3, 0.4],                           # All dropout rates
-    'batch_size': [32, 64],                               # Restored to original batch sizes
-    'weight_decay': [0.0005, 0.001]                       # All weight decay values
+    'classifier__n_estimators': [90, 100, 110],  # Increased number of trees
+    'classifier__max_depth': [3, 4, 5],  # XGBoost typically needs smaller depth
+    'classifier__learning_rate': [0.001, 0.005, 0.01],  # Smaller learning rates
+    'classifier__subsample': [0.8, 0.9, 1.0],  # Subsample ratio
+    'classifier__colsample_bytree': [0.8, 0.9, 1.0]  # Column sampling
 }
 
 # Split data into train+val and test
@@ -177,12 +56,16 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
 # Setup cross-validation
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
+# Store feature names
+feature_names = X.columns.tolist()
+
 # Initialize storage for metrics
 fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': [], 'train_accuracies': [], 'class_accuracies': []
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
+    'feature_importances': []  # Added feature importances
 }
 
 # Initialize a list to store the probabilities
@@ -190,44 +73,36 @@ all_fold_probs = []
 
 # Perform cross-validation with GridSearchCV in each fold
 logger.info("Performing 10-fold cross-validation with GridSearchCV in each fold...")
-logger.info("IMPROVED ACCURACY: Full parameter grid + 5-fold inner CV for better hyperparameter tuning")
-start_time = time.time()
-
 for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
-    fold_start_time = time.time()
     logger.info(f"Processing Fold {fold}/10...")
     
     # Split data for this fold
     X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
     y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
     
-    # Create base model
-    base_model = SimpleNeuralNetwork(X_train.shape[1])
-    
     # Use GridSearchCV for hyperparameter tuning on training data
     grid_search = GridSearchCV(
-        estimator=base_model,
+        estimator=base_pipeline,
         param_grid=param_grid,
-        cv=5,  #  hyperparameter tuning
-        scoring='accuracy',
-        n_jobs=1,  # Set to 1 to avoid multiprocessing issues
-        verbose=0  # Reduced verbosity for cleaner output
+        cv=5,  # Use 5-fold CV for hyperparameter tuning
+        scoring='accuracy',  # Using accuracy for better overall performance
+        n_jobs=-1
     )
     
     # Fit GridSearchCV on training data
-    grid_search.fit(X_train.values, y_train.values)
+    grid_search.fit(X_train, y_train)
     
     # Get best model
     best_model = grid_search.best_estimator_
     
     # Calculate training accuracy
-    train_pred = best_model.predict(X_train.values)
+    train_pred = best_model.predict(X_train)
     train_acc = accuracy_score(y_train, train_pred)
     fold_metrics['train_accuracies'].append(train_acc)
     
     # Make predictions on validation set
-    val_pred = best_model.predict(X_val.values)
-    val_proba = best_model.predict_proba(X_val.values)
+    val_pred = best_model.predict(X_val)
+    val_proba = best_model.predict_proba(X_val)
     
     # Calculate per-class accuracy
     class_acc = {}
@@ -243,6 +118,10 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
     fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
     all_fold_probs.append(fold_probs_df)
+    
+    # Store feature importances
+    feature_importances = best_model.named_steps['classifier'].feature_importances_
+    fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate metrics
     val_acc = accuracy_score(y_val, val_pred)
@@ -275,36 +154,17 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     logger.info(f"Fold {fold} - Validation Accuracy: {val_acc:.4f}")
     logger.info(f"Fold {fold} - Best Parameters: {grid_search.best_params_}")
     logger.info(f"Fold {fold} - Per-class Accuracy: {class_acc}")
-    
-    # Show timing information
-    fold_time = time.time() - fold_start_time
-    elapsed_time = time.time() - start_time
-    avg_time_per_fold = elapsed_time / fold
-    remaining_folds = 10 - fold
-    estimated_remaining_time = remaining_folds * avg_time_per_fold
-    
-    logger.info(f"Fold {fold} completed in {fold_time:.1f}s")
-    logger.info(f"Average time per fold: {avg_time_per_fold:.1f}s")
-    logger.info(f"Estimated time remaining: {estimated_remaining_time:.1f}s ({remaining_folds} folds left)")
-    logger.info("-" * 50)
 
 # After all folds are processed, concatenate all fold probabilities into a single DataFrame
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Training_Probabilities/all_folds_probabilities_XGBoost.csv', index=False)
 
-total_time = time.time() - start_time
-logger.info(f"Cross-validation completed in {total_time:.1f} seconds ({total_time/60:.1f} minutes)")
-logger.info("All fold probabilities have been saved to 'D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv'.")
+logger.info("All fold probabilities have been saved to 'all_folds_probabilities_XGBoost.csv'.")
 
 # Analyze parameter stability
-param_counts = Counter()
-for p in fold_metrics['best_params']:
-    # Convert hidden_sizes list to tuple for hashing
-    param_tuple = tuple(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in p.items()))
-    param_counts[param_tuple] += 1
-
+param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
 most_common_params = param_counts.most_common()
 logger.info("\nParameter Stability Analysis:")
 for params, count in most_common_params:
@@ -312,32 +172,20 @@ for params, count in most_common_params:
     logger.info(f"Selected in {count} out of 10 folds")
 
 # Find most common best parameters across folds
-# Convert parameters to hashable format for counting
-param_list = []
-for p in fold_metrics['best_params']:
-    param_tuple = tuple(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in p.items()))
-    param_list.append(param_tuple)
-
-most_common_param_tuple = max(param_list, key=param_list.count)
-# Convert back to dictionary format
-best_params = dict(most_common_param_tuple)
-# Convert hidden_sizes back to list if needed
-if 'hidden_sizes' in best_params:
-    best_params['hidden_sizes'] = list(best_params['hidden_sizes'])
-
+best_params = max(fold_metrics['best_params'], key=fold_metrics['best_params'].count)
 logger.info(f"\nMost common best parameters across folds: {best_params}")
 
 # Train final model on all training+validation data using most common best parameters
-final_model = SimpleNeuralNetwork(X_train_val.shape[1], **best_params)
-final_model.fit(X_train_val.values, y_train_val.values)
+final_model = base_pipeline.set_params(**best_params)
+final_model.fit(X_train_val, y_train_val)
 
 # Calculate training accuracy on full training set
-train_val_pred = final_model.predict(X_train_val.values)
+train_val_pred = final_model.predict(X_train_val)
 train_val_acc = accuracy_score(y_train_val, train_val_pred)
 
 # Evaluate on test set
-test_pred = final_model.predict(X_test.values)
-test_proba = final_model.predict_proba(X_test.values)
+test_pred = final_model.predict(X_test)
+test_proba = final_model.predict_proba(X_test)
 
 # Calculate per-class accuracy on test set
 test_class_acc = {}
@@ -350,7 +198,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/test_set_probabilities_NeuralNetwork.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/test_set_probabilities_XGBoost.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -367,9 +215,18 @@ except ValueError as e:
     logger.warning(f"ROC AUC calculation failed for test set: {str(e)}")
     test_roc_auc = np.nan
 
+# After all folds are processed, calculate and save feature importance analysis
+mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
+feature_importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': mean_feature_importance
+})
+feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
+feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Feature_Importance/feature_importance_XGBoost.csv', index=False)
+
 # Save results
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_NeuralNetwork.txt', 'w') as f:
-    f.write("Results for Neural Network with 10-fold Cross-Validation:\n\n")
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') as f:
+    f.write("Results for XGBoost with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
     f.write("Parameter Stability Analysis:\n")
@@ -411,7 +268,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Neu
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model Performance:\n")
+    f.write("\nFinal ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -429,8 +286,13 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Neu
     f.write("\nTest Set Confusion Matrix:\n")
     f.write(f"{test_cm}\n")
 
+    f.write("\nTop 10 Most Important Features:\n")
+    for _, row in feature_importance_df.head(10).iterrows():
+        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
+    f.write("\n")
+
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Confusion_Matrix/CM_NeuralNetwork.csv', index=True)
+conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_XGBoost.csv', index=True)
 
-logger.info("Cross-validation completed. Results saved to Result_NeuralNetwork.txt") 
+logger.info("Cross-validation completed. Results saved to Result_XGBoost.txt")

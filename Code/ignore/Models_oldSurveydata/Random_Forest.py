@@ -1,12 +1,10 @@
 import pandas as pd
 import numpy as np
 import logging
-import warnings
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
-from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import label_binarize
 from collections import Counter
@@ -17,36 +15,16 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 
-# Suppress all warnings
-warnings.filterwarnings('ignore')
-
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Custom imputer that preserves feature names
-class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
-    def __init__(self, strategy='constant', fill_value=0):
-        self.strategy = strategy
-        self.fill_value = fill_value
-        
-    def fit(self, X, y=None):
-        return self
-        
-    def transform(self, X):
-        # Fill missing values while preserving DataFrame structure
-        X_filled = X.fillna(self.fill_value)
-        return X_filled
-
-# Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+# Load data of aft data
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
 y = data['CHOICE']
-
-# Store feature names
-feature_names = X.columns.tolist()
 
 # Original classes
 classes = np.unique(y)
@@ -54,31 +32,22 @@ n_classes = len(classes)
 
 # Create base pipeline
 base_pipeline = Pipeline([
-    ('imputer', FeaturePreservingImputer(strategy='constant', fill_value=0)),
-    ('classifier', LGBMClassifier(
-        random_state=RANDOM_SEED,
-        verbose=-1,
-        min_gain_to_split=0.05,  # Reduced for more splits
-        min_data_in_leaf=20,     # Reduced for more granular splits
-        min_sum_hessian_in_leaf=1e-3,  # Reduced for more flexibility
-        class_weight='balanced',  # Handle class imbalance
-        reg_alpha=0.1,           # L1 regularization
-        reg_lambda=0.1,          # L2 regularization
-        n_jobs=-1  # Use all available cores
-    ))
+    ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+    ('classifier', RandomForestClassifier(random_state=RANDOM_SEED))
 ])
 
-# Define Parameter 
+# Hyperparameter grid
 param_grid = {
-    'classifier__n_estimators': [100, 200],               #  more trees
-    'classifier__max_depth': [4, 6],                      # deeper trees
-    'classifier__learning_rate': [0.05, 0.1],             # higher rates
-    'classifier__num_leaves': [63, 127],                  #  more leaves
-    'classifier__reg_alpha': [0.1, 0.5],                  
-    'classifier__reg_lambda': [0.1, 0.5]                  
+    'classifier__n_estimators': [95,100,105],  # number of trees
+    'classifier__max_depth': [8, 10, 12],  #  tree depth
+    'classifier__min_samples_split': [6, 8, 10],  # Increased minimum samples required to split
+    'classifier__min_samples_leaf': [3, 4, 6],  # Increased minimum samples at leaf node
+    'classifier__max_features': ['sqrt', 'log2'],  #  for feature selection
+    'classifier__class_weight': ['balanced', 'balanced_subsample', None]
 }
 
-# Split data into train+val and test
+
+# Data splitting: Split data into train+val and test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
     X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y
 )
@@ -86,56 +55,44 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
 # Setup cross-validation
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
 
+# Store feature names
+feature_names = X.columns.tolist()
+
 # Initialize storage for metrics
 fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
     'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
-    'feature_importances': []
+    'feature_importances': []  # Added feature importances
 }
 
 # Initialize a list to store the probabilities
 all_fold_probs = []
 
-# Perform cross-validation with GridSearchCV in each fold
-logger.info("Starting 10-fold cross-validation...")
+# Cross-validation: Perform cross-validation with GridSearchCV in each fold
+logger.info("Performing 10-fold cross-validation with GridSearchCV in each fold...")
 for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
     logger.info(f"Processing Fold {fold}/10...")
     
-    # Split data for this fold
+    # Split data (training and validation data) for this fold
     X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
     y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
-    
-    # Keep as pandas DataFrames to maintain feature names
-    # X_train and X_val are already pandas DataFrames
-    
-    logger.info(f"Fold {fold} - Training data shape: {X_train.shape}")
-    logger.info(f"Fold {fold} - Validation data shape: {X_val.shape}")
     
     # Use GridSearchCV for hyperparameter tuning on training data
     grid_search = GridSearchCV(
         estimator=base_pipeline,
         param_grid=param_grid,
-        cv=3,
-        scoring='f1_weighted',  # Use F1-score for better class balance consideration
-        n_jobs=-1,  # Use all available cores
-        verbose=1
+        cv=5,  # Use 5-fold CV for hyperparameter tuning
+        scoring='accuracy',  # Using accuracy
+        n_jobs=-1
     )
     
-    logger.info(f"Fold {fold} - Starting GridSearchCV...")
     # Fit GridSearchCV on training data
     grid_search.fit(X_train, y_train)
-    logger.info(f"Fold {fold} - GridSearchCV completed")
     
     # Get best model
     best_model = grid_search.best_estimator_
-    
-    # Store feature importances
-    feature_importances = best_model.named_steps['classifier'].feature_importances_
-    # Normalize feature importances to sum to 1 for consistency with other models
-    feature_importances = feature_importances / np.sum(feature_importances)
-    fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate training accuracy
     train_pred = best_model.predict(X_train)
@@ -156,10 +113,14 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
             class_acc[cls] = np.nan
     fold_metrics['class_accuracies'].append(class_acc)
     
-    # Append the probabilities to the list
+    # Append the probabilities to the list (add fold number as a column)
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
-    fold_probs_df['fold'] = fold
+    fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
     all_fold_probs.append(fold_probs_df)
+    
+    # Store feature importances
+    feature_importances = best_model.named_steps['classifier'].feature_importances_
+    fold_metrics['feature_importances'].append(feature_importances)
     
     # Calculate metrics
     val_acc = accuracy_score(y_val, val_pred)
@@ -193,18 +154,13 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     logger.info(f"Fold {fold} - Best Parameters: {grid_search.best_params_}")
     logger.info(f"Fold {fold} - Per-class Accuracy: {class_acc}")
 
-# After all folds are processed, concatenate all fold probabilities
+# After all folds are processed, concatenate all fold probabilities into a single DataFrame
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/all_folds_probabilities_LightGBM.csv', index=False)
 
-# Calculate and save feature importance analysis
-mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
-feature_importance_df = pd.DataFrame({
-    'Feature': feature_names,
-    'Importance': mean_feature_importance
-})
-feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/feature_importance_LightGBM.csv', index=False)
+# Save the aggregated probabilities to a single CSV file
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Training_Probabilities/all_folds_probabilities_RandomForest.csv', index=False)
+
+logger.info("All fold probabilities have been saved to 'all_folds_probabilities_RandomForest.csv'.")
 
 # Analyze parameter stability
 param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
@@ -226,6 +182,7 @@ final_model.fit(X_train_val, y_train_val)
 train_val_pred = final_model.predict(X_train_val)
 train_val_acc = accuracy_score(y_train_val, train_val_pred)
 
+# Test set-------------------------------------------------
 # Evaluate on test set
 test_pred = final_model.predict(X_test)
 test_proba = final_model.predict_proba(X_test)
@@ -241,7 +198,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/test_set_probabilities_LightGBM.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/test_set_probabilities_RandomForest.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -258,9 +215,18 @@ except ValueError as e:
     logger.warning(f"ROC AUC calculation failed for test set: {str(e)}")
     test_roc_auc = np.nan
 
+# After all folds are processed, calculate and save feature importance analysis
+mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
+feature_importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': mean_feature_importance
+})
+feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
+feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Feature_Importance/feature_importance_RandomForest.csv', index=False)
+
 # Save results
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') as f:
-    f.write("Results for LightGBM with 10-fold Cross-Validation:\n\n")
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_RandomForest.txt', 'w') as f:
+    f.write("Results for RandomForest with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
     f.write("Parameter Stability Analysis:\n")
@@ -272,12 +238,6 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Lig
     for i, params in enumerate(fold_metrics['best_params'], 1):
         f.write(f"Fold {i}: {params}\n")
     f.write(f"\nMost Common Best Parameters: {best_params}\n\n")
-    
-    # Write feature importance analysis
-    f.write("Top 10 Most Important Features:\n")
-    for _, row in feature_importance_df.head(10).iterrows():
-        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
-    f.write("\n")
     
     # Write overfitting analysis
     f.write("Overfitting Analysis:\n")
@@ -308,7 +268,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Lig
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model Performance:\n")
+    f.write("\nFinal ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -326,8 +286,13 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Lig
     f.write("\nTest Set Confusion Matrix:\n")
     f.write(f"{test_cm}\n")
 
+    f.write("\nTop 10 Most Important Features:\n")
+    for _, row in feature_importance_df.head(10).iterrows():
+        f.write(f"{row['Feature']}: {row['Importance']:.4f}\n")
+    f.write("\n")
+
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('CM_LightGBM.csv')
+conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_RandomForest.csv', index=True)
 
-logger.info("Cross-validation completed. Results saved to Result_LightGBM.txt")
+logger.info("Cross-validation completed. Results saved to Result_RandomForest.txt")

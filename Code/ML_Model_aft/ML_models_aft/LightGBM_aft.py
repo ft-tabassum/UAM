@@ -39,7 +39,7 @@ class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
         return X_filled
 
 # Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 #"D:/Files_D/Study/Thesis/new_data/aft_2ndversion_lighter.csv"
 
 # Define features and target
@@ -196,7 +196,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 
 # After all folds are processed, concatenate all fold probabilities
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/all_folds_probabilities_LightGBM.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/all_folds_probabilities_LightGBM.csv', index=False)
 
 # Calculate and save feature importance analysis
 mean_feature_importance = np.mean(fold_metrics['feature_importances'], axis=0)
@@ -205,7 +205,7 @@ feature_importance_df = pd.DataFrame({
     'Importance': mean_feature_importance
 })
 feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False)
-feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/feature_importance_LightGBM.csv', index=False)
+feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/feature_importance_LightGBM.csv', index=False)
 
 # Analyze parameter stability
 param_counts = Counter(tuple(sorted(p.items())) for p in fold_metrics['best_params'])
@@ -242,7 +242,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/test_set_probabilities_LightGBM.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/test_set_probabilities_LightGBM.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -260,7 +260,7 @@ except ValueError as e:
     test_roc_auc = np.nan
 
 # Save results
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') as f:
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_LightGBM.txt', 'w') as f:
     f.write("Results for LightGBM with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
@@ -309,7 +309,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Lig
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model Performance:\n")
+    f.write("\nFinal ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")

@@ -150,7 +150,7 @@ class SimpleNeuralNetwork(nn.Module, BaseEstimator, ClassifierMixin):
         return np.array(probabilities)
 
 # Load data of UAM survey data
-data = pd.read_csv("D:/Thesis/UAM/Result/MachineLearning_model/aft_normalized.csv")
+data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -292,11 +292,11 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file
-all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv', index=False)
+all_fold_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv', index=False)
 
 total_time = time.time() - start_time
 logger.info(f"Cross-validation completed in {total_time:.1f} seconds ({total_time/60:.1f} minutes)")
-logger.info("All fold probabilities have been saved to 'D:/Thesis/UAM/Result/ML_Model/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv'.")
+logger.info("All fold probabilities have been saved to 'D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Training_Probabilities/all_folds_probabilities_NeuralNetwork.csv'.")
 
 # Analyze parameter stability
 param_counts = Counter()
@@ -350,7 +350,7 @@ for cls in classes:
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Probabilities/Testing_Probabilities/test_set_probabilities_NeuralNetwork.csv', index=False)
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/test_set_probabilities_NeuralNetwork.csv', index=False)
 
 # Calculate test metrics
 test_acc = accuracy_score(y_test, test_pred)
@@ -368,7 +368,7 @@ except ValueError as e:
     test_roc_auc = np.nan
 
 # Save results
-with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_NeuralNetwork.txt', 'w') as f:
+with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_NeuralNetwork.txt', 'w') as f:
     f.write("Results for Neural Network with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis
@@ -411,7 +411,7 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Neu
     for i, cm in enumerate(fold_metrics['confusion_matrices'], 1):
         f.write(f"\nFold {i}:\n{cm}\n")
     
-    f.write("\nFinal ML_Model Performance:\n")
+    f.write("\nFinal ML_models_aft Performance:\n")
     f.write(f"Training+Validation Accuracy: {train_val_acc:.4f}\n")
     f.write(f"Test Set Accuracy: {test_acc:.4f}\n")
     f.write(f"Test-Train Accuracy Gap: {test_acc - train_val_acc:.4f}\n\n")
@@ -431,6 +431,6 @@ with open('D:/Thesis/UAM/Result/ML_Model/Prediction_EvaluationMetrics/Result_Neu
 
 # Save confusion matrix
 conf_matrix_df = pd.DataFrame(test_cm, index=classes, columns=classes)
-conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_Model/Confusion_Matrix/CM_NeuralNetwork.csv', index=True)
+conf_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_NeuralNetwork.csv', index=True)
 
 logger.info("Cross-validation completed. Results saved to Result_NeuralNetwork.txt") 
