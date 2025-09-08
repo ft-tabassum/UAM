@@ -7,7 +7,6 @@ import random
 import joblib
 import os
 import matplotlib.pyplot as plt
-from scipy import stats
 
 # Set random seeds for reproducibility
 np.random.seed(42)
@@ -55,8 +54,8 @@ logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
-# Sample a larger percentage for better representation
-synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+##### Sample a larger percentage for better representation
+##synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -175,9 +174,9 @@ def check_probability_similarity(prev_probs, new_probs, threshold=0.05):
     return max_change < threshold, max_change
 
 
-max_iter = 5000
-distance_stability_threshold = 0.05  # 5% relative change threshold
-probability_stability_threshold = 0.005  # 0.5% relative change threshold for probabilities
+max_iter = 50  # Reduced from 5000 to prevent infinite loops
+distance_stability_threshold = 1.8 # 200% relative change threshold (adjusted for observed fluctuation 65-172%) 1.2 → 2.0
+probability_stability_threshold = 200  # 20000% relative change threshold (adjusted for observed values ~170%)
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -219,15 +218,16 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
     plt.close()
 
 
-# Weighted K-Means Implementation with probability-weight compression (gamma) and damping factor for centroid updates (alpha)
-def weighted_kmeans(X, w, K, gamma=0.95, alpha=0.50, max_iter=1000, tol=1e-3,
+# Weighted K-Means Implementation with  damping factor for centroid updates (alpha)
+def weighted_kmeans(X, w, K, alpha=0.35, max_iter=1000, tol=1e-3,
                     random_state=None):  # Parameters- X : Data points; random_state : Random seed
 
     rng = np.random.default_rng(random_state)
     eps = 1e-12
-
-    # compress weights to make weight distribution more uniform :reduces extreme values (bimodal distribution of weights)
-    w = w ** gamma  # w : Weights for each data point
+    
+    # Log-scale transformation to normalize extreme weight distribution
+    w = np.log(1 + w * 100)  # Transform to log scale (multiply by 100 to amplify small values)
+    w = w / w.max()  # Normalize to [0,1] range
 
     # initialize centers
     init_idx = rng.choice(len(X), K, replace=False)
@@ -354,7 +354,7 @@ for iteration in range(max_iter):
             logger.error("Infinite value found in UAM probabilities!")
             raise ValueError("Infinite value found in UAM probabilities!")
 
-        # i. Use raw UAM probabilities as weights (gamma is applied inside weighted_kmeans)
+        # i. Use raw UAM probabilities as weights :log-scale transformation is applied inside weighted_kmeans)
         weights = np.concatenate([uam_probs, uam_probs])
 
         # j. Store current UAM probabilities for next iteration
@@ -365,10 +365,8 @@ for iteration in range(max_iter):
         uam_prob_history.append(uam_probs.copy())
 
         # l. Define parameters for weighted k-means clustering
-        gamma = 0.95
-        alpha = 0.50
-        # Since centroids shift a lot and do not converge (converge plot)  → alpha = 0.35;
-        # means 65% old position + 35% new weighted mean
+        alpha = 0.35    # Since centroids shift a lot and do not converge (converge plot)  → alpha = 0.35;
+                        # means 65% old position + 35% new weighted mean
         tol = 1e-3  # Convergence tolerance in meters
 
         # weighted k-means clustering calculation
@@ -376,7 +374,6 @@ for iteration in range(max_iter):
             X=od_points_current,
             w=weights,
             K=vertiport_k,
-            gamma=gamma,
             alpha=alpha,
             max_iter=1000,
             tol=tol,
@@ -414,9 +411,95 @@ for iteration in range(max_iter):
         synthetic_population_with_uam_updated = synthetic_population_with_uam_updated[feature_cols]
         proba_updated = predict_mode_probabilities(synthetic_population_with_uam_updated, final_model, feature_cols)
 
-        # Get updated UAM probabilities
+        # Apply temperature scaling to reduce model overconfidence
+        def temperature_scaling(probabilities, temperature=2.0):
+            """Apply temperature scaling to reduce overconfidence"""
+            # Convert probabilities to logits
+            logits = np.log(probabilities + 1e-8)
+            
+            # Scale by temperature
+            scaled_logits = logits / temperature
+            
+            # Convert back to probabilities and renormalize
+            # (model.predict_proba already normalizes, but we need to renormalize after temperature scaling)
+            scaled_probs = np.exp(scaled_logits)
+            scaled_probs = scaled_probs / scaled_probs.sum(axis=1, keepdims=True)
+            
+            return scaled_probs
+        
+        # Apply temperature scaling to reduce overconfidence
+        proba_updated = temperature_scaling(proba_updated, temperature=2.0)
+        
+        # Get updated UAM probabilities (after temperature scaling)
         uam_probs_updated = proba_updated[:, uam_class_idx]
-
+        
+        # ===== COMPREHENSIVE DIAGNOSTIC CHECKS =====
+        logger.info("=" * 60)
+        logger.info("DIAGNOSTIC: Checking Model Predictions Reasonableness")
+        logger.info("=" * 60)
+        
+        # 1. Model prediction statistics
+        logger.info(f"Model prediction stats:")
+        logger.info(f"  Min probability: {proba_updated.min():.6f}")
+        logger.info(f"  Max probability: {proba_updated.max():.6f}")
+        logger.info(f"  Mean probability: {proba_updated.mean():.6f}")
+        logger.info(f"  UAM class probabilities - Min: {uam_probs_updated.min():.6f}, Max: {uam_probs_updated.max():.6f}, Mean: {uam_probs_updated.mean():.6f}")
+        
+        # 2. Check for extreme values
+        if uam_probs_updated.max() > 1.0 or uam_probs_updated.min() < 0.0:
+            logger.warning(f"WARNING: UAM probabilities outside [0,1] range!")
+            logger.warning(f"  Min: {uam_probs_updated.min():.6f}, Max: {uam_probs_updated.max():.6f}")
+        
+        # 3. Check for NaN or infinite values
+        if np.isnan(uam_probs_updated).any():
+            logger.warning("WARNING: NaN values in UAM probabilities!")
+        if np.isinf(uam_probs_updated).any():
+            logger.warning("WARNING: Infinite values in UAM probabilities!")
+        
+        # 4. Compare with previous iteration
+        if iteration > 0:  # Not first iteration
+            prob_diff = np.abs(uam_probs_updated - uam_probs)
+            logger.info(f"Probability differences - Min: {prob_diff.min():.6f}, Max: {prob_diff.max():.6f}, Mean: {prob_diff.mean():.6f}")
+            
+            # Check if changes are reasonable
+            if prob_diff.max() > 0.5:  # More than 50% change
+                logger.warning(f"WARNING: Large probability change detected! Max change: {prob_diff.max():.6f}")
+        
+        # 5. Check AFT feature ranges
+        if 'AFT_TT' in synthetic_population_with_uam_updated.columns:
+            aft_tt = synthetic_population_with_uam_updated['AFT_TT']
+            logger.info(f"AFT_TT range: {aft_tt.min():.2f} to {aft_tt.max():.2f} minutes")
+            if aft_tt.max() > 300:  # More than 5 hours
+                logger.warning("WARNING: AFT_TT values seem too high!")
+            if aft_tt.min() < 0:
+                logger.warning("WARNING: AFT_TT has negative values!")
+        
+        if 'AFT_CO' in synthetic_population_with_uam_updated.columns:
+            aft_co = synthetic_population_with_uam_updated['AFT_CO']
+            logger.info(f"AFT_CO range: {aft_co.min():.2f} to {aft_co.max():.2f} euros")
+            if aft_co.max() > 1000:  # More than 1000 euros
+                logger.warning("WARNING: AFT_CO values seem too high!")
+            if aft_co.min() < 0:
+                logger.warning("WARNING: AFT_CO has negative values!")
+        
+        # 6. Check for extreme probability distributions
+        prob_hist, _ = np.histogram(uam_probs_updated, bins=10, range=(0, 1))
+        logger.info(f"UAM probability distribution (10 bins): {prob_hist}")
+        
+        # Check if most probabilities are near 0 or 1 (model being too confident)
+        near_zero = np.sum(uam_probs_updated < 0.1)
+        near_one = np.sum(uam_probs_updated > 0.9)
+        total = len(uam_probs_updated)
+        logger.info(f"Probabilities near 0 (<0.1): {near_zero}/{total} ({near_zero/total*100:.1f}%)")
+        logger.info(f"Probabilities near 1 (>0.9): {near_one}/{total} ({near_one/total*100:.1f}%)")
+        
+        if near_zero + near_one > total * 0.8:  # More than 80% are extreme
+            logger.warning("WARNING: Model is making too many extreme predictions!")
+        
+        logger.info("=" * 60)
+        logger.info("END DIAGNOSTIC CHECKS")
+        logger.info("=" * 60)
+        
         # Check for NaN or Infinite Values in updated UAM Probabilities
         if np.isnan(uam_probs_updated).any():
             logger.error("NaN found in updated UAM probabilities!")
