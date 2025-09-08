@@ -187,7 +187,7 @@ def process_combined_data():
         final_data = combined_data[available_columns]
 
         # Save the combined data
-        output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+        output_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/microdata_trips.csv"
         final_data.to_csv(output_file, index=False)
         return final_data
 

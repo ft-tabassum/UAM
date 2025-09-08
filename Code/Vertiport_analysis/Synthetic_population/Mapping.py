@@ -130,8 +130,8 @@ def main():
     print("=" * 60)
     
     # Input and output file paths
-    input_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/microdata_trips.csv"
-    output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/Mapping.csv"
+    input_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+    output_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/Mapping.csv"
     
     try:
         # Read the input data

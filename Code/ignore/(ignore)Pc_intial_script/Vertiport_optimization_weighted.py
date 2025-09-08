@@ -131,7 +131,7 @@ def predict_mode_probabilities(df, model,
     X = df[feature_cols]
     return model.predict_proba(X)
 
-# functions for Layout similarity check: the stability of centroid positions (distance matrix)
+# functions for Layout similarity check_ignor: the stability of centroid positions (distance matrix)
 def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     """ Check if the pairwise distance matrix between vertiports is stable
     Returns: (is_stable, max_change) """
@@ -147,7 +147,7 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
 
     return max_change < threshold, max_change
 
-# function for probability similarity check
+# function for probability similarity check_ignor
 def check_probability_similarity(prev_probs, new_probs, threshold=0.05):
     """ Check if UAM probabilities are stable between iterations
     Returns: (is_stable, max_change)"""
@@ -249,7 +249,7 @@ def analyze_weight_skewness(weights, iteration, save_dir):
     axes[0, 1].set_title('Weight Box Plot')
     axes[0, 1].grid(True, alpha=0.3)
 
-    # 3. Q-Q plot for normality check
+    # 3. Q-Q plot for normality check_ignor
     stats.probplot(weights, dist="norm", plot=axes[0, 2])
     axes[0, 2].set_title('Q-Q Plot (Normal Distribution)')
     axes[0, 2].grid(True, alpha=0.3)
@@ -410,7 +410,7 @@ def weighted_kmeans(X, w, K, gamma=0.95, alpha=0.35, max_iter=300, tol=1e-4, ran
         history['n_changed'].append(n_changed)
         history['inertia'].append(inertia)
 
-        # check convergence
+        # check_ignor convergence
         if max_shift < tol:
             break
 
@@ -436,7 +436,7 @@ for iteration in range(max_iter):
 
         logger.info(f'Unweighted KMeans finished in {kmeans.n_iter_} iterations')
 
-        # No convergence check needed for first iteration
+        # No convergence check_ignor needed for first iteration
         prev_coords = new_coords
         vertiport_coords = new_coords
         centroid_history.append(vertiport_coords.copy())

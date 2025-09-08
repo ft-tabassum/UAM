@@ -52,7 +52,7 @@ for class_num, class_name in class_names.items():
 logger.info("Loading processed synthetic population data...")
 # Load full synthetic population data
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
+    "/Result/check_ignor/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
 ##### Sample a larger percentage for better representation
 ##synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
@@ -146,7 +146,7 @@ def predict_mode_probabilities(df, model,
     return model.predict_proba(X)
 
 
-# functions for Layout similarity check: the stability of centroid positions (distance matrix)
+# functions for Layout similarity check_ignor: the stability of centroid positions (distance matrix)
 def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     """ Check if the pairwise distance matrix between vertiports is stable """
     from scipy.spatial.distance import pdist, squareform
@@ -163,7 +163,7 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     return max_change < threshold, max_change
 
 
-# function for probability similarity check
+# function for probability similarity check_ignor
 def check_probability_similarity(prev_probs, new_probs, threshold=0.05):
     """ Check if UAM probabilities are stable between iterations"""
 
@@ -273,7 +273,7 @@ def weighted_kmeans(X, w, K, alpha=0.35, max_iter=1000, tol=1e-3,
         history['n_changed'].append(n_changed)
         history['inertia'].append(inertia)
 
-        # check convergence
+        # check_ignor convergence
         if max_shift < tol:  # tol : Convergence tolerance (max centroid shift)
             break
 
@@ -298,7 +298,7 @@ for iteration in range(max_iter):
 
         logger.info(f'Unweighted KMeans finished in {kmeans.n_iter_} iterations')
 
-        # No convergence check needed for first iteration
+        # No convergence check_ignor needed for first iteration
         prev_coords = new_coords
         vertiport_coords = new_coords
         centroid_history.append(vertiport_coords.copy())

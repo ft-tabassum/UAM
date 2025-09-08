@@ -132,7 +132,7 @@ def predict_mode_probabilities(df, model,
     X = df[feature_cols]
     return model.predict_proba(X)
 
-# --- Layout similarity check functions ---
+# --- Layout similarity check_ignor functions ---
 def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     """ Check if the pairwise distance matrix between vertiports is stable
     Returns: (is_stable, max_change)
@@ -264,7 +264,7 @@ for iteration in range(max_iter):
     new_coords = kmeans.cluster_centers_  # Output is in meters because input was in meters
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
     # g. Check convergence
-    # Robust convergence check using the Hungarian (assignment) algorithm:
+    # Robust convergence check_ignor using the Hungarian (assignment) algorithm:
     # Computes the minimum total shift between new and previous vertiport coordinates,
     # matching centroids optimally regardless of their order.
     # This prevents false non-convergence due to centroid reordering between iterations.
@@ -274,7 +274,7 @@ for iteration in range(max_iter):
 
         cost_matrix = cdist(new_coords, prev_coords) # cost_matrix is in meters
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        min_total_shift = cost_matrix[row_ind, col_ind].sum()  #check
+        min_total_shift = cost_matrix[row_ind, col_ind].sum()  #check_ignor
         convergence_history.append(min_total_shift)
 
         # Reorder new_coords to match prev_coords order
