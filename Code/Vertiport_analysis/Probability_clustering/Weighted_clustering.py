@@ -52,7 +52,7 @@ for class_num, class_name in class_names.items():
 logger.info("Loading processed synthetic population data...")
 # Load full synthetic population data
 synthetic_population = pd.read_csv(
-    "/Result/check_ignor/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv",
+    "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
 ##### Sample a larger percentage for better representation
 ##synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
