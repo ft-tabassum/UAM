@@ -16,8 +16,7 @@ random.seed(42)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-
-# Custom imputer that preserves feature names (required for loading pickle file)
+# imputer that preserves feature names (required for loading pickle file)
 class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
     def __init__(self, strategy='constant', fill_value=0):
         self.strategy = strategy
@@ -30,7 +29,6 @@ class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
         # Fill missing values while preserving DataFrame structure
         X_filled = X.fillna(self.fill_value)
         return X_filled
-
 
 # Load the trained model from Part 1 using joblib
 logger.info("Loading trained LightGBM model from Part 1...")
@@ -54,8 +52,8 @@ logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
-##### Sample a larger percentage for better representation
-##synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+#Sample 10% of population
+#synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -84,8 +82,6 @@ convergence_history = []  # Track centroid shifts per iteration
 weight_history = []  # Track weights per iteration
 uam_prob_history = []  # Track UAM probabilities per iteration
 distance_change_history = []  # Track distance matrix changes per iteration
-prob_change_history = []  # Track probability changes per iteration
-
 
 # function to calculate UAM time and travel cost
 def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, car_cost=cost_per_m_car,
@@ -122,11 +118,12 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     uam_travel_cost = (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
 
     df = df.copy()
-    # Create features with the correct names that the model expects
+
+    # features
+    # model features (for prediction)
     df['AFT_TT'] = total_time  # min - UAM travel time
     df['AFT_CO'] = uam_travel_cost  # € - UAM travel cost
-    
-    # Also keep the original names for compatibility
+    # output features (for results)
     df['travel_time_Uam'] = total_time  # min
     df['in_vehicle_time_Uam'] = airborne_time  # min
     df['waiting_time_Uam'] = total_time - airborne_time  # min
@@ -138,7 +135,6 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     df['uam_dest_vertiport'] = dest_v_idx  # vertiport index
     return df
 
-
 # predict mode probabilities function
 def predict_mode_probabilities(df, model,
                                feature_cols):  # features are arranged identically to how they were during training
@@ -146,7 +142,7 @@ def predict_mode_probabilities(df, model,
     return model.predict_proba(X)
 
 
-# functions for Layout similarity check_ignor: the stability of centroid positions (distance matrix)
+# functions for Layout similarity check: the stability of centroid positions (distance matrix)
 def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     """ Check if the pairwise distance matrix between vertiports is stable """
     from scipy.spatial.distance import pdist, squareform
@@ -157,26 +153,13 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
 
     # Calculate relative change in distances
     relative_change = np.abs(new_distances - prev_distances) / (
-                prev_distances + 1e-8)  # 1e-8 is a small constant to avoid division by zero
+            prev_distances + 1e-8)  # 1e-8 is a small constant to avoid division by zero
     max_change = np.max(relative_change)
-
     return max_change < threshold, max_change
 
-
-# function for probability similarity check_ignor
-def check_probability_similarity(prev_probs, new_probs, threshold=0.05):
-    """ Check if UAM probabilities are stable between iterations"""
-
-    # Calculate relative change in probabilities
-    relative_change = np.abs(new_probs - prev_probs) / (prev_probs + 1e-8)
-    max_change = np.max(relative_change)
-
-    return max_change < threshold, max_change
-
-
-max_iter = 50  # Reduced from 5000 to prevent infinite loops
-distance_stability_threshold = 1.8 # 200% relative change threshold (adjusted for observed fluctuation 65-172%) 1.2 → 2.0
-probability_stability_threshold = 200  # 20000% relative change threshold (adjusted for observed values ~170%)
+#convergence
+max_iter = 50
+distance_stability_threshold = 0.7  # 70% relative change threshold (matches observed behavior)
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -187,7 +170,6 @@ min_total_shift = float('nan')
 # Define centroid directory for saving visualizations
 centroid_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid'
 os.makedirs(centroid_dir, exist_ok=True)
-
 
 # Visualization function to plot centroid and demand
 def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_path):
@@ -224,7 +206,7 @@ def weighted_kmeans(X, w, K, alpha=0.35, max_iter=1000, tol=1e-3,
 
     rng = np.random.default_rng(random_state)
     eps = 1e-12
-    
+
     # Log-scale transformation to normalize extreme weight distribution
     w = np.log(1 + w * 100)  # Transform to log scale (multiply by 100 to amplify small values)
     w = w / w.max()  # Normalize to [0,1] range
@@ -259,7 +241,7 @@ def weighted_kmeans(X, w, K, alpha=0.35, max_iter=1000, tol=1e-3,
                 wk = w[mask]  # Weights of points in cluster k
                 Xk = X[mask]  # Coordinates of points in cluster k
                 mu_w = (wk[:, None] * Xk).sum(axis=0) / (
-                            wk.sum() + eps)  # Calculate Weighted Mean (Centroid); eps: Small constant to prevent division by zero
+                        wk.sum() + eps)  # Calculate Weighted Mean (Centroid); eps: Small constant to prevent division by zero
                 new_center = (1 - alpha) * centers[k] + alpha * mu_w  # Prevents large jumps in centroid positions
                 shift = np.linalg.norm(new_center - centers[k])
                 centers[k] = new_center
@@ -273,7 +255,7 @@ def weighted_kmeans(X, w, K, alpha=0.35, max_iter=1000, tol=1e-3,
         history['n_changed'].append(n_changed)
         history['inertia'].append(inertia)
 
-        # check_ignor convergence
+        # check convergence
         if max_shift < tol:  # tol : Convergence tolerance (max centroid shift)
             break
 
@@ -298,7 +280,7 @@ for iteration in range(max_iter):
 
         logger.info(f'Unweighted KMeans finished in {kmeans.n_iter_} iterations')
 
-        # No convergence check_ignor needed for first iteration
+        # No convergence check needed for first iteration
         prev_coords = new_coords
         vertiport_coords = new_coords
         centroid_history.append(vertiport_coords.copy())
@@ -319,20 +301,20 @@ for iteration in range(max_iter):
         # SUBSEQUENT ITERATIONS: Weighted K-means based on UAM probabilities
         logger.info(f"Iteration {iteration + 1}: Using weighted K-means based on UAM probabilities")
 
-        # a. Calculate UAM travel time and cost for each trip
+        # Calculate UAM travel time and cost for each trip
         synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords,
                                                                 average_car_speed,
                                                                 cost_per_m_car)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
         synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
 
-        # b. Predict mode probabilities
+        # Predict mode probabilities
         for col in feature_cols:  # Feature Alignment Safeguards
             if col not in synthetic_population_with_uam.columns:
                 synthetic_population_with_uam[col] = 0.0
         synthetic_population_with_uam = synthetic_population_with_uam[feature_cols]
         proba = predict_mode_probabilities(synthetic_population_with_uam, final_model, feature_cols)
 
-        # c. Use UAM probability as weights for weighted k-means
+        # Use UAM probability as weights for weighted k-means
         uam_class_idx = None
         for i, cls in enumerate(classes):
             if 'uam' in str(cls).lower() or cls == 4:
@@ -341,12 +323,12 @@ for iteration in range(max_iter):
         if uam_class_idx is None:
             uam_class_idx = len(classes) - 1
 
-        # d. Log which class is being used for UAM weighting
+        # Log which class is being used for UAM weighting
         uam_class_name = class_names.get(classes[uam_class_idx], f"Class {classes[uam_class_idx]}")
         logger.info(f"Using {uam_class_name} (class {classes[uam_class_idx]}) for UAM probability weighting")
         uam_probs = proba[:, uam_class_idx]
 
-        # e. Checking for NaN or Infinite Values in UAM Probabilities
+        # Checking for NaN or Infinite Values in UAM Probabilities
         if np.isnan(uam_probs).any():
             logger.error("NaN found in UAM probabilities!")
             raise ValueError("NaN found in UAM probabilities!")
@@ -354,19 +336,19 @@ for iteration in range(max_iter):
             logger.error("Infinite value found in UAM probabilities!")
             raise ValueError("Infinite value found in UAM probabilities!")
 
-        # i. Use raw UAM probabilities as weights :log-scale transformation is applied inside weighted_kmeans)
+        # Use raw UAM probabilities as weights :log-scale transformation is applied inside weighted_kmeans
         weights = np.concatenate([uam_probs, uam_probs])
 
-        # j. Store current UAM probabilities for next iteration
+        # Store current UAM probabilities for next iteration
         prev_uam_probs = uam_probs.copy()
 
-        # k. Track weights and probabilities for this iteration (will be updated after feedback loop)
+        # Track weights and probabilities for this iteration (will be updated after feedback loop)
         weight_history.append(weights.copy())
         uam_prob_history.append(uam_probs.copy())
 
-        # l. Define parameters for weighted k-means clustering
-        alpha = 0.35    # Since centroids shift a lot and do not converge (converge plot)  → alpha = 0.35;
-                        # means 65% old position + 35% new weighted mean
+        # Define parameters for weighted k-means clustering
+        alpha = 0.35  # Since centroids shift a lot and do not converge (converge plot)  → alpha = 0.35;
+        # means 65% old position + 35% new weighted mean
         tol = 1e-3  # Convergence tolerance in meters
 
         # weighted k-means clustering calculation
@@ -411,60 +393,63 @@ for iteration in range(max_iter):
         synthetic_population_with_uam_updated = synthetic_population_with_uam_updated[feature_cols]
         proba_updated = predict_mode_probabilities(synthetic_population_with_uam_updated, final_model, feature_cols)
 
+
         # Apply temperature scaling to reduce model overconfidence
         def temperature_scaling(probabilities, temperature=2.0):
             """Apply temperature scaling to reduce overconfidence"""
             # Convert probabilities to logits
             logits = np.log(probabilities + 1e-8)
-            
+
             # Scale by temperature
             scaled_logits = logits / temperature
-            
+
             # Convert back to probabilities and renormalize
             # (model.predict_proba already normalizes, but we need to renormalize after temperature scaling)
             scaled_probs = np.exp(scaled_logits)
             scaled_probs = scaled_probs / scaled_probs.sum(axis=1, keepdims=True)
-            
+
             return scaled_probs
-        
+
         # Apply temperature scaling to reduce overconfidence
         proba_updated = temperature_scaling(proba_updated, temperature=2.0)
-        
+
         # Get updated UAM probabilities (after temperature scaling)
         uam_probs_updated = proba_updated[:, uam_class_idx]
-        
+
         # ===== COMPREHENSIVE DIAGNOSTIC CHECKS =====
         logger.info("=" * 60)
         logger.info("DIAGNOSTIC: Checking Model Predictions Reasonableness")
         logger.info("=" * 60)
-        
+
         # 1. Model prediction statistics
         logger.info(f"Model prediction stats:")
         logger.info(f"  Min probability: {proba_updated.min():.6f}")
         logger.info(f"  Max probability: {proba_updated.max():.6f}")
         logger.info(f"  Mean probability: {proba_updated.mean():.6f}")
-        logger.info(f"  UAM class probabilities - Min: {uam_probs_updated.min():.6f}, Max: {uam_probs_updated.max():.6f}, Mean: {uam_probs_updated.mean():.6f}")
-        
+        logger.info(
+            f"  UAM class probabilities - Min: {uam_probs_updated.min():.6f}, Max: {uam_probs_updated.max():.6f}, Mean: {uam_probs_updated.mean():.6f}")
+
         # 2. Check for extreme values
         if uam_probs_updated.max() > 1.0 or uam_probs_updated.min() < 0.0:
             logger.warning(f"WARNING: UAM probabilities outside [0,1] range!")
             logger.warning(f"  Min: {uam_probs_updated.min():.6f}, Max: {uam_probs_updated.max():.6f}")
-        
+
         # 3. Check for NaN or infinite values
         if np.isnan(uam_probs_updated).any():
             logger.warning("WARNING: NaN values in UAM probabilities!")
         if np.isinf(uam_probs_updated).any():
             logger.warning("WARNING: Infinite values in UAM probabilities!")
-        
+
         # 4. Compare with previous iteration
         if iteration > 0:  # Not first iteration
             prob_diff = np.abs(uam_probs_updated - uam_probs)
-            logger.info(f"Probability differences - Min: {prob_diff.min():.6f}, Max: {prob_diff.max():.6f}, Mean: {prob_diff.mean():.6f}")
-            
+            logger.info(
+                f"Probability differences - Min: {prob_diff.min():.6f}, Max: {prob_diff.max():.6f}, Mean: {prob_diff.mean():.6f}")
+
             # Check if changes are reasonable
             if prob_diff.max() > 0.5:  # More than 50% change
                 logger.warning(f"WARNING: Large probability change detected! Max change: {prob_diff.max():.6f}")
-        
+
         # 5. Check AFT feature ranges
         if 'AFT_TT' in synthetic_population_with_uam_updated.columns:
             aft_tt = synthetic_population_with_uam_updated['AFT_TT']
@@ -473,7 +458,7 @@ for iteration in range(max_iter):
                 logger.warning("WARNING: AFT_TT values seem too high!")
             if aft_tt.min() < 0:
                 logger.warning("WARNING: AFT_TT has negative values!")
-        
+
         if 'AFT_CO' in synthetic_population_with_uam_updated.columns:
             aft_co = synthetic_population_with_uam_updated['AFT_CO']
             logger.info(f"AFT_CO range: {aft_co.min():.2f} to {aft_co.max():.2f} euros")
@@ -481,25 +466,25 @@ for iteration in range(max_iter):
                 logger.warning("WARNING: AFT_CO values seem too high!")
             if aft_co.min() < 0:
                 logger.warning("WARNING: AFT_CO has negative values!")
-        
+
         # 6. Check for extreme probability distributions
         prob_hist, _ = np.histogram(uam_probs_updated, bins=10, range=(0, 1))
         logger.info(f"UAM probability distribution (10 bins): {prob_hist}")
-        
+
         # Check if most probabilities are near 0 or 1 (model being too confident)
         near_zero = np.sum(uam_probs_updated < 0.1)
         near_one = np.sum(uam_probs_updated > 0.9)
         total = len(uam_probs_updated)
-        logger.info(f"Probabilities near 0 (<0.1): {near_zero}/{total} ({near_zero/total*100:.1f}%)")
-        logger.info(f"Probabilities near 1 (>0.9): {near_one}/{total} ({near_one/total*100:.1f}%)")
-        
+        logger.info(f"Probabilities near 0 (<0.1): {near_zero}/{total} ({near_zero / total * 100:.1f}%)")
+        logger.info(f"Probabilities near 1 (>0.9): {near_one}/{total} ({near_one / total * 100:.1f}%)")
+
         if near_zero + near_one > total * 0.8:  # More than 80% are extreme
             logger.warning("WARNING: Model is making too many extreme predictions!")
-        
+
         logger.info("=" * 60)
         logger.info("END DIAGNOSTIC CHECKS")
         logger.info("=" * 60)
-        
+
         # Check for NaN or Infinite Values in updated UAM Probabilities
         if np.isnan(uam_probs_updated).any():
             logger.error("NaN found in updated UAM probabilities!")
@@ -538,16 +523,11 @@ for iteration in range(max_iter):
             distance_stable, distance_change = check_distance_matrix_stability(prev_coords, new_coords_ordered,
                                                                                distance_stability_threshold)
 
-            # Check probability similarity using updated probabilities
-            prob_stable, prob_change = check_probability_similarity(prev_uam_probs, uam_probs,
-                                                                    probability_stability_threshold)
-
             # Track convergence metrics
             distance_change_history.append(distance_change)
-            prob_change_history.append(prob_change)
 
             logger.info(
-                f"Iteration {iteration + 1}: Coordinate shift = {min_total_shift:.2f}m, Distance matrix change = {distance_change:.6f} (stable: {distance_stable}), Probability change = {prob_change:.6f} (stable: {prob_stable})")
+                f"Iteration {iteration + 1}: Coordinate shift = {min_total_shift:.2f}m, Distance matrix change = {distance_change:.6f} (stable: {distance_stable})")
 
             # Save intermediate visualization every 5 iterations
             if (iteration + 1) % 5 == 0 or iteration < 5:
@@ -561,14 +541,13 @@ for iteration in range(max_iter):
                 )
                 logger.info(f"Intermediate visualization saved: centroids_iteration_{iteration + 1}.png")
 
-            # Check for convergence
+            # Check for convergence - distance stability
             layout_converged = distance_stable
-            probability_converged = prob_stable
 
-            # Both layout and probability stable
-            if (layout_converged and probability_converged) and iteration >= 2:
+            # distance matrix stability required for convergence
+            if layout_converged and iteration >= 2:
                 logger.info(
-                    f"Converged after {iteration + 1} iterations with BOTH distance matrix stability: {distance_change:.6f} AND probability stability: {prob_change:.6f}")
+                    f"Converged after {iteration + 1} iterations with distance matrix stability: {distance_change:.6f}")
                 converged = True
                 centroid_history.append(new_coords_ordered.copy())
                 break
@@ -600,7 +579,6 @@ np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/vert
 weight_history = np.array(weight_history)  # shape: (num_iterations, 2*num_trips)
 uam_prob_history = np.array(uam_prob_history)  # shape: (num_iterations, num_trips)
 distance_change_history = np.array(distance_change_history)  # shape: (num_iterations,)
-prob_change_history = np.array(prob_change_history)  # shape: (num_iterations,)
 
 # Create directory & save all history files
 os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
@@ -608,13 +586,10 @@ np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/weig
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/uam_prob_history.npy', uam_prob_history)
 np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/distance_change_history.npy',
         distance_change_history)
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/prob_change_history.npy',
-        prob_change_history)
 
 logger.info(f"Weight history saved: {weight_history.shape}")
 logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
 logger.info(f"Distance change history saved: {distance_change_history.shape}")
-logger.info(f"Probability change history saved: {prob_change_history.shape}")
 
 # Save final vertiport coordinates
 # Save as .npy
@@ -729,7 +704,7 @@ for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'tr
 # Save main prediction file with error handling
 try:
     os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering', exist_ok=True)
-    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Xgboost_synthetic_population_predictions_weights.csv'
+    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv'
     output.to_csv(output_path, index=False)
     logger.info(f"Main prediction file saved: {output_path}")
 except Exception as e:
