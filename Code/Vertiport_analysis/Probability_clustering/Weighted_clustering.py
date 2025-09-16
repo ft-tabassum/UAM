@@ -125,8 +125,6 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     df['AFT_CO'] = uam_travel_cost  # € - UAM travel cost
     # output features (for results)
     df['travel_time_Uam'] = total_time  # min
-    df['in_vehicle_time_Uam'] = airborne_time  # min
-    df['waiting_time_Uam'] = total_time - airborne_time  # min
     df['travel_cost_Uam'] = uam_travel_cost
     df['uam_first_mile'] = first_mile_dist  # m
     df['uam_last_mile'] = last_mile_dist  # m

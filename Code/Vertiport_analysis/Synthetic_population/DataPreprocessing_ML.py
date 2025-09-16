@@ -257,7 +257,7 @@ for col in reference_cols:
     if col in data.columns:
         X_processed_df[col] = data[col].values
 
-# Step 7: Add trip_length in meters
+# Step 7: convert trip_length in meters from km
 if 'distance' in X_processed_df.columns:
     X_processed_df['trip_length'] = X_processed_df['distance'] * 1000
 
