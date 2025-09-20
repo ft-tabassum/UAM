@@ -52,8 +52,8 @@ logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
-#Sample 10% of population
-#synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+# Sample 10% of population
+# synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -70,8 +70,9 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # UAM travel time and travel cost calculation value, based on assumptions from the literature
 vertiport_k = 74  # centriod        (Guo et al., 2025)
 uam_cruise_speed = 4166.67  # unit:m/min,     250 km/h
-uam_cost_m = 0.005  # unit: €/m,     5 €/km
-
+# uam_cost_m = 0.005  # unit: €/m,     5 €/km
+uam_cost_m = 0.001  # unit: €/m,     1 €/km (individual trip cost)
+uam_passenger_capacity = 4  # passengers per UAM vehicle (vehicle specification)
 pre_flight_time = 15  # unit : min      (Rothfeld, 2021)
 average_car_speed = 418.33  # unit: m/min,    25.1 km/h (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
 cost_per_m_car = 0.00065  # unit:€/m,       0.65 €/km (Manuscript Number: JTRP-D-24-00632R1)
@@ -102,23 +103,23 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     # Calculate distances to all vertiports
     origin_distances = cdist(origins, vertiport_coords)
     dest_distances = cdist(dests, vertiport_coords)
-    
+
     # Find nearest vertiport
     origin_v_idx = np.argmin(origin_distances, axis=1)
     dest_v_idx = np.argmin(dest_distances, axis=1)
-    
+
     # Get distances to nearest vertiports
     origin_dist_to_vertiport = origin_distances[np.arange(len(origins)), origin_v_idx]
     dest_dist_to_vertiport = dest_distances[np.arange(len(dests)), dest_v_idx]
-    
+
     # Determine access modes based on distance (walking preferred for short distances)
     origin_access_mode = np.where(origin_dist_to_vertiport <= walking_catchment, 'walk', 'car')
     dest_access_mode = np.where(dest_dist_to_vertiport <= walking_catchment, 'walk', 'car')
-    
+
     # Check catchment area coverage (car catchment is the maximum)
     origin_in_catchment = origin_dist_to_vertiport <= car_catchment
     dest_in_catchment = dest_dist_to_vertiport <= car_catchment
-    
+
     # Get vertiport coordinates
     origin_v = vertiport_coords[origin_v_idx]
     dest_v = vertiport_coords[dest_v_idx]
@@ -129,7 +130,7 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         origin_dist_to_vertiport,  # direct distance for walking
         origin_dist_to_vertiport * circuity_factor  # circuity factor for car
     )
-    
+
     last_mile_dist = np.where(
         dest_access_mode == 'walk',
         dest_dist_to_vertiport,  # direct distance for walking
@@ -145,13 +146,13 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         first_mile_dist / walking_speed_param,  # walking speed
         first_mile_dist / car_speed  # car speed
     )
-    
+
     last_mile_time = np.where(
         dest_access_mode == 'walk',
         last_mile_dist / walking_speed_param,  # walking speed
         last_mile_dist / car_speed  # car speed
     )
-    
+
     # airborne and total time calculation in min
     airborne_time = uam_dist / uam_speed  # unit: min
     total_time = pre_flight_time + first_mile_time + airborne_time + last_mile_time  # unit: min
@@ -162,18 +163,19 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         0,  # walking is free
         first_mile_dist * car_cost  # car cost
     )
-    
+
     last_mile_cost = np.where(
         dest_access_mode == 'walk',
         0,  # walking is free
         last_mile_dist * car_cost  # car cost
     )
-    
+    # Calculate UAM cost: €1.00/km per trip (individual trip cost)
+    # Fixed cost per kilometer regardless of passenger count
+    # Vehicle capacity (4 passengers) is just vehicle specification
     uam_travel_cost = (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
 
     df = df.copy()
 
-    # features
     # model features (for prediction)
     df['AFT_TT'] = total_time  # min - UAM travel time
     df['AFT_CO'] = uam_travel_cost  # € - UAM travel cost
@@ -220,9 +222,9 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     max_change = np.max(relative_change)
     return max_change < threshold, max_change
 
-#convergence
+# convergence
 max_iter = 50
-distance_stability_threshold = 0.7  # 70% relative change threshold (matches observed behavior)
+distance_stability_threshold = 0.18  # 18% relative change threshold
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -263,8 +265,8 @@ def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_
     plt.close()
 
 
-# Weighted K-Means Implementation with  damping factor for centroid updates (alpha)
-def weighted_kmeans(X, w, K, alpha=0.40, max_iter=1000, tol=1e-2,
+# Weighted K-Means Implementation (pure weighted mean, no damping)
+def weighted_kmeans(X, w, K, max_iter=1000, tol=1e-1,
                     random_state=None):  # Parameters- X : Data points; random_state : Random seed
 
     rng = np.random.default_rng(random_state)
@@ -305,7 +307,7 @@ def weighted_kmeans(X, w, K, alpha=0.40, max_iter=1000, tol=1e-2,
                 Xk = X[mask]  # Coordinates of points in cluster k
                 mu_w = (wk[:, None] * Xk).sum(axis=0) / (
                         wk.sum() + eps)  # Calculate Weighted Mean (Centroid); eps: Small constant to prevent division by zero
-                new_center = (1 - alpha) * centers[k] + alpha * mu_w  # Prevents large jumps in centroid positions
+                new_center = mu_w  # Pure weighted mean without damping
                 shift = np.linalg.norm(new_center - centers[k])
                 centers[k] = new_center
                 max_shift = max(max_shift, shift)
@@ -369,24 +371,29 @@ for iteration in range(max_iter):
                                                                 average_car_speed,
                                                                 cost_per_m_car)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
         synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
-        
+
         # Log multimodal catchment area statistics
         origin_outside = np.sum(~synthetic_population_with_uam['origin_in_catchment'])
         dest_outside = np.sum(~synthetic_population_with_uam['dest_in_catchment'])
         total_trips = len(synthetic_population_with_uam)
-        
+
         # Count access modes
         origin_walking = np.sum(synthetic_population_with_uam['origin_access_mode'] == 'walk')
         origin_car = np.sum(synthetic_population_with_uam['origin_access_mode'] == 'car')
         dest_walking = np.sum(synthetic_population_with_uam['dest_access_mode'] == 'walk')
         dest_car = np.sum(synthetic_population_with_uam['dest_access_mode'] == 'car')
-        
+
         logger.info(f"Multimodal catchment area statistics:")
-        logger.info(f"  Walking catchment: {walking_catchment_distance/1000:.1f}km, Car catchment: {car_catchment_distance/1000:.1f}km")
-        logger.info(f"  Origins outside catchment: {origin_outside}/{total_trips} ({origin_outside/total_trips*100:.1f}%)")
-        logger.info(f"  Destinations outside catchment: {dest_outside}/{total_trips} ({dest_outside/total_trips*100:.1f}%)")
-        logger.info(f"  Origin access modes - Walking: {origin_walking} ({origin_walking/total_trips*100:.1f}%), Car: {origin_car} ({origin_car/total_trips*100:.1f}%)")
-        logger.info(f"  Destination access modes - Walking: {dest_walking} ({dest_walking/total_trips*100:.1f}%), Car: {dest_car} ({dest_car/total_trips*100:.1f}%)")
+        logger.info(
+            f"  Walking catchment: {walking_catchment_distance / 1000:.1f}km, Car catchment: {car_catchment_distance / 1000:.1f}km")
+        logger.info(
+            f"  Origins outside catchment: {origin_outside}/{total_trips} ({origin_outside / total_trips * 100:.1f}%)")
+        logger.info(
+            f"  Destinations outside catchment: {dest_outside}/{total_trips} ({dest_outside / total_trips * 100:.1f}%)")
+        logger.info(
+            f"  Origin access modes - Walking: {origin_walking} ({origin_walking / total_trips * 100:.1f}%), Car: {origin_car} ({origin_car / total_trips * 100:.1f}%)")
+        logger.info(
+            f"  Destination access modes - Walking: {dest_walking} ({dest_walking / total_trips * 100:.1f}%), Car: {dest_car} ({dest_car / total_trips * 100:.1f}%)")
         logger.info(f"  Max origin distance: {synthetic_population_with_uam['origin_to_vertiport_dist'].max():.0f}m")
         logger.info(f"  Max destination distance: {synthetic_population_with_uam['dest_to_vertiport_dist'].max():.0f}m")
 
@@ -430,16 +437,13 @@ for iteration in range(max_iter):
         uam_prob_history.append(uam_probs.copy())
 
         # Define parameters for weighted k-means clustering
-        alpha = 0.40  # Since centroids shift a lot and do not converge (converge plot)  → alpha = 0.35;
-        # means 65% old position + 35% new weighted mean
-        tol = 1e-2  # Convergence tolerance in meters
+        tol = 1e-1  # Convergence tolerance in meters
 
         # weighted k-means clustering calculation
         labels, new_coords, kmeans_history = weighted_kmeans(
             X=od_points_current,
             w=weights,
             K=vertiport_k,
-            alpha=alpha,
             max_iter=1000,
             tol=tol,
             random_state=42
@@ -781,7 +785,7 @@ for i, cls in enumerate(classes):
 
 # Add UAM columns from the final calculation
 for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'travel_cost_Uam', 'uam_first_mile',
-            'uam_last_mile', 'uam_air', 'origin_in_catchment', 'dest_in_catchment', 
+            'uam_last_mile', 'uam_air', 'origin_in_catchment', 'dest_in_catchment',
             'origin_to_vertiport_dist', 'dest_to_vertiport_dist', 'origin_access_mode', 'dest_access_mode',
             'origin_access_time', 'dest_access_time', 'origin_access_cost', 'dest_access_cost']:
     output[col] = synthetic_population_with_uam_final[col]
@@ -823,14 +827,14 @@ try:
     max_uam_prob = float(np.max(uam_probs))
     final_shift = float(convergence_history[-1]) if convergence_history else float('nan')
     iterations = len(centroid_history) - 1
-    
+
     # Calculate multimodal catchment area statistics
     origin_outside_final = np.sum(~output['origin_in_catchment'])
     dest_outside_final = np.sum(~output['dest_in_catchment'])
     total_trips_final = len(output)
     max_origin_dist_final = float(output['origin_to_vertiport_dist'].max())
     max_dest_dist_final = float(output['dest_to_vertiport_dist'].max())
-    
+
     # Count access modes
     origin_walking_final = np.sum(output['origin_access_mode'] == 'walk')
     origin_car_final = np.sum(output['origin_access_mode'] == 'car')
@@ -849,7 +853,7 @@ try:
         writer.writerow([
             'weights_multimodal', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob,
             max_uam_prob, origin_outside_final, dest_outside_final, max_origin_dist_final, max_dest_dist_final,
-            car_catchment_distance, walking_catchment_distance, origin_walking_final, origin_car_final, 
+            car_catchment_distance, walking_catchment_distance, origin_walking_final, origin_car_final,
             dest_walking_final, dest_car_final
         ])
     logger.info(f"Summary CSV saved: {summary_path}")
@@ -864,6 +868,8 @@ try:
         f.write(f"SUMMARY:\n")
         f.write(f"{'-' * 20}\n")
         f.write(f"Method: weights_multimodal (using UAM probabilities with multimodal access)\n")
+        f.write(f"UAM Pricing Model: €1.00/km per trip (individual trip cost)\n")
+        f.write(f"UAM Vehicle Capacity: {uam_passenger_capacity} passengers (vehicle specification)\n")
         f.write(f"Converged: {converged}\n")
         f.write(f"Iterations: {iterations}\n")
         f.write(f"Final Shift: {final_shift:.6f}\n")
@@ -871,14 +877,18 @@ try:
         f.write(f"UAM Probability Std: {std_uam_prob:.4f}\n")
         f.write(f"UAM Probability Range: [{min_uam_prob:.4f}, {max_uam_prob:.4f}]\n")
         f.write(f"\nMULTIMODAL CATCHMENT AREA STATISTICS:\n")
-        f.write(f"Walking Catchment Distance: {walking_catchment_distance/1000:.1f} km\n")
-        f.write(f"Car Catchment Distance: {car_catchment_distance/1000:.1f} km\n")
-        f.write(f"Origins outside catchment: {origin_outside_final}/{total_trips_final} ({origin_outside_final/total_trips_final*100:.1f}%)\n")
-        f.write(f"Destinations outside catchment: {dest_outside_final}/{total_trips_final} ({dest_outside_final/total_trips_final*100:.1f}%)\n")
-        f.write(f"Origin access modes - Walking: {origin_walking_final} ({origin_walking_final/total_trips_final*100:.1f}%), Car: {origin_car_final} ({origin_car_final/total_trips_final*100:.1f}%)\n")
-        f.write(f"Destination access modes - Walking: {dest_walking_final} ({dest_walking_final/total_trips_final*100:.1f}%), Car: {dest_car_final} ({dest_car_final/total_trips_final*100:.1f}%)\n")
-        f.write(f"Max origin distance: {max_origin_dist_final:.0f}m ({max_origin_dist_final/1000:.1f}km)\n")
-        f.write(f"Max destination distance: {max_dest_dist_final:.0f}m ({max_dest_dist_final/1000:.1f}km)\n")
+        f.write(f"Walking Catchment Distance: {walking_catchment_distance / 1000:.1f} km\n")
+        f.write(f"Car Catchment Distance: {car_catchment_distance / 1000:.1f} km\n")
+        f.write(
+            f"Origins outside catchment: {origin_outside_final}/{total_trips_final} ({origin_outside_final / total_trips_final * 100:.1f}%)\n")
+        f.write(
+            f"Destinations outside catchment: {dest_outside_final}/{total_trips_final} ({dest_outside_final / total_trips_final * 100:.1f}%)\n")
+        f.write(
+            f"Origin access modes - Walking: {origin_walking_final} ({origin_walking_final / total_trips_final * 100:.1f}%), Car: {origin_car_final} ({origin_car_final / total_trips_final * 100:.1f}%)\n")
+        f.write(
+            f"Destination access modes - Walking: {dest_walking_final} ({dest_walking_final / total_trips_final * 100:.1f}%), Car: {dest_car_final} ({dest_car_final / total_trips_final * 100:.1f}%)\n")
+        f.write(f"Max origin distance: {max_origin_dist_final:.0f}m ({max_origin_dist_final / 1000:.1f}km)\n")
+        f.write(f"Max destination distance: {max_dest_dist_final:.0f}m ({max_dest_dist_final / 1000:.1f}km)\n")
         f.write(f"\nCONVERGENCE HISTORY (first 20 shown):\n")
         for i, shift in enumerate(convergence_history[:20]):
             f.write(f"  Iter {i + 1}: {shift:.6f}\n")
