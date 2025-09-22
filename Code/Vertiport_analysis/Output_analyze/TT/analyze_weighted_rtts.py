@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 
 # Load the data
-data = pd.read_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+data = pd.read_csv(
+    '/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
 
 # Calculate rtts and rtts_weighted
 data['rtts'] = 1 - (data['travel_time_Uam'] / data['autos_TT'])

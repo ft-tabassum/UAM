@@ -100,7 +100,6 @@ def process_combined_data():
     print("Starting combined data processing...")
     print("=" * 60)
 
-
     # Define file paths
     file_paths = {
         'hh': r"D:\Files_D\Study\==Thesis==\data\travel_demand_2021\travel_demand_2021\sp\hh_2011.csv",
@@ -141,7 +140,7 @@ def process_combined_data():
         # Merge with trips data (INNER JOIN - only people with trips)
         print("Merging with trips data (INNER JOIN - only people with trips)...")
         combined_data = combined_data.merge(
-            trips_data[['trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY', 'id', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro', 'departure_time','departure_time_return']],
+            trips_data[['trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY', 'id', 'purpose', 'distance', 'time_auto', 'time_bus', 'time_train', 'time_tram_metro', 'departure_time','departure_time_return']],
             left_on='id',
             right_on='id',
             how='inner',  # Changed from 'left' to 'inner'
@@ -176,9 +175,9 @@ def process_combined_data():
 
         # Select and reorder final columns
         final_columns = [
-            'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY','departure_time','departure_time_return',
+            'trip_id', 'origin', 'originX', 'originY', 'destination', 'destinationX', 'destinationY','purpose','departure_time','departure_time_return',
             'person_id', 'age', 'gender', 'child_household', 'occupation', 'adults_household', 'driversLicense',
-            'income', 'autos', 'distance', 'autos_TT', 'PT_TT', 
+            'income', 'autos', 'distance', 'autos_TT', 'PT_TT',
             'travel_cost_auto', 'travel_cost_pt'
         ]
 
@@ -187,7 +186,7 @@ def process_combined_data():
         final_data = combined_data[available_columns]
 
         # Save the combined data
-        output_file = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips.csv"
+        output_file = "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/microdata_trips_purpose.csv"
         final_data.to_csv(output_file, index=False)
         return final_data
 
@@ -215,4 +214,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

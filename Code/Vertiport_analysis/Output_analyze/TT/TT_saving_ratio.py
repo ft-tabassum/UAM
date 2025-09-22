@@ -4,7 +4,8 @@ import seaborn as sns
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-data = pd.read_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+data = pd.read_csv(
+    '/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
 
 # Calculate rtts for UAM
 # rtts = 1 - (UAM_TT / groundbased, motorized mode (i.e., car or PT) TT

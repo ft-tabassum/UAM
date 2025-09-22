@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Load the data
-data = pd.read_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+data = pd.read_csv(
+    '/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
 
 print("=" * 80)
 print("PUBLIC TRANSPORT SHARE OF UAM ANALYSIS")
