@@ -298,6 +298,18 @@ class_precision = precision_score(y_test, test_predictions, average=None)
 class_recall = recall_score(y_test, test_predictions, average=None)
 class_f1 = f1_score(y_test, test_predictions, average=None)
 
+# Calculate per-class accuracy and mode-specific prediction error
+test_class_acc = {}
+test_class_error = {}
+for i, cls in enumerate(classes):
+    mask = y_test == cls
+    if np.any(mask):
+        test_class_acc[cls] = accuracy_score(y_test[mask], test_predictions[mask])
+        test_class_error[cls] = 1 - test_class_acc[cls]  # Mode-specific prediction error
+    else:
+        test_class_acc[cls] = np.nan
+        test_class_error[cls] = np.nan
+
 # Calculate feature importances for base models
 feature_importances = {}
 for name, model in base_models.items():
@@ -376,8 +388,14 @@ with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_Stacking.tx
     f.write(f"ROC AUC: {test_roc_auc:.4f}\n\n")
 
     f.write("Test Set Per-class Accuracy:\n")
-    for i, class_name in enumerate(classes):
-        f.write(f"Class {i}: {class_recall[i]:.4f}\n")
+    for cls, acc in test_class_acc.items():
+        if not np.isnan(acc):
+            f.write(f"Class {cls}: {acc:.4f}\n")
+    
+    f.write("\nTest Set Mode-specific Prediction Error:\n")
+    for cls, error in test_class_error.items():
+        if not np.isnan(error):
+            f.write(f"Class {cls}: {error:.4f}\n")
     f.write("\n")
 
     f.write("Test Set Confusion Matrix:\n")

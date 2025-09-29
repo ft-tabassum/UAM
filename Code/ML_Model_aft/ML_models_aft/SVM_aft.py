@@ -202,6 +202,16 @@ for cls in classes:
     else:
         test_class_acc[cls] = np.nan
 
+# Calculate mode-specific prediction error on test set
+test_class_error = {}
+for cls in classes:
+    mask = y_test == cls
+    if np.any(mask):
+        # Mode-specific prediction error = 1 - per-class accuracy
+        test_class_error[cls] = 1 - accuracy_score(y_test[mask], test_pred[mask])
+    else:
+        test_class_error[cls] = np.nan
+
 # Save results
 with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_SVM.txt', 'w') as f:
     f.write("Results for SVM with 10-fold Cross-Validation:\n\n")
@@ -253,6 +263,11 @@ with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_SVM.txt', '
     for cls, acc in test_class_acc.items():
         if not np.isnan(acc):
             f.write(f"Class {cls}: {acc:.4f}\n")
+    
+    f.write("\nTest Set Mode-specific Prediction Error:\n")
+    for cls, error in test_class_error.items():
+        if not np.isnan(error):
+            f.write(f"Class {cls}: {error:.4f}\n")
     f.write("\n")
 
 # Save confusion matrix

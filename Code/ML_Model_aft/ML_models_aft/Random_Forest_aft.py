@@ -196,6 +196,16 @@ for cls in classes:
     else:
         test_class_acc[cls] = np.nan
 
+# Calculate mode-specific prediction error on test set
+test_class_error = {}
+for cls in classes:
+    mask = y_test == cls
+    if np.any(mask):
+        # Mode-specific prediction error = 1 - per-class accuracy
+        test_class_error[cls] = 1 - accuracy_score(y_test[mask], test_pred[mask])
+    else:
+        test_class_error[cls] = np.nan
+
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
 test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/test_set_probabilities_RandomForest.csv', index=False)
@@ -283,6 +293,12 @@ with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_RandomFores
     for cls, acc in test_class_acc.items():
         if not np.isnan(acc):
             f.write(f"Class {cls}: {acc:.4f}\n")
+    
+    f.write("\nTest Set Mode-specific Prediction Error:\n")
+    for cls, error in test_class_error.items():
+        if not np.isnan(error):
+            f.write(f"Class {cls}: {error:.4f}\n")
+    
     f.write("\nTest Set Confusion Matrix:\n")
     f.write(f"{test_cm}\n")
 
