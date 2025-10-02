@@ -4,7 +4,7 @@ import numpy as np
 
 # Load the data
 data = pd.read_csv(
-    '/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
 
 print("=" * 60)
 print("MODE SHARE ANALYSIS")
@@ -72,7 +72,7 @@ for bar in bars:
 
 plt.grid(True, alpha=0.3, axis='y')
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/mode_share_bar_chart.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_bar_chart.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -92,7 +92,7 @@ for bar in bars:
 
 plt.grid(True, alpha=0.3, axis='y')
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/mode_share_percentage_chart.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_percentage_chart.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -102,7 +102,7 @@ mode_share_results = pd.DataFrame({
     'Count': mode_counts.values,
     'Percentage': mode_shares.values
 })
-mode_share_results.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/mode_share_results.csv', 
+mode_share_results.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_results.csv',
                          index=False)
 
 print("\n" + "=" * 60)
@@ -218,7 +218,7 @@ if len(long_distance_data) > 0:
     ax2.set_title('Mode Share for Long Distance Trips (50km+)', fontsize=14, fontweight='bold')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/mode_share_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -266,7 +266,7 @@ ax.legend()
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/mode_share_trips_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_trips_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 

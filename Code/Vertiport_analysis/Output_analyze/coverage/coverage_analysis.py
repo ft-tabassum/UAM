@@ -11,7 +11,7 @@ def analyze_vertiport_coverage():
     print("Analyzing vertiport coverage...")
     
     # Create output directory if it doesn't exist
-    output_dir = "D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Coverage_Analysis"
+    output_dir = "D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/Coverage_Analysis"
     os.makedirs(output_dir, exist_ok=True)
     
     # Create output filename

@@ -71,7 +71,10 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 vertiport_k = 74  # centriod        (Guo et al., 2025)
 uam_cruise_speed = 4166.67  # unit:m/min,     250 km/h
 # uam_cost_m = 0.005  # unit: €/m,     5 €/km
-uam_cost_m = 0.001  # unit: €/m,     1 €/km (individual trip cost)
+# uam_cost_m = 0.001  # unit: €/m,     1 €/km (individual trip cost)
+# uam_cost_m = 0.00167  # unit: €/m,     1.67 €/km (individual trip cost)
+uam_cost_m = 0.002  # unit: €/m,     2 €/km (individual trip cost)
+uam_base_fare = 5.0  # unit: €,      5 € base fare per trip
 uam_passenger_capacity = 4  # passengers per UAM vehicle (vehicle specification)
 pre_flight_time = 15  # unit : min      (Rothfeld, 2021)
 average_car_speed = 418.33  # unit: m/min,    25.1 km/h (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
@@ -91,7 +94,7 @@ distance_change_history = []  # Track distance matrix changes per iteration
 
 # function to calculate UAM time and travel cost with multimodal access (car + walking)
 def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, car_cost=cost_per_m_car,
-                            uam_speed=uam_cruise_speed, cost_uam_m=uam_cost_m,
+                            uam_speed=uam_cruise_speed, cost_uam_m=uam_cost_m, base_fare=uam_base_fare,
                             pre_flight_time=pre_flight_time, car_catchment=car_catchment_distance,
                             walking_catchment=walking_catchment_distance, walking_speed_param=walking_speed):
     from scipy.spatial.distance import cdist
@@ -169,10 +172,10 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         0,  # walking is free
         last_mile_dist * car_cost  # car cost
     )
-    # Calculate UAM cost: €1.00/km per trip (individual trip cost)
-    # Fixed cost per kilometer regardless of passenger count
+    # Calculate UAM cost: €2.00/km + €5.00 base fare per trip (individual trip cost)
+    # Fixed cost per kilometer plus base fare regardless of passenger count
     # Vehicle capacity (4 passengers) is just vehicle specification
-    uam_travel_cost = (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
+    uam_travel_cost = base_fare + (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
 
     df = df.copy()
 
@@ -224,7 +227,7 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
 
 # convergence
 max_iter = 50
-distance_stability_threshold = 0.18  # 18% relative change threshold
+distance_stability_threshold = 0.35  # 35% relative change threshold
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -369,7 +372,7 @@ for iteration in range(max_iter):
         # Calculate UAM travel time and cost for each trip
         synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords,
                                                                 average_car_speed,
-                                                                cost_per_m_car)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
+                                                                cost_per_m_car, base_fare=uam_base_fare)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
         synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
 
         # Log multimodal catchment area statistics
@@ -471,7 +474,7 @@ for iteration in range(max_iter):
 
         # Recalculate UAM features with new vertiport coordinates
         synthetic_population_with_uam_updated = calculate_uam_time_cost(synthetic_population, vertiport_coords,
-                                                                        average_car_speed, cost_per_m_car)
+                                                                        average_car_speed, cost_per_m_car, base_fare=uam_base_fare)
 
         # Get updated probabilities with new UAM features
         for col in feature_cols:
@@ -765,7 +768,7 @@ logger.info("Step 4: Final prediction with optimized vertiports and saving resul
 
 # Recalculate UAM features and probabilities with final optimized vertiports
 synthetic_population_with_uam_final = calculate_uam_time_cost(synthetic_population, vertiport_coords, average_car_speed,
-                                                              cost_per_m_car)
+                                                              cost_per_m_car, base_fare=uam_base_fare)
 
 # For prediction, use only model features:
 synthetic_population_with_uam_features = synthetic_population_with_uam_final.copy()
@@ -868,7 +871,7 @@ try:
         f.write(f"SUMMARY:\n")
         f.write(f"{'-' * 20}\n")
         f.write(f"Method: weights_multimodal (using UAM probabilities with multimodal access)\n")
-        f.write(f"UAM Pricing Model: €1.00/km per trip (individual trip cost)\n")
+        f.write(f"UAM Pricing Model: €{uam_base_fare:.2f} base fare + €{uam_cost_m*1000:.2f}/km per trip (individual trip cost)\n")
         f.write(f"UAM Vehicle Capacity: {uam_passenger_capacity} passengers (vehicle specification)\n")
         f.write(f"Converged: {converged}\n")
         f.write(f"Iterations: {iterations}\n")
