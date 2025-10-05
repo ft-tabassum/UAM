@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data of aft data
-data = pd.read_csv("/Result/DataPreprocessing_aft/aft_advanced_features.csv")
+data = pd.read_csv("D:/Thesis/UAM/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -43,7 +43,7 @@ param_grid = {
     'classifier__min_samples_split': [2, 5, 10],  # Less restrictive
     'classifier__min_samples_leaf': [1, 2, 4],  # Less restrictive
     'classifier__max_features': ['sqrt', 'log2', 0.5],  # More feature options
-    'classifier__class_weight': ['balanced', 'balanced_subsample']
+    'classifier__class_weight': ['balanced']  # Reduced balancing - less focus on minority class
 }
 
 
@@ -84,7 +84,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='f1_weighted',  # Better for imbalanced data
+        scoring='accuracy',  # Less focus on minority class - reduced F1 weighting
         n_jobs=-1
     )
     
@@ -235,7 +235,7 @@ feature_importance_df = feature_importance_df.sort_values('Importance', ascendin
 feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Feature_Importance/feature_importance_RandomForest.csv', index=False)
 
 # Save results
-with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_RandomForest.txt', 'w') as f:
+with open('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_RandomForest.txt', 'w') as f:
     f.write("Results for RandomForest with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis

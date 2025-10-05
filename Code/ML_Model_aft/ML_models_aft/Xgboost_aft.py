@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data of UAM survey data
-data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
+data = pd.read_csv('D:/Thesis/UAM/Result/DataPreprocessing_aft/aft_normalized.csv')
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -85,7 +85,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='accuracy',  # Using accuracy for better overall performance
+        scoring='accuracy',  # Focus on overall accuracy
         n_jobs=-1
     )
     
@@ -235,7 +235,7 @@ feature_importance_df = feature_importance_df.sort_values('Importance', ascendin
 feature_importance_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Feature_Importance/feature_importance_XGBoost.csv', index=False)
 
 # Save results
-with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') as f:
+with open('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_XGBoost.txt', 'w') as f:
     f.write("Results for XGBoost with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis

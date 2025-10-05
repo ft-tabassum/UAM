@@ -118,12 +118,19 @@ if uam_trips_total > 0:
     # BEFORE UAM: All trips use ground transport
     print("\nBEFORE UAM (All trips use ground transport):")
     before_uam_vkt = current_car_vkt + current_pt_vkt + redistributed_car_vkt + redistributed_pt_vkt
+    
+    # Calculate total Car and PT VKT before UAM
+    total_car_vkt_before_uam = current_car_vkt + redistributed_car_vkt
+    total_pt_vkt_before_uam = current_pt_vkt + redistributed_pt_vkt
 
     print(f"   Current Car VKT: {current_car_vkt:,.1f} km")
     print(f"   Current PT VKT: {current_pt_vkt:,.1f} km")
     print(f"   Redistributed Car VKT: {redistributed_car_vkt:,.1f} km")
     print(f"   Redistributed PT VKT: {redistributed_pt_vkt:,.1f} km")
     print(f"   TOTAL BEFORE UAM: {before_uam_vkt:,.1f} km")
+    
+    print(f"\n   TOTAL CAR VKT BEFORE UAM: {total_car_vkt_before_uam:,.1f} km")
+    print(f"   TOTAL PT VKT BEFORE UAM: {total_pt_vkt_before_uam:,.1f} km")
 
     # AFTER UAM: Current ground trips + access/egress trips
     print("\nAFTER UAM (Current ground trips + access/egress):")
@@ -178,6 +185,12 @@ if uam_trips_total > 0:
             'UAM Mode Share (%) (Provided)',
             'Car Occupancy',
             'PT Occupancy',
+            'Current Car VKT (km)',
+            'Current PT VKT (km)',
+            'Redistributed Car VKT (km)',
+            'Redistributed PT VKT (km)',
+            'Total Car VKT Before UAM (km)',
+            'Total PT VKT Before UAM (km)',
             'Before UAM VKT (km)',
             'After UAM VKT (km)',
             'Net VKT Impact (km)',
@@ -192,6 +205,12 @@ if uam_trips_total > 0:
             (uam_trips_total / total_provided) * 100,
             CAR_OCCUPANCY,
             PT_OCCUPANCY,
+            current_car_vkt,
+            current_pt_vkt,
+            redistributed_car_vkt,
+            redistributed_pt_vkt,
+            total_car_vkt_before_uam,
+            total_pt_vkt_before_uam,
             before_uam_vkt,
             after_uam_vkt,
             net_vkt_impact,
@@ -237,6 +256,15 @@ if uam_trips_total > 0:
         f.write(f"  Number of trips: {len(current_pt_trips):,}\n")
         f.write(f"  VKT: {current_pt_vkt:,.1f} km\n\n")
 
+        f.write("DETAILED VKT BREAKDOWN:\n")
+        f.write("-" * 40 + "\n")
+        f.write(f"Current Car VKT: {current_car_vkt:,.1f} km\n")
+        f.write(f"Current PT VKT: {current_pt_vkt:,.1f} km\n")
+        f.write(f"Redistributed Car VKT: {redistributed_car_vkt:,.1f} km\n")
+        f.write(f"Redistributed PT VKT: {redistributed_pt_vkt:,.1f} km\n")
+        f.write(f"TOTAL CAR VKT BEFORE UAM: {total_car_vkt_before_uam:,.1f} km\n")
+        f.write(f"TOTAL PT VKT BEFORE UAM: {total_pt_vkt_before_uam:,.1f} km\n\n")
+        
         f.write("FINAL VKT CALCULATION RESULTS:\n")
         f.write("-" * 40 + "\n")
         f.write(f"Before UAM VKT: {before_uam_vkt:,.1f} km\n")

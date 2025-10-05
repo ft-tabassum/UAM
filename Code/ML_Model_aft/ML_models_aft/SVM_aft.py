@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 
 # Load data of UAM survey data
-data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
+data = pd.read_csv("D:/Thesis/UAM/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])
@@ -213,7 +213,7 @@ for cls in classes:
         test_class_error[cls] = np.nan
 
 # Save results
-with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_SVM.txt', 'w') as f:
+with open('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_SVM.txt', 'w') as f:
     f.write("Results for SVM with 10-fold Cross-Validation:\n\n")
     
     # Write parameter stability analysis

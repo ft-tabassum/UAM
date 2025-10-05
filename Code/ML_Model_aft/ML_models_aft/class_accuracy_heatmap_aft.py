@@ -5,18 +5,17 @@ import seaborn as sns
 
 # Model performance data
 models = ['Random Forest', 'XGBoost', 'LightGBM', 'Neural Network', 'SVM', 'Stacking']
-classes = ['Class 0 (Car)', 'Class 1 (Public Transport)', 'Class 2 (AFT)']
+classes = ('Car', 'PT','FT')
 
 # Class-wise accuracy matrix
 class_accuracy_matrix = np.array([
-    [78.18, 91.53, 51.47],  # Random Forest
+    [70.91, 86.77, 67.65],  # Random Forest
     [79.39, 89.42, 45.59],  # XGBoost
     [71.52, 83.07, 69.12],  # LightGBM
     [73.33, 88.89, 60.29],  # Neural Network
     [76.36, 84.13, 58.82],  # SVM
-    [86.67, 86.24, 0.00]    # Stacking
+    [73.33, 83.07, 66.18]   # Stacking
 ])
-
 # Create the heatmap
 plt.figure(figsize=(12, 8))
 
@@ -33,12 +32,11 @@ heatmap = sns.heatmap(class_accuracy_matrix,
                       linecolor='white')
 
 # Customize the plot
-plt.title('Class-wise Accuracy Heatmap for All Models_oldSurveydata', fontsize=16, fontweight='bold', pad=20)
-plt.xlabel('Transportation Classes', fontsize=14, fontweight='bold')
-plt.ylabel('Machine Learning Models_oldSurveydata', fontsize=14, fontweight='bold')
+
+plt.xlabel('Class', fontsize=14, fontweight='bold')
 
 # Rotate x-axis labels for better readability
-plt.xticks(rotation=45, ha='right')
+plt.xticks(rotation=0, ha='center')
 plt.yticks(rotation=0)
 
 # Add color bar title

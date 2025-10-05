@@ -49,7 +49,7 @@ warnings.filterwarnings('ignore')
 
 # Load data of UAM survey data
 logger.info("Loading data...")
-data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
+data = pd.read_csv("D:/Thesis/UAM/Result/DataPreprocessing_aft/aft_normalized.csv")
 
 
 
@@ -170,9 +170,10 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
     logger.info("Starting Base ML_models_aft Training")
     logger.info("=" * 50)
 
-    train_meta_features = np.zeros((X_train.shape[0], len(base_models)))
-    val_meta_features = np.zeros((X_val.shape[0], len(base_models)))
-    test_meta_features = np.zeros((X_test.shape[0], len(base_models)))
+# Fixed: Include all class probabilities, not just class 1
+    train_meta_features = np.zeros((X_train.shape[0], len(base_models) * n_classes))
+    val_meta_features = np.zeros((X_val.shape[0], len(base_models) * n_classes))
+    test_meta_features = np.zeros((X_test.shape[0], len(base_models) * n_classes))
 
     # Dictionary to store best parameters for each model
     best_params_dict = {}
@@ -202,7 +203,10 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
 
             grid_search.fit(X_fold_train, y_fold_train)
             best_model = grid_search.best_estimator_
-            train_meta_features[val_idx, i] = best_model.predict_proba(X_fold_val)[:, 1]
+            # Fixed: Use all class probabilities instead of just class 1
+            start_idx = i * n_classes
+            end_idx = start_idx + n_classes
+            train_meta_features[val_idx, start_idx:end_idx] = best_model.predict_proba(X_fold_val)
             fold_pred = best_model.predict(X_fold_val)
             fold_acc = accuracy_score(y_train.iloc[val_idx], fold_pred)
             fold_scores.append(fold_acc)
@@ -226,9 +230,11 @@ def get_base_predictions_cv(X_train, X_val, X_test, y_train, base_models, param_
 
         logger.info("-" * 30)
 
-        # Get predictions for validation and test sets
-        val_meta_features[:, i] = best_model.predict_proba(X_val)[:, 1]
-        test_meta_features[:, i] = best_model.predict_proba(X_test)[:, 1]
+        # Get predictions for validation and test sets - Fixed: Use all class probabilities
+        start_idx = i * n_classes
+        end_idx = start_idx + n_classes
+        val_meta_features[:, start_idx:end_idx] = best_model.predict_proba(X_val)
+        test_meta_features[:, start_idx:end_idx] = best_model.predict_proba(X_test)
 
     return train_meta_features, val_meta_features, test_meta_features, best_params_dict, all_fold_params
 
@@ -239,32 +245,33 @@ train_meta_features, val_meta_features, test_meta_features, best_params_dict, al
     X_train, X_val, X_test, y_train, base_models, param_grids
 )
 
-# Define SVM meta-learner with important parameters only
-svm_meta_learner = SVC(probability=True, random_state=RANDOM_SEED)
-svm_param_grid = {
+# Fixed: Use Logistic Regression as meta-learner (better for stacking than SVM)
+from sklearn.linear_model import LogisticRegression
+meta_learner = LogisticRegression(random_state=RANDOM_SEED, max_iter=1000, class_weight='balanced')
+meta_param_grid = {
     'C': [0.1, 1.0, 10.0],
-    'kernel': ['rbf', 'linear'],
-    'gamma': ['scale', 'auto']
+    'penalty': ['l1', 'l2'],
+    'solver': ['liblinear', 'saga']
 }
 
-# Train SVM meta-learner
-logger.info("\nTraining SVM meta-learner...")
+# Train meta-learner
+logger.info("\nTraining meta-learner...")
 grid_search = GridSearchCV(
-    estimator=svm_meta_learner,
-    param_grid=svm_param_grid,
+    estimator=meta_learner,
+    param_grid=meta_param_grid,
     cv=5,
     scoring='accuracy',
     n_jobs=-1
 )
 
 grid_search.fit(train_meta_features, y_train)
-best_svm = grid_search.best_estimator_
+best_meta_learner = grid_search.best_estimator_
 
-# Store SVM parameters
-best_params_dict['svm_meta_learner'] = grid_search.best_params_
+# Store meta-learner parameters
+best_params_dict['meta_learner'] = grid_search.best_params_
 
 # Evaluate on validation set
-val_predictions = best_svm.predict(val_meta_features)
+val_predictions = best_meta_learner.predict(val_meta_features)
 val_accuracy = accuracy_score(y_val, val_predictions)
 val_precision = precision_score(y_val, val_predictions, average='weighted')
 val_recall = recall_score(y_val, val_predictions, average='weighted')
@@ -275,12 +282,12 @@ logger.info(f"Accuracy: {val_accuracy:.4f}")
 logger.info(f"Precision: {val_precision:.4f}")
 logger.info(f"Recall: {val_recall:.4f}")
 logger.info(f"F1 Score: {val_f1:.4f}")
-logger.info("\nBest SVM Parameters:")
+logger.info("\nBest Meta-learner Parameters:")
 logger.info(grid_search.best_params_)
 
 # Final evaluation on test set
-test_predictions = best_svm.predict(test_meta_features)
-test_proba = best_svm.predict_proba(test_meta_features)
+test_predictions = best_meta_learner.predict(test_meta_features)
+test_proba = best_meta_learner.predict_proba(test_meta_features)
 
 # Calculate test metrics
 test_accuracy = accuracy_score(y_test, test_predictions)
@@ -317,8 +324,8 @@ for name, model in base_models.items():
         feature_importances[name] = model.feature_importances_
 
 # Save results to text file
-with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_Stacking.txt', 'w') as f:
-    f.write("Results for Stacking with SVM Meta-learner (10-fold Cross-Validation):\n\n")
+with open('D:/Thesis/UAM/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_Stacking_Fixed.txt', 'w') as f:
+    f.write("Results for Stacking with Logistic Regression Meta-learner (10-fold Cross-Validation) - FIXED VERSION:\n\n")
 
     f.write("Parameter Stability Analysis:\n\n")
 
@@ -411,24 +418,24 @@ with open('/Result/ML_models_aft/Prediction_EvaluationMetrics/Result_Stacking.tx
             f.write(f"{X.columns[idx]}: {importances[idx]:.4f}\n")
         f.write("\n")
 
-logger.info("Results saved to 'Result_Stacking.txt'")
+logger.info("Results saved to 'Result_Stacking_Fixed.txt'")
 
 # Save model
-model_path = '/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_svm_model.joblib'
-joblib.dump(best_svm, model_path)
+model_path = 'D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_logistic_model.joblib'
+joblib.dump(best_meta_learner, model_path)
 logger.info(f"\nML_models_aft saved as '{model_path}'")
 
 # Save test set probabilities
 test_probs_df = pd.DataFrame(test_proba, columns=classes)
-test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_svm_test_probabilities.csv', index=False)
-logger.info("Test set probabilities saved to 'stacking_svm_test_probabilities.csv'")
+test_probs_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Probabilities/Testing_Probabilities/stacking_logistic_test_probabilities.csv', index=False)
+logger.info("Test set probabilities saved to 'stacking_logistic_test_probabilities.csv'")
 
 # Save confusion matrix
 confusion_matrix_df = pd.DataFrame(test_cm,
                                    index=[f'True_{c}' for c in classes],
                                    columns=[f'Pred_{c}' for c in classes])
-confusion_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_Stacking.csv', index=True)
-logger.info("Confusion matrix saved to 'CM_Stacking.csv'")
+confusion_matrix_df.to_csv('D:/Thesis/UAM/Result/ML_models_aft/Confusion_Matrix/CM_Stacking_Fixed.csv', index=True)
+logger.info("Confusion matrix saved to 'CM_Stacking_Fixed.csv'")
 
 # Save feature importances
 for name, importances in feature_importances.items():
