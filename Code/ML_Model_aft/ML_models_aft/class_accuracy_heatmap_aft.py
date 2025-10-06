@@ -3,18 +3,22 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# Model performance data
-models = ['Random Forest', 'XGBoost', 'LightGBM', 'Neural Network', 'SVM', 'Stacking']
+# Set font to Helvetica
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Helvetica']
+
+# Model performance data - ordered by average accuracy (highest to lowest)
+models = ['XGBoost', 'Random Forest', 'LightGBM', 'Stacking', 'Neural Network', 'SVM']
 classes = ('Car', 'PT','FT')
 
-# Class-wise accuracy matrix
+# Class-wise accuracy matrix - ordered by average accuracy (highest to lowest)
 class_accuracy_matrix = np.array([
-    [70.91, 86.77, 67.65],  # Random Forest
-    [79.39, 89.42, 45.59],  # XGBoost
-    [71.52, 83.07, 69.12],  # LightGBM
-    [73.33, 88.89, 60.29],  # Neural Network
-    [76.36, 84.13, 58.82],  # SVM
-    [73.33, 83.07, 66.18]   # Stacking
+    [75.76, 87.83, 63.24],  # XGBoost (avg: 75.61%)
+    [70.91, 86.77, 67.65],  # Random Forest (avg: 75.11%)
+    [71.52, 83.07, 69.12],  # LightGBM (avg: 74.57%)
+    [73.33, 83.07, 66.18],  # Stacking (avg: 74.19%)
+    [73.33, 88.89, 60.29],  # Neural Network (avg: 74.17%)
+    [76.36, 84.13, 58.82]   # SVM (avg: 73.10%)
 ])
 # Create the heatmap
 plt.figure(figsize=(12, 8))
@@ -25,6 +29,9 @@ heatmap = sns.heatmap(class_accuracy_matrix,
                       annot=True, 
                       fmt='.1f',
                       cmap='RdYlGn',  # Red-Yellow-Green colormap
+                      vmin=40,  # Start from 40%
+                      vmax=100,  # End at 100%
+                      center=70,  # Center at 70%
                       cbar_kws={'label': 'Accuracy (%)'},
                       xticklabels=classes,
                       yticklabels=models,
@@ -33,7 +40,8 @@ heatmap = sns.heatmap(class_accuracy_matrix,
 
 # Customize the plot
 
-plt.xlabel('Class', fontsize=14, fontweight='bold')
+plt.xlabel('Class', fontsize=14, fontweight='bold', labelpad=20)
+plt.ylabel('Model', fontsize=14, fontweight='bold', labelpad=20)
 
 # Rotate x-axis labels for better readability
 plt.xticks(rotation=0, ha='center')
@@ -47,7 +55,7 @@ cbar.set_label('Accuracy (%)', fontsize=12, fontweight='bold')
 plt.tight_layout()
 
 # Save the plot
-plt.savefig('Class_Accuracy_Heatmap.png', dpi=300, bbox_inches='tight')
+plt.savefig('D:/Thesis/UAM/Result/ML_models_aft/Class_Accuracy_Heatmap.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 # Create a detailed analysis table
@@ -132,5 +140,5 @@ ax2.tick_params(axis='x', rotation=45, ha='right')
 ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig('Accuracy_Distribution_Boxplots.png', dpi=300, bbox_inches='tight')
+plt.savefig('D:/Thesis/UAM/Result/ML_models_aft/Accuracy_Distribution_Boxplots.png', dpi=300, bbox_inches='tight')
 plt.show()

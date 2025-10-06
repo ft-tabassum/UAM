@@ -35,17 +35,18 @@ base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
     ('classifier', XGBClassifier(
         random_state=RANDOM_SEED,
-        eval_metric='mlogloss'  # Multi-class log loss
+        eval_metric='mlogloss',  # Multi-class log loss
+        max_delta_step=1  # Helps with imbalanced classes
     ))
 ])
 
 # Hyperparameter grid 
 param_grid = {
-    'classifier__n_estimators': [90, 100, 110],  # Increased number of trees
-    'classifier__max_depth': [3, 4, 5],  # XGBoost typically needs smaller depth
-    'classifier__learning_rate': [0.001, 0.005, 0.01],  # Smaller learning rates
-    'classifier__subsample': [0.8, 0.9, 1.0],  # Subsample ratio
-    'classifier__colsample_bytree': [0.8, 0.9, 1.0]  # Column sampling
+    'classifier__n_estimators': [150, 200],  # More trees for better minority class learning
+    'classifier__max_depth': [6, 8],  # Deeper for better Class 2 pattern recognition
+    'classifier__learning_rate': [0.05, 0.1],  # Higher learning rate for minority class
+    'classifier__subsample': [0.8, 1.0],  # Subsample ratio
+    'classifier__colsample_bytree': [0.8, 1.0]  # Column sampling
 }
 
 # Split data into train+val and test
@@ -85,7 +86,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='accuracy',  # Focus on overall accuracy
+        scoring='recall_macro',  # Focus on all classes equally - better for Class 2
         n_jobs=-1
     )
     
