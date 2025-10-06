@@ -230,7 +230,7 @@ def save_results(data, file_path):
     """Save analysis results"""
     
     # Create output directory
-    output_dir = Path("Result/DataPreprocessing_aft/Main_Data_Analysis/simpleMain")
+    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Save data summary
@@ -329,7 +329,7 @@ def main():
         data = analyze_main_data(file_path)
         if data is not None:
             print(f"\n✓ Analysis completed successfully!")
-            print(f"✓ Results saved to: Result/DataPreprocessing_aft/Main_Data_Analysis/")
+            print(f"✓ Results saved to: Result/DataPreprocessing_aft/Main_Data_Analysis_2/")
         else:
             print(f"\n✗ Analysis failed!")
     except Exception as e:

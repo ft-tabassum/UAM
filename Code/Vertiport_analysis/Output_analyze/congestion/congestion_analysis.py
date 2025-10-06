@@ -93,13 +93,14 @@ if len(uam_trips) > 0:
     redistributed_car_vkt = ((uam_trips['trip_length_km'] * uam_trips['car_prob_norm']) / CAR_OCCUPANCY).sum()
     redistributed_pt_vkt = ((uam_trips['trip_length_km'] * uam_trips['pt_prob_norm']) / PT_OCCUPANCY).sum()
 
-    # Calculate access/egress VKT
+    # Calculate access/egress VKT with car occupancy applied
     if 'origin_to_vertiport_dist' in uam_trips.columns and 'dest_to_vertiport_dist' in uam_trips.columns:
         uam_trips['origin_to_vertiport_km'] = uam_trips['origin_to_vertiport_dist'] / 1000
         uam_trips['dest_to_vertiport_km'] = uam_trips['dest_to_vertiport_dist'] / 1000
 
-        first_mile_vkt = uam_trips['origin_to_vertiport_km'].sum()
-        last_mile_vkt = uam_trips['dest_to_vertiport_km'].sum()
+        # Apply car occupancy to access/egress VKT (assuming all access/egress is by car)
+        first_mile_vkt = (uam_trips['origin_to_vertiport_km'] / CAR_OCCUPANCY).sum()
+        last_mile_vkt = (uam_trips['dest_to_vertiport_km'] / CAR_OCCUPANCY).sum()
         access_egress_vkt = first_mile_vkt + last_mile_vkt
 
 # Use provided values for analysis
@@ -138,7 +139,7 @@ if uam_trips_total > 0:
 
     print(f"   Current Car VKT: {current_car_vkt:,.1f} km")
     print(f"   Current PT VKT: {current_pt_vkt:,.1f} km")
-    print(f"   Access/Egress VKT: {access_egress_vkt:,.1f} km (no occupancy - vehicle trips)")
+    print(f"   Access/Egress VKT: {access_egress_vkt:,.1f} km (with car occupancy {CAR_OCCUPANCY})")
     print(f"   TOTAL AFTER UAM: {after_uam_vkt:,.1f} km")
 
     # Calculate net impact
@@ -271,7 +272,7 @@ if uam_trips_total > 0:
         f.write(f"After UAM VKT: {after_uam_vkt:,.1f} km\n")
         f.write(f"Net VKT Impact: {net_vkt_impact:+,.1f} km ({net_vkt_impact_pct:+.2f}%)\n")
         f.write(f"Main Trip VKT Reduction: {main_trip_vkt_reduction:,.1f} km\n")
-        f.write(f"Access/Egress VKT: {access_egress_vkt:,.1f} km\n")
+        f.write(f"Access/Egress VKT: {access_egress_vkt:,.1f} km (with car occupancy {CAR_OCCUPANCY})\n")
         f.write(f"Break-even Ratio: {break_even_ratio:.2f}\n\n")
 
         f.write("CONCLUSION:\n")

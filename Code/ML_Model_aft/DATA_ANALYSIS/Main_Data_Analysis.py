@@ -235,7 +235,7 @@ def create_visualizations(data):
     sns.set_palette("husl")
     
     # Create output directory
-    output_dir = Path("Result/DataPreprocessing_aft/Main_Data_Analysis")
+    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Target variable distribution
@@ -438,7 +438,7 @@ def save_analysis_results(data, file_path):
     """Save analysis results to files"""
     
     # Create output directory
-    output_dir = Path("Result/DataPreprocessing_aft/Main_Data_Analysis")
+    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Save data summary
@@ -508,7 +508,7 @@ def main():
         print("Please update the file_path variable in the script with the correct path.")
         print("\nTo use this script:")
         print("1. Update the file_path variable with your actual file location")
-        print("2. Run the script: python Main_Data_Analysis.py")
+        print("2. Run the script: python Main_Data_Analysis_2.py")
         return
     
     # Run analysis
@@ -516,7 +516,7 @@ def main():
         data = load_and_analyze_main_data(file_path)
         if data is not None:
             print(f"\n[SUCCESS] Analysis completed successfully!")
-            print(f"[SUCCESS] Results saved to: Result/DataPreprocessing_aft/Main_Data_Analysis/")
+            print(f"[SUCCESS] Results saved to: Result/DataPreprocessing_aft/Main_Data_Analysis_2/")
         else:
             print(f"\n[ERROR] Analysis failed!")
     except Exception as e:

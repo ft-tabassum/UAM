@@ -21,7 +21,7 @@ def analyze_aft_likelihood_by_trip_purpose():
     print("="*80)
     
     # Create output directory
-    output_dir = Path("Result/DataPreprocessing_aft/Main_Data_Analysis/simpleMain")
+    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Get likelihood variables (trip purposes)

@@ -27,7 +27,7 @@ def extract_demographic_data():
         return
     
     # Create output directory
-    output_dir = Path("Result/DataPreprocessing_aft/Main_Data_Analysis/Demographic_Data")
+    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2/Demographic_Data")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Extract demographic columns

@@ -21,15 +21,15 @@ logger = logging.getLogger()
 
 # Create output directories
 os.makedirs(
-    '../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Testing_Probabilities', exist_ok=True)
+    '../../Model_XgBoost/Trained_Model_EvaluationOutput/Testing_Probabilities', exist_ok=True)
 os.makedirs(
-    '../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Training_Probabilities', exist_ok=True)
+    '../../Model_XgBoost/Trained_Model_EvaluationOutput/Training_Probabilities', exist_ok=True)
 os.makedirs(
-    '../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Feature_Importance', exist_ok=True)
-os.makedirs('../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Confusion_Matrix', exist_ok=True)
+    '../../Model_XgBoost/Trained_Model_EvaluationOutput/Feature_Importance', exist_ok=True)
+os.makedirs('../../Model_XgBoost/Trained_Model_EvaluationOutput/Confusion_Matrix', exist_ok=True)
 os.makedirs(
-    '../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics', exist_ok=True)
-os.makedirs('../../../Result/check_ignor/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
+    '../../Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics', exist_ok=True)
+os.makedirs('../../Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
 
 # Load LighterModel data (UAM-aware data for training)
 logger.info("Loading processed LighterModel data...")
@@ -266,7 +266,7 @@ feature_importance_df.to_csv('../../../Result/Vertiport_analysis/Model_XgBoost/T
 
 # Save results
 with open(
-        '../../../Result/check_ignor/Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics/Xgboost_LighterModel_evaluation.txt', 'w') as f:
+        '../../Model_XgBoost/Trained_Model_EvaluationOutput/Prediction_EvaluationMetrics/Xgboost_LighterModel_evaluation.txt', 'w') as f:
     f.write("Results for LighterModel XGBoost with 10-fold Cross-Validation:\n\n")
 
     # Write parameter stability analysis
@@ -356,8 +356,8 @@ model_data = {
     'test_f1': test_f1,
     'test_roc_auc': test_roc_auc
 }
-os.makedirs('../../../Result/check_ignor/Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
-with open('../../../Result/check_ignor/Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
+os.makedirs('../../Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
+with open('../../Model_XgBoost/Trained_Model_XgBoost/xgboost_model_LighterModel.pkl', 'wb') as f:
     pickle.dump(model_data, f)
 
 logger.info("Step 1 complete: ML_Model_aft trained, validated, and tested. Model saved for Part 2.")
