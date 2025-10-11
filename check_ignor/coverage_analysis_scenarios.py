@@ -1,21 +1,26 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime
 import os
+from datetime import datetime
 
-def analyze_vertiport_coverage():
+def analyze_vertiport_coverage_scenario(radius_km):
     """
-    Analyze how many demand points are covered by the 74 vertiports
-    """
-    print("Analyzing vertiport coverage...")
+    Analyze vertiport coverage for a specific catchment radius scenario.
+    This follows the exact same 3-step methodology as coverage_analysis.py
     
-    # Create output directory if it doesn't exist
-    output_dir = "D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/Coverage_Analysis"
+    Args:
+        radius_km: Catchment radius in kilometers (4, 6, or 7)
+    """
+    print(f"\n{'='*80}")
+    print(f"ANALYZING {radius_km}KM CATCHMENT SCENARIO")
+    print(f"{'='*80}\n")
+    
+    # Create output directory
+    output_dir = f"/Result/Vertiport_analysis/Output_analyze/Coverage_Analysis"
     os.makedirs(output_dir, exist_ok=True)
     
     # Create output filename
-    output_file = os.path.join(output_dir, "5km_coverage_analysis_report.txt")
+    output_file = os.path.join(output_dir, f"{radius_km}km_coverage_analysis_report.txt")
     
     # Initialize report content
     report_content = []
@@ -27,25 +32,24 @@ def analyze_vertiport_coverage():
     
     # Load the prediction results
     try:
-        # The file is very large, so we'll read it in chunks
-        add_to_report("Loading prediction data...")
+        add_to_report(f"Loading prediction data for {radius_km}km scenario...")
         df = pd.read_csv(
-            "D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv",
+            f"D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/{radius_km}km_radius_LightGBM_synthetic_population_predictions_weights.csv",
             low_memory=False)
         add_to_report(f"Loaded {len(df):,} demand points")
         
     except Exception as e:
         add_to_report(f"Error loading data: {e}")
-        return
+        return None
     
     # Load vertiport coordinates
     try:
         vertiports = pd.read_csv(
-            "D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_optimized_vertiport_coords_final.csv")
+            f"D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid/{radius_km}km_radius_optimized_vertiport_coords_final.csv")
         add_to_report(f"Loaded {len(vertiports)} vertiports")
     except Exception as e:
         add_to_report(f"Error loading vertiport coordinates: {e}")
-        return
+        return None
     
     # Analysis 1: Demand Points Overview
     add_to_report("\n" + "="*60)
@@ -74,8 +78,8 @@ def analyze_vertiport_coverage():
     dests_in_catchment = df['dest_in_catchment'].sum()
     
     add_to_report(f"\nSupplementary Information:")
-    add_to_report(f"  Origins within 5km of vertiports: {origins_in_catchment:,} ({origins_in_catchment/total_trips*100:.1f}%)")
-    add_to_report(f"  Destinations within 5km of vertiports: {dests_in_catchment:,} ({dests_in_catchment/total_trips*100:.1f}%)")
+    add_to_report(f"  Origins within {radius_km}km of vertiports: {origins_in_catchment:,} ({origins_in_catchment/total_trips*100:.1f}%)")
+    add_to_report(f"  Destinations within {radius_km}km of vertiports: {dests_in_catchment:,} ({dests_in_catchment/total_trips*100:.1f}%)")
     
     # Analysis 2: Potential UAM Trips Calculation
     add_to_report("\n" + "="*60)
@@ -99,7 +103,7 @@ def analyze_vertiport_coverage():
         add_to_report(f"Error: UAM probability column '{uam_prob_col}' not found in data")
         prob_cols = [col for col in df.columns if 'prob_mode_' in col]
         add_to_report(f"Available probability columns: {prob_cols}")
-        return
+        return None
     
     # Calculate average UAM probability and potential UAM trips
     avg_uam_probability = df[uam_prob_col].mean()
@@ -116,7 +120,7 @@ def analyze_vertiport_coverage():
     add_to_report("")
     add_to_report("DESCRIPTION:")
     add_to_report("This analysis shows how people access vertiports - either by walking")
-    add_to_report("(within 1km catchment) or by car (within 5km catchment).")
+    add_to_report(f"(within 1km catchment) or by car (within {radius_km}km catchment).")
     add_to_report("Walking access is more convenient but has a smaller catchment area.")
     add_to_report("")
     
@@ -162,7 +166,7 @@ def analyze_vertiport_coverage():
     add_to_report("="*60)
     add_to_report("")
     add_to_report("DESCRIPTION:")
-    add_to_report("This analysis shows how demand points are distributed across the 74 vertiports.")
+    add_to_report(f"This analysis shows how demand points are distributed across the {len(vertiports)} vertiports.")
     add_to_report("It helps identify if some vertiports are overloaded or underutilized.")
     add_to_report("")
     
@@ -190,11 +194,11 @@ def analyze_vertiport_coverage():
     add_to_report("DESCRIPTION:")
     add_to_report("From the potential UAM trips calculated in Step 2, we now determine how many")
     add_to_report("can actually be served by the current vertiport network. A UAM trip is COVERED")
-    add_to_report("ONLY when BOTH origin AND destination are within 5km of vertiports.")
+    add_to_report(f"ONLY when BOTH origin AND destination are within {radius_km}km of vertiports.")
     add_to_report("")
     add_to_report("COVERAGE DEFINITION:")
-    add_to_report("✓ COVERED = Both origin AND destination within 5km catchment area")
-    add_to_report("✗ NOT COVERED = At least one endpoint outside 5km catchment area")
+    add_to_report(f"✓ COVERED = Both origin AND destination within {radius_km}km catchment area")
+    add_to_report(f"✗ NOT COVERED = At least one endpoint outside {radius_km}km catchment area")
     add_to_report("")
     
     # Calculate UAM demand for each coverage category
@@ -210,12 +214,12 @@ def analyze_vertiport_coverage():
     add_to_report(f"FROM POTENTIAL UAM DEMAND: {total_potential_uam_trips:,.0f} trips")
     add_to_report(f"")
     add_to_report(f"✓ COVERED UAM DEMAND: {uam_both_covered:,.0f} trips ({uam_demand_coverage_efficiency:.1f}%)")
-    add_to_report(f"    → CAN be served by current 74 vertiports")
-    add_to_report(f"    → Both origin AND destination within 5km")
+    add_to_report(f"    → CAN be served by current {len(vertiports)} vertiports")
+    add_to_report(f"    → Both origin AND destination within {radius_km}km")
     add_to_report(f"")
     add_to_report(f"✗ NOT COVERED UAM DEMAND: {uam_not_covered:,.0f} trips ({(100 - uam_demand_coverage_efficiency):.1f}%)")
     add_to_report(f"    → CANNOT be served by current vertiport network")
-    add_to_report(f"    → At least one endpoint outside 5km")
+    add_to_report(f"    → At least one endpoint outside {radius_km}km")
     
     # Breakdown of not covered
     uam_partial = uam_only_origin_covered + uam_only_dest_covered
@@ -248,9 +252,9 @@ def analyze_vertiport_coverage():
     add_to_report(f"  Should equal potential UAM demand: {total_potential_uam_trips:,.0f} ✓")
     
     # Average UAM probability by coverage category
-        avg_uam_prob_both = df[both_covered][uam_prob_col].mean()
+    avg_uam_prob_both = df[both_covered][uam_prob_col].mean()
     avg_uam_prob_partial = df[only_origin_covered | only_dest_covered][uam_prob_col].mean()
-        avg_uam_prob_neither = df[neither_covered][uam_prob_col].mean()
+    avg_uam_prob_neither = df[neither_covered][uam_prob_col].mean()
     
     add_to_report(f"")
     add_to_report(f"AVERAGE UAM PROBABILITY BY COVERAGE STATUS:")
@@ -268,7 +272,7 @@ def analyze_vertiport_coverage():
     add_to_report("where demand points are considered 'covered'.")
     add_to_report("")
     add_to_report(f"Walking catchment distance: 1,000m (1.0km)")
-    add_to_report(f"Car catchment distance: 5,000m (5.0km)")
+    add_to_report(f"Car catchment distance: {radius_km*1000:,.0f}m ({radius_km}.0km)")
     add_to_report(f"Note: A demand point is covered only if BOTH origin AND destination")
     add_to_report(f"      are within their respective catchment areas.")
     
@@ -291,21 +295,21 @@ def analyze_vertiport_coverage():
     add_to_report(f"\nSTEP 3 - UAM DEMAND COVERAGE:")
     add_to_report(f"  • From {total_potential_uam_trips:,.0f} potential UAM trips:")
     add_to_report(f"      ✓ COVERED: {uam_both_covered:,.0f} trips ({uam_demand_coverage_efficiency:.1f}%)")
-    add_to_report(f"         (Both endpoints within 5km - CAN be served)")
+    add_to_report(f"         (Both endpoints within {radius_km}km - CAN be served)")
     add_to_report(f"      ✗ NOT COVERED: {uam_not_covered:,.0f} trips ({(100-uam_demand_coverage_efficiency):.1f}%)")
-    add_to_report(f"         (At least one endpoint outside 5km - CANNOT be served)")
+    add_to_report(f"         (At least one endpoint outside {radius_km}km - CANNOT be served)")
     add_to_report(f"")
     add_to_report(f"  • Coverage efficiency: {uam_demand_coverage_efficiency:.1f}% of potential UAM demand can be served")
     
     # Add header information to the report
     header_info = [
-        "VERTIPORT COVERAGE ANALYSIS REPORT",
+        f"VERTIPORT COVERAGE ANALYSIS REPORT - {radius_km}KM CATCHMENT SCENARIO",
         "=" * 50,
         f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"Analysis Date: {datetime.now().strftime('%B %d, %Y')}",
         "",
         "OVERVIEW:",
-        "This report analyzes the coverage of 74 optimized vertiports across",
+        f"This report analyzes the coverage of {len(vertiports)} optimized vertiports across",
         "the study area. A 'demand point' represents a complete trip from origin",
         "to destination, and is considered 'covered' only if BOTH endpoints are",
         "within vertiport catchment areas.",
@@ -314,14 +318,14 @@ def analyze_vertiport_coverage():
         "• Demand points: Complete trips (origin to destination)",
         "• Coverage definition: BOTH endpoints must be within catchment",
         "• UAM demand: Weighted by ML-predicted UAM probability values",
-        "• Catchment areas: 1km walking, 5km car access",
+        f"• Catchment areas: 1km walking, {radius_km}km car access",
         "",
         "=" * 50,
         ""
     ]
     
     # Create coverage summary CSV file
-    summary_file = os.path.join(output_dir, "5km_coverage_summary.csv")
+    summary_file = os.path.join(output_dir, f"{radius_km}km_coverage_summary.csv")
     
     try:
         # Prepare summary data
@@ -340,8 +344,8 @@ def analyze_vertiport_coverage():
                 'Trips - Only Origin Covered',
                 'Trips - Only Destination Covered',
                 'Trips - Neither Endpoint Covered',
-                'Origins within 5km (Supplementary)',
-                'Destinations within 5km (Supplementary)',
+                f'Origins within {radius_km}km (Supplementary)',
+                f'Destinations within {radius_km}km (Supplementary)',
                 'UAM Demand - Partial Coverage',
                 'UAM Demand - No Coverage'
             ],
@@ -384,9 +388,10 @@ def analyze_vertiport_coverage():
         
     except Exception as e:
         add_to_report(f"\nError saving files: {e}")
-        return
+        return None
     
     return {
+        'radius_km': radius_km,
         'total_trips': total_trips,
         'total_demand_points': total_demand_points,
         'avg_uam_probability': avg_uam_probability,
@@ -395,44 +400,76 @@ def analyze_vertiport_coverage():
         'uam_not_covered': uam_not_covered,
         'uam_demand_coverage_efficiency': uam_demand_coverage_efficiency,
         'both_covered_count': both_covered_count,
-        'only_origin_covered': only_origin_covered_count,
-        'only_dest_covered': only_dest_covered_count,
-        'partial_coverage': partial_coverage,
-        'neither_covered': neither_covered_count,
-        'origins_covered': origins_in_catchment,
-        'dests_covered': dests_in_catchment,
-        'origin_assignments': origin_assignments,
-        'dest_assignments': dest_assignments,
-        'uam_partial': uam_partial,
-        'uam_neither_covered': uam_neither_covered
+        'vertiports_count': len(vertiports)
     }
 
-if __name__ == "__main__":
-    results = analyze_vertiport_coverage()
+
+def run_all_scenarios():
+    """
+    Run coverage analysis for all catchment radius scenarios: 4km, 6km, 7km
+    """
+    print("\n" + "="*80)
+    print("VERTIPORT COVERAGE ANALYSIS - MULTIPLE SCENARIOS")
+    print("="*80)
+    print("\nThis script will analyze coverage for 4km, 6km, and 7km catchment scenarios")
+    print("The 5km baseline analysis is in coverage_analysis.py (unchanged)")
+    print("="*80 + "\n")
     
-    # Print a concise summary to console
-    if results:
+    scenarios = [4, 6, 7]
+    results = []
+    
+    for radius in scenarios:
+        result = analyze_vertiport_coverage_scenario(radius)
+        if result:
+            results.append(result)
+        print("\n" + "="*80 + "\n")
+    
+    # Create comparison summary
+    if len(results) > 0:
         print("\n" + "="*80)
-        print("COVERAGE ANALYSIS SUMMARY")
+        print("SCENARIO COMPARISON SUMMARY")
         print("="*80)
-        print(f"\nSTEP 1 - TOTAL DEMAND POINTS:")
-        print(f"  Total trips = Total demand points: {results['total_trips']:,}")
-        print(f"  (Each trip from origin to destination = 1 demand point)")
+        print(f"\n{'Metric':<40} {'4km':<15} {'6km':<15} {'7km':<15}")
+        print("-"*85)
         
-        print(f"\nSTEP 2 - POTENTIAL UAM TRIPS:")
-        print(f"  Average UAM probability: {results['avg_uam_probability']:.4f} ({results['avg_uam_probability']*100:.2f}%)")
-        print(f"  Calculation: {results['total_trips']:,} × {results['avg_uam_probability']:.4f}")
-        print(f"  Potential UAM trips: {results['total_potential_uam_trips']:,.0f}")
+        # Create comparison table
+        comparison_file = "/Result/Vertiport_analysis/Output_analyze/Coverage_Analysis/scenario_comparison_summary.csv"
         
-        print(f"\nSTEP 3 - UAM DEMAND COVERAGE:")
-        print(f"  From {results['total_potential_uam_trips']:,.0f} potential UAM trips:")
-        print(f"    ✓ COVERED: {results['uam_covered']:,.0f} trips ({results['uam_demand_coverage_efficiency']:.1f}%)")
-        print(f"       → CAN be served (both endpoints within 5km)")
-        print(f"    ✗ NOT COVERED: {results['uam_not_covered']:,.0f} trips ({100-results['uam_demand_coverage_efficiency']:.1f}%)")
-        print(f"       → CANNOT be served (at least one endpoint outside 5km)")
+        comparison_data = {
+            'Catchment Radius (km)': [],
+            'Number of Vertiports': [],
+            'Total Trips': [],
+            'Potential UAM Trips': [],
+            'Covered UAM Demand': [],
+            'Coverage Efficiency (%)': []
+        }
         
-        print("\n" + "="*80)
-        print(f"COVERAGE EFFICIENCY: {results['uam_demand_coverage_efficiency']:.1f}% of potential UAM demand can be served")
+        for r in results:
+            comparison_data['Catchment Radius (km)'].append(r['radius_km'])
+            comparison_data['Number of Vertiports'].append(r['vertiports_count'])
+            comparison_data['Total Trips'].append(r['total_trips'])
+            comparison_data['Potential UAM Trips'].append(f"{r['total_potential_uam_trips']:.0f}")
+            comparison_data['Covered UAM Demand'].append(f"{r['uam_covered']:.0f}")
+            comparison_data['Coverage Efficiency (%)'].append(f"{r['uam_demand_coverage_efficiency']:.1f}")
+            
+            print(f"Catchment Radius: {r['radius_km']}km")
+            print(f"  Vertiports: {r['vertiports_count']}")
+            print(f"  Potential UAM: {r['total_potential_uam_trips']:,.0f} trips")
+            print(f"  Covered: {r['uam_covered']:,.0f} trips ({r['uam_demand_coverage_efficiency']:.1f}%)")
+            print()
+        
+        # Save comparison CSV
+        comparison_df = pd.DataFrame(comparison_data)
+        comparison_df.to_csv(comparison_file, index=False)
+        
         print("="*80)
-        print("\nDetailed report and summary CSV saved to Coverage_Analysis directory")
+        print(f"Comparison summary saved to: {comparison_file}")
         print("="*80)
+        print("\nAll scenario analyses complete!")
+        print("Individual reports saved for each scenario (4km, 6km, 7km)")
+        print("="*80)
+
+
+if __name__ == "__main__":
+    run_all_scenarios()
+

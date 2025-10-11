@@ -9,7 +9,7 @@ plt.rcParams['font.size'] = 12
 
 # Load the data
 data = pd.read_csv(
-    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv')
 
 print("=" * 80)
 print("UAM REPLACEMENT ANALYSIS VISUALIZATION")
@@ -81,37 +81,58 @@ plt.savefig(bar_path, dpi=300, bbox_inches='tight')
 print(f"Bar chart saved to: {bar_path}")
 plt.show()
 
-# 3. Distance-based analysis
-plt.figure(figsize=(12, 8))
-distance_categories = ['Medium\n(20-50km)', 'Long\n(50-100km)', 'Very Long\n(>100km)']
-pt_shares = [15.30, 71.41, 81.58]
-car_shares = [100 - share for share in pt_shares]
+# 3. Distance-based analysis - 3 categories only
+plt.figure(figsize=(12, 10))
 
-x = np.arange(len(distance_categories))
-width = 0.35
+# Convert trip_length from meters to km
+uam_trips['trip_length_km'] = uam_trips['trip_length'] / 1000
 
-bars1 = plt.bar(x - width/2, pt_shares, width, label='Replacing PT', color='#ff7f0e', alpha=0.8, edgecolor='black')
-bars2 = plt.bar(x + width/2, car_shares, width, label='Replacing Car', color='#1f77b4', alpha=0.8, edgecolor='black')
+# Create 3 distance bins: 20-50, 50-100, 100-150
+distance_bins = pd.cut(uam_trips['trip_length_km'], 
+                      bins=[20, 50, 100, 150],
+                      labels=['20-50', '50-100', '100-150'])
 
-plt.title('UAM Replacement by Distance Category', #\n\nHow UAM Competition Changes with Distance
-          fontsize=18, fontweight='bold', pad=20)
-plt.ylabel('Percentage (%)', fontsize=16, fontweight='bold')
-plt.xlabel('Distance Category', fontsize=16, fontweight='bold')
-plt.xticks(x, distance_categories, fontsize=16)
-plt.legend(fontsize=14)
-plt.grid(axis='y', alpha=0.3)
-plt.ylim(0, 100)
+# Calculate replacement shares by distance
+distance_analysis = pd.DataFrame()
+distance_analysis['Replacing_PT'] = uam_trips.groupby(distance_bins)['uam_replaces_pt'].apply(lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0)
+distance_analysis['Replacing_Car'] = uam_trips.groupby(distance_bins)['uam_replaces_car'].apply(lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0)
+distance_analysis['Trip_Count'] = uam_trips.groupby(distance_bins).size()
 
-# Add percentage labels on bars
-for i, (pt, car) in enumerate(zip(pt_shares, car_shares)):
-    plt.text(i - width/2, pt + 2, f'{pt:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=14)
-    plt.text(i + width/2, car + 2, f'{car:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=14)
+# Filter only bins with data
+distance_analysis = distance_analysis[distance_analysis['Trip_Count'] > 0]
 
-plt.tight_layout()
-distance_path = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/uam_replacement_by_distance.png'
-plt.savefig(distance_path, dpi=300, bbox_inches='tight')
-print(f"Distance analysis saved to: {distance_path}")
-plt.show()
+if len(distance_analysis) > 0:
+    x = np.arange(len(distance_analysis))
+    width = 0.35
+    
+    bars1 = plt.bar(x - width/2, distance_analysis['Replacing_PT'], width, 
+                   label='Replacing PT', color='#ff7f0e', alpha=0.8, edgecolor='black', linewidth=2)
+    bars2 = plt.bar(x + width/2, distance_analysis['Replacing_Car'], width, 
+                   label='Replacing Car', color='#1f77b4', alpha=0.8, edgecolor='black', linewidth=2)
+    
+    # No title
+    plt.ylabel('Percentage (%)', fontsize=22, fontweight='bold')
+    plt.xlabel('Distance (km)', fontsize=22, fontweight='bold')
+    plt.xticks(x, distance_analysis.index, fontsize=20, fontweight='bold')  # Show ranges: 20-50, 50-100, 100-150
+    plt.yticks(fontsize=20, fontweight='bold')
+    plt.legend(fontsize=18, loc='best')
+    plt.grid(axis='y', alpha=0.3, linestyle='--', linewidth=1)
+    plt.ylim(0, 110)
+    
+    # Add percentage labels on bars - larger font
+    for i, (pt, car) in enumerate(zip(distance_analysis['Replacing_PT'], distance_analysis['Replacing_Car'])):
+        if pt > 0:
+            plt.text(i - width/2, pt + 2, f'{pt:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=18)
+        if car > 0:
+            plt.text(i + width/2, car + 2, f'{car:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=18)
+    
+    plt.tight_layout()
+    distance_path = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/uam_replacement_by_distance.png'
+    plt.savefig(distance_path, dpi=300, bbox_inches='tight')
+    print(f"Distance analysis saved to: {distance_path}")
+    plt.show()
+else:
+    print("No data available for distance analysis")
 
 # 4. Summary infographic
 plt.figure(figsize=(12, 8))

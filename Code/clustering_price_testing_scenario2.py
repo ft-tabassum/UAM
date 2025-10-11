@@ -16,6 +16,7 @@ random.seed(42)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
+
 # imputer that preserves feature names (required for loading pickle file)
 class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
     def __init__(self, strategy='constant', fill_value=0):
@@ -29,6 +30,7 @@ class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
         # Fill missing values while preserving DataFrame structure
         X_filled = X.fillna(self.fill_value)
         return X_filled
+
 
 # Load the trained model from Part 1 using joblib
 logger.info("Loading trained LightGBM model from Part 1...")
@@ -53,7 +55,7 @@ synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
 # Sample 10% of population
-# synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -70,11 +72,11 @@ logger.info("Step 2 complete: Initial vertiport locations set.")
 # UAM travel time and travel cost calculation value, based on assumptions from the literature
 vertiport_k = 74  # centriod        (Guo et al., 2025)
 uam_cruise_speed = 4166.67  # unit:m/min,     250 km/h
-# uam_cost_m = 0.005  # unit: €/m,     5 €/km
-# uam_cost_m = 0.001  # unit: €/m,     1 €/km (individual trip cost)
-# uam_cost_m = 0.00167  # unit: €/m,     1.67 €/km (individual trip cost)
-uam_cost_m = 0.002  # unit: €/m,     2 €/km (individual trip cost)
-uam_base_fare = 5.0  # unit: €,      5 € base fare per trip
+# Price testing scenarios:
+# Scenario 1: base fare €0 + €3/km
+# Scenario 2: base fare €5 + €5/km
+uam_cost_m = 0.005  # unit: €/m,     5 €/km (Scenario 2)
+uam_base_fare = 5.0  # unit: €,      5 € base fare per trip (Scenario 2)
 uam_passenger_capacity = 4  # passengers per UAM vehicle (vehicle specification)
 pre_flight_time = 15  # unit : min      (Rothfeld, 2021)
 average_car_speed = 418.33  # unit: m/min,    25.1 km/h (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
@@ -91,6 +93,7 @@ convergence_history = []  # Track centroid shifts per iteration
 weight_history = []  # Track weights per iteration
 uam_prob_history = []  # Track UAM probabilities per iteration
 distance_change_history = []  # Track distance matrix changes per iteration
+
 
 # function to calculate UAM time and travel cost with multimodal access (car + walking)
 def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, car_cost=cost_per_m_car,
@@ -172,7 +175,7 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         0,  # walking is free
         last_mile_dist * car_cost  # car cost
     )
-    # Calculate UAM cost: €2.00/km + €5.00 base fare per trip (individual trip cost)
+    # Calculate UAM cost: €5.00/km + €5.00 base fare per trip (individual trip cost)
     # Fixed cost per kilometer plus base fare regardless of passenger count
     # Vehicle capacity (4 passengers) is just vehicle specification
     uam_travel_cost = base_fare + (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
@@ -203,6 +206,7 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     df['dest_access_cost'] = last_mile_cost  # access cost in euros
     return df
 
+
 # predict mode probabilities function
 def predict_mode_probabilities(df, model,
                                feature_cols):  # features are arranged identically to how they were during training
@@ -225,9 +229,10 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
     max_change = np.max(relative_change)
     return max_change < threshold, max_change
 
+
 # convergence
 max_iter = 50
-distance_stability_threshold = 0.35  # 35% relative change threshold
+distance_stability_threshold = 0.987  # 9% relative change threshold
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -235,9 +240,10 @@ feature_cols = feature_names
 # Initialize min_total_shift for convergence tracking
 min_total_shift = float('nan')
 
-# Define centroid directory for saving visualizations
-centroid_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid'
-os.makedirs(centroid_dir, exist_ok=True)
+# Define output directory for price testing - Scenario 2
+output_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario2_base5_perkm5'
+os.makedirs(output_dir, exist_ok=True)
+
 
 # Visualization function to plot centroid and demand
 def plot_centroids_and_demand(centroids, origins, destinations, iteration, save_path):
@@ -329,6 +335,7 @@ def weighted_kmeans(X, w, K, max_iter=1000, tol=1e-1,
 
     return labels, centers, history
 
+
 for iteration in range(max_iter):
     logger.info(f"Iteration {iteration + 1}...")
 
@@ -353,17 +360,18 @@ for iteration in range(max_iter):
         vertiport_coords = new_coords
         centroid_history.append(vertiport_coords.copy())
 
-        # Save intermediate visualization for first iteration
-        intermediate_plot_path = os.path.join(centroid_dir, f'5km_radius_centroids_iteration_{iteration + 1}_unweighted.png')
-        plot_centroids_and_demand(
-            new_coords,
-            origins,
-            dests,
-            iteration + 1,
-            intermediate_plot_path
-        )
-        logger.info(
-            f"First iteration (unweighted) visualization saved: 5km_radius_centroids_iteration_{iteration + 1}_unweighted.png")
+        # Save intermediate visualization for first iteration (DISABLED - not needed)
+        # intermediate_plot_path = os.path.join(output_dir,
+        #                                       f'5km_radius_centroids_iteration_{iteration + 1}_unweighted.png')
+        # plot_centroids_and_demand(
+        #     new_coords,
+        #     origins,
+        #     dests,
+        #     iteration + 1,
+        #     intermediate_plot_path
+        # )
+        # logger.info(
+        #     f"First iteration (unweighted) visualization saved: 5km_radius_centroids_iteration_{iteration + 1}_unweighted.png")
 
     else:
         # SUBSEQUENT ITERATIONS: Weighted K-means based on UAM probabilities
@@ -372,7 +380,8 @@ for iteration in range(max_iter):
         # Calculate UAM travel time and cost for each trip
         synthetic_population_with_uam = calculate_uam_time_cost(synthetic_population, vertiport_coords,
                                                                 average_car_speed,
-                                                                cost_per_m_car, base_fare=uam_base_fare)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
+                                                                cost_per_m_car,
+                                                                base_fare=uam_base_fare)  # synthetic_population_with_uam is the DataFrame with UAM calculations, only ML features, no UAM calculations
         synthetic_population_with_uam_full = synthetic_population_with_uam.copy()  # Keep full version for final output
 
         # Log multimodal catchment area statistics
@@ -474,7 +483,8 @@ for iteration in range(max_iter):
 
         # Recalculate UAM features with new vertiport coordinates
         synthetic_population_with_uam_updated = calculate_uam_time_cost(synthetic_population, vertiport_coords,
-                                                                        average_car_speed, cost_per_m_car, base_fare=uam_base_fare)
+                                                                        average_car_speed, cost_per_m_car,
+                                                                        base_fare=uam_base_fare)
 
         # Get updated probabilities with new UAM features
         for col in feature_cols:
@@ -499,6 +509,7 @@ for iteration in range(max_iter):
             scaled_probs = scaled_probs / scaled_probs.sum(axis=1, keepdims=True)
 
             return scaled_probs
+
 
         # Apply temperature scaling to reduce overconfidence
         proba_updated = temperature_scaling(proba_updated, temperature=2.0)
@@ -619,17 +630,18 @@ for iteration in range(max_iter):
             logger.info(
                 f"Iteration {iteration + 1}: Coordinate shift = {min_total_shift:.2f}m, Distance matrix change = {distance_change:.6f} (stable: {distance_stable})")
 
-            # Save intermediate visualization every 5 iterations
-            if (iteration + 1) % 5 == 0 or iteration < 5:
-                intermediate_plot_path = os.path.join(centroid_dir, f'5km_radius_centroids_iteration_{iteration + 1}.png')
-                plot_centroids_and_demand(
-                    new_coords_ordered,
-                    origins,
-                    dests,
-                    iteration + 1,
-                    intermediate_plot_path
-                )
-                logger.info(f"Intermediate visualization saved: 5km_radius_centroids_iteration_{iteration + 1}.png")
+            # Save intermediate visualization every 5 iterations (DISABLED - not needed)
+            # if (iteration + 1) % 5 == 0 or iteration < 5:
+            #     intermediate_plot_path = os.path.join(output_dir,
+            #                                           f'5km_radius_centroids_iteration_{iteration + 1}.png')
+            #     plot_centroids_and_demand(
+            #         new_coords_ordered,
+            #         origins,
+            #         dests,
+            #         iteration + 1,
+            #         intermediate_plot_path
+            #     )
+            #     logger.info(f"Intermediate visualization saved: 5km_radius_centroids_iteration_{iteration + 1}.png")
 
             # Check for convergence - distance stability
             layout_converged = distance_stable
@@ -656,111 +668,21 @@ if not converged:
 
 logger.info("Step 3 complete: Vertiport optimization finished.")
 
-# Save centroid history after optimization
-centroid_history = np.array(centroid_history)  # shape: (num_iterations+1, 20, 2)
-
-# Create directory before saving
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
-
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_vertiport_centroid_history.npy',
-        centroid_history)
-
-# Save weight and probability histories
+# Save ONLY weight history and final vertiport coordinates (no centroids)
 weight_history = np.array(weight_history)  # shape: (num_iterations, 2*num_trips)
 uam_prob_history = np.array(uam_prob_history)  # shape: (num_iterations, num_trips)
-distance_change_history = np.array(distance_change_history)  # shape: (num_iterations,)
 
-# Create directory & save all history files
-os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_weight_history.npy', weight_history)
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_uam_prob_history.npy', uam_prob_history)
-np.save('../../../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_distance_change_history.npy',
-        distance_change_history)
-
+# Save weight history
+np.save(os.path.join(output_dir, 'weight_history.npy'), weight_history)
 logger.info(f"Weight history saved: {weight_history.shape}")
-logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
-logger.info(f"Distance change history saved: {distance_change_history.shape}")
 
 # Save final vertiport coordinates
 # Save as .npy
-np.save(os.path.join(centroid_dir, '5km_radius_optimized_vertiport_coords_final.npy'), vertiport_coords)
+np.save(os.path.join(output_dir, 'optimized_vertiport_coords.npy'), vertiport_coords)
 # Save as .csv
 pd.DataFrame(vertiport_coords, columns=['X', 'Y']).to_csv(
-    os.path.join(centroid_dir, '5km_radius_optimized_vertiport_coords_final.csv'), index=False)
-
-# Save convergence history
-pd.DataFrame({'iteration': list(range(1, len(convergence_history) + 1)), 'shift': convergence_history}).to_csv(
-    os.path.join(centroid_dir, '5km_radius_convergence_history.csv'), index=False)
-
-# Save convergence plot
-plt.figure(figsize=(8, 5))
-plt.plot(range(1, len(convergence_history) + 1), convergence_history, marker='o')
-plt.xlabel('Iteration')
-plt.ylabel('Assignment-based vertiport shift')
-plt.title('Vertiport Optimization Convergence')
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(os.path.join(centroid_dir, '5km_radius_convergence_plot.png'))
-plt.close()
-
-# Save visualization of centroids and demand points
-# Plot initial state
-initial_plot_path = os.path.join(centroid_dir, '5km_radius_initial_centroids_and_demand.png')
-plot_centroids_and_demand(
-    centroid_history[0],  # Initial centroids
-    synthetic_population[['originX', 'originY']].values,
-    synthetic_population[['destinationX', 'destinationY']].values,
-    0,
-    initial_plot_path
-)
-
-# Plot final state
-final_plot_path = os.path.join(centroid_dir, '5km_radius_final_centroids_and_demand.png')
-plot_centroids_and_demand(
-    vertiport_coords,  # Final centroids
-    synthetic_population[['originX', 'originY']].values,
-    synthetic_population[['destinationX', 'destinationY']].values,
-    len(centroid_history) - 1,
-    final_plot_path)
-
-# Create animation-like visualization showing centroid evolution (change it to iteration 0 and final)
-if len(centroid_history) > 1:
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    axes = axes.flatten()
-
-    # Plot key iterations
-    key_iterations = [0, len(centroid_history) // 3, 2 * len(centroid_history) // 3, len(centroid_history) - 1]
-    titles = ['Initial', '1/3 Progress', '2/3 Progress', 'Final']
-
-    for idx, (iter_idx, title) in enumerate(zip(key_iterations, titles)):
-        if iter_idx < len(centroid_history):
-            ax = axes[idx]
-
-            # Plot demand points
-            ax.scatter(synthetic_population['originX'], synthetic_population['originY'],
-                       c='lightblue', s=0.2, alpha=0.4, marker='o')
-            ax.scatter(synthetic_population['destinationX'], synthetic_population['destinationY'],
-                       c='lightgreen', s=0.2, alpha=0.4, marker='s')
-
-            # Plot centroids
-            centroids = centroid_history[iter_idx]
-            ax.scatter(centroids[:, 0], centroids[:, 1], c='red', s=80, alpha=0.8,
-                       marker='^', edgecolors='black', linewidth=1)
-
-            ax.set_xlabel('X Coordinate (meters)')
-            ax.set_ylabel('Y Coordinate (meters)')
-            ax.set_title(f'{title} - Iteration {iter_idx}')
-            ax.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    evolution_path = os.path.join(centroid_dir, '5km_radius_centroid_evolution.png')
-    plt.savefig(evolution_path, dpi=300, bbox_inches='tight')
-    plt.close()
-
-    logger.info(f"Visualization plots saved to {centroid_dir}")
-    logger.info(f"  - Initial state: 5km_radius_initial_centroids_and_demand.png")
-    logger.info(f"  - Final state: 5km_radius_final_centroids_and_demand.png")
-    logger.info(f"  - Evolution: 5km_radius_centroid_evolution.png")
+    os.path.join(output_dir, 'optimized_vertiport_coords.csv'), index=False)
+logger.info(f"Final vertiport coordinates saved to {output_dir}")
 
 # 4. FINAL PREDICTION AND OUTPUT
 
@@ -780,20 +702,22 @@ synthetic_population_with_uam_features = synthetic_population_with_uam_features[
 # Get final probabilities
 final_proba = predict_mode_probabilities(synthetic_population_with_uam_features, final_model, feature_cols)
 
+
 # Apply temperature scaling to final probabilities (consistent with optimization iterations)
 def temperature_scaling_final(probabilities, temperature=2.0):
     """Apply temperature scaling to reduce overconfidence"""
     # Convert probabilities to logits
     logits = np.log(probabilities + 1e-8)
-    
+
     # Scale by temperature
     scaled_logits = logits / temperature
-    
+
     # Convert back to probabilities and renormalize
     scaled_probs = np.exp(scaled_logits)
     scaled_probs = scaled_probs / scaled_probs.sum(axis=1, keepdims=True)
-    
+
     return scaled_probs
+
 
 logger.info("Applying temperature scaling to final probabilities (temperature=2.0)...")
 final_proba = temperature_scaling_final(final_proba, temperature=2.0)
@@ -812,36 +736,20 @@ for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'tr
             'origin_access_time', 'dest_access_time', 'origin_access_cost', 'dest_access_cost']:
     output[col] = synthetic_population_with_uam_final[col]
 
-# Save main prediction file with error handling
-try:
-    os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Weighting', exist_ok=True)
-    output_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv'
-    output.to_csv(output_path, index=False)
-    logger.info(f"Main prediction file saved: {output_path}")
-except Exception as e:
-    logger.error(f"Error saving main prediction file: {e}")
-
-# Save optimized coordinates with error handling
-try:
-    os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Centroid', exist_ok=True)
-    np.save(
-        '../../../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_optimized_vertiport_coords_weights.npy',
-        vertiport_coords)
-    logger.info("Optimized coordinates saved successfully")
-except Exception as e:
-    logger.error(f"Error saving optimized coordinates: {e}")
+# Save main prediction file (not needed for this testing)
+# Only saving weights and vertiport locations per user request
 
 # =========================
 # 5. SAVE SUMMARY AND REPORT
 # =========================
 import csv
 
-report_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_method_report.txt'
+report_path = os.path.join(output_dir, 'method_report.txt')
 
 # Save summary and report with error handling
 try:
-    # Create directory for summary file
-    os.makedirs('../../../Result/Vertiport_analysis/Probability_clustering/Weighting', exist_ok=True)
+    # Create directory for summary file (already created)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Calculate statistics
     mean_uam_prob = float(np.mean(uam_probs))
@@ -865,7 +773,7 @@ try:
     dest_car_final = np.sum(output['dest_access_mode'] == 'car')
 
     # Save summary CSV
-    summary_path = '../../../Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_method_summary.csv'
+    summary_path = os.path.join(output_dir, 'method_summary.csv')
     with open(summary_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(
@@ -874,7 +782,7 @@ try:
              'Max_Origin_Dist', 'Max_Dest_Dist', 'Car_Catchment_Distance', 'Walking_Catchment_Distance',
              'Origin_Walking_Count', 'Origin_Car_Count', 'Dest_Walking_Count', 'Dest_Car_Count'])
         writer.writerow([
-            'weights_multimodal', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob,
+            f'price_test_base{uam_base_fare}_per_km{uam_cost_m*1000}', converged, iterations, final_shift, mean_uam_prob, std_uam_prob, min_uam_prob,
             max_uam_prob, origin_outside_final, dest_outside_final, max_origin_dist_final, max_dest_dist_final,
             car_catchment_distance, walking_catchment_distance, origin_walking_final, origin_car_final,
             dest_walking_final, dest_car_final
@@ -883,7 +791,7 @@ try:
 
     # Save detailed text report
     with open(report_path, 'w') as f:
-        f.write(f"VERTIPORT OPTIMIZATION REPORT\n")
+        f.write(f"VERTIPORT OPTIMIZATION REPORT - SCENARIO 2\n")
         f.write(f"{'=' * 50}\n")
         from datetime import datetime
 
@@ -891,7 +799,8 @@ try:
         f.write(f"SUMMARY:\n")
         f.write(f"{'-' * 20}\n")
         f.write(f"Method: weights_multimodal (using UAM probabilities with multimodal access)\n")
-        f.write(f"UAM Pricing Model: €{uam_base_fare:.2f} base fare + €{uam_cost_m*1000:.2f}/km per trip (individual trip cost)\n")
+        f.write(
+            f"UAM Pricing Model: €{uam_base_fare:.2f} base fare + €{uam_cost_m * 1000:.2f}/km per trip (individual trip cost)\n")
         f.write(f"UAM Vehicle Capacity: {uam_passenger_capacity} passengers (vehicle specification)\n")
         f.write(f"Converged: {converged}\n")
         f.write(f"Iterations: {iterations}\n")
@@ -917,7 +826,7 @@ try:
             f.write(f"  Iter {i + 1}: {shift:.6f}\n")
         if len(convergence_history) > 20:
             f.write(f"  ... ({len(convergence_history) - 20} more)\n")
-        f.write(f"\nAll results saved to Result/Vertiport_analysis/Probability_clustering/\n")
+        f.write(f"\nAll results saved to {output_dir}\n")
 
     logger.info(f"Detailed report saved: {report_path}")
     logger.info("Step 5 complete: Summary and report saved.")
@@ -927,4 +836,5 @@ except Exception as e:
 logger.info("Results saved with weights and stability controls")
 
 print(f"Iterations: {len(centroid_history) - 1}")
-print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}") 
+print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}")
+

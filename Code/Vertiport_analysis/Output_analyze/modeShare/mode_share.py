@@ -4,7 +4,7 @@ import numpy as np
 
 # Load the data
 data = pd.read_csv(
-    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv')
 
 print("=" * 60)
 print("MODE SHARE ANALYSIS")
@@ -109,16 +109,18 @@ print("\n" + "=" * 60)
 print("MODE SHARE BY TRIP DISTANCE")
 print("=" * 60)
 
-# Define distance categories
+# Define distance categories (updated to 20-50, 50-100, 100-150 km)
 def categorize_distance(trip_length):
     if trip_length < 20000:  # < 20 km
-        return 'Short (< 20km)'
+        return '< 20'
     elif trip_length < 50000:  # 20-50 km
-        return 'Medium (20-50km)'
+        return '20-50'
     elif trip_length < 100000:  # 50-100 km
-        return 'Long (50-100km)'
-    else:  # > 100 km
-        return 'Very Long (>100km)'
+        return '50-100'
+    elif trip_length < 150000:  # 100-150 km
+        return '100-150'
+    else:  # >= 150 km
+        return '150+'
 
 # Add distance category to data
 data['distance_category'] = data['trip_length'].apply(categorize_distance)
@@ -127,7 +129,7 @@ data['distance_category'] = data['trip_length'].apply(categorize_distance)
 print("\nMode Share by Distance Category:")
 print("-" * 50)
 
-distance_categories = ['Short (< 20km)', 'Medium (20-50km)', 'Long (50-100km)', 'Very Long (>100km)']
+distance_categories = ['< 20', '20-50', '50-100', '100-150', '150+']
 mode_share_by_distance = {}
 
 for category in distance_categories:
@@ -207,7 +209,7 @@ ax1.set_xlabel('Distance (km)', fontsize=12, fontweight='bold')
 ax1.set_ylabel('Mode Share (%)', fontsize=12, fontweight='bold')
 ax1.set_title('Mode Share by Trip Distance', fontsize=14, fontweight='bold')
 ax1.set_xticks(x_pos + width)
-ax1.set_xticklabels(distance_categories, rotation=45, ha='right')
+ax1.set_xticklabels(distance_categories)
 ax1.legend()
 ax1.grid(True, alpha=0.3, axis='y')
 
@@ -257,11 +259,11 @@ for i, mode in enumerate(modes):
             ax.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
                    f'{int(count):,}', ha='center', va='bottom', fontsize=10)
 
-ax.set_xlabel('Distance Category', fontsize=12, fontweight='bold')
+ax.set_xlabel('Distance (km)', fontsize=12, fontweight='bold')
 ax.set_ylabel('Number of Trips', fontsize=12, fontweight='bold')
 ax.set_title('Number of Trips by Mode and Distance Category', fontsize=14, fontweight='bold')
 ax.set_xticks(x_pos + width)
-ax.set_xticklabels(distance_categories, rotation=45, ha='right')
+ax.set_xticklabels(distance_categories)
 ax.legend()
 ax.grid(True, alpha=0.3, axis='y')
 
@@ -270,13 +272,286 @@ plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mo
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
+# ============================================================================
+# ADDITIONAL ADVANCED VISUALIZATIONS
+# ============================================================================
+
+print("\n" + "=" * 60)
+print("CREATING ADVANCED VISUALIZATIONS")
+print("=" * 60)
+
+# Visualization 1: Stacked Bar Chart (100% stacked)
+fig, ax = plt.subplots(figsize=(12, 8))
+
+modes = ['Car', 'Public Transport', 'UAM']
+colors = ['#e74c3c', '#3498db', '#2ecc71']
+
+# Prepare data for 100% stacked bar
+mode_shares_by_dist = []
+for mode in modes:
+    shares = []
+    for category in distance_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(mode_share_by_distance[category][mode])
+        else:
+            shares.append(0)
+    mode_shares_by_dist.append(shares)
+
+# Create stacked bars
+x_pos = np.arange(len(distance_categories))
+bottom = np.zeros(len(distance_categories))
+
+for i, (mode, shares) in enumerate(zip(modes, mode_shares_by_dist)):
+    bars = ax.bar(x_pos, shares, label=mode, color=colors[i], bottom=bottom)
+    
+    # Add percentage labels
+    for j, (bar, share) in enumerate(zip(bars, shares)):
+        if share > 3:  # Only show label if share > 3%
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., 
+                   bottom[j] + height/2,
+                   f'{share:.1f}%', 
+                   ha='center', va='center', 
+                   fontsize=11, fontweight='bold', color='white')
+    
+    bottom += np.array(shares)
+
+ax.set_xlabel('Distance (km)', fontsize=13, fontweight='bold')
+ax.set_ylabel('Mode Share (%)', fontsize=13, fontweight='bold')
+ax.set_title('Mode Share Distribution by Trip Distance\n(100% Stacked Bar Chart)', 
+            fontsize=15, fontweight='bold', pad=20)
+ax.set_xticks(x_pos)
+ax.set_xticklabels(distance_categories, fontsize=11)
+ax.legend(loc='upper left', fontsize=11, framealpha=0.9)
+ax.set_ylim(0, 100)
+ax.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_stacked_by_distance.png',
+            dpi=300, bbox_inches='tight', facecolor='white')
+print("Created: mode_share_stacked_by_distance.png")
+plt.close()
+
+# Visualization 2: Line Chart showing mode share trends
+fig, ax = plt.subplots(figsize=(14, 8))
+
+for i, mode in enumerate(modes):
+    shares = []
+    for category in distance_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(mode_share_by_distance[category][mode])
+        else:
+            shares.append(0)
+    
+    ax.plot(distance_categories, shares, marker='o', linewidth=3, 
+           markersize=10, label=mode, color=colors[i])
+    
+    # Add value labels on points
+    for j, (cat, share) in enumerate(zip(distance_categories, shares)):
+        if share > 0:
+            ax.annotate(f'{share:.1f}%', 
+                       xy=(j, share), 
+                       xytext=(0, 10), 
+                       textcoords='offset points',
+                       ha='center', 
+                       fontsize=10, 
+                       fontweight='bold',
+                       bbox=dict(boxstyle='round,pad=0.3', 
+                                facecolor=colors[i], 
+                                alpha=0.3))
+
+ax.set_xlabel('Distance (km)', fontsize=13, fontweight='bold')
+ax.set_ylabel('Mode Share (%)', fontsize=13, fontweight='bold')
+ax.set_title('Mode Share Trend Across Distance Categories\n(How Mode Choice Changes with Trip Distance)', 
+            fontsize=15, fontweight='bold', pad=20)
+ax.legend(fontsize=12, loc='best', framealpha=0.9)
+ax.grid(True, alpha=0.3, linestyle='--')
+ax.set_ylim(0, max([max(mode_shares_by_dist[i]) for i in range(len(modes))]) * 1.2)
+
+plt.tight_layout()
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_trend_line_by_distance.png',
+            dpi=300, bbox_inches='tight', facecolor='white')
+print("Created: mode_share_trend_line_by_distance.png")
+plt.close()
+
+# Visualization 3: Horizontal Bar Chart (easier to read mode names)
+fig, ax = plt.subplots(figsize=(14, 10))
+
+y_pos = np.arange(len(distance_categories))
+width = 0.25
+
+for i, mode in enumerate(modes):
+    shares = []
+    for category in distance_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(mode_share_by_distance[category][mode])
+        else:
+            shares.append(0)
+    
+    bars = ax.barh(y_pos + i*width, shares, width, label=mode, color=colors[i], alpha=0.85)
+    
+    # Add value labels
+    for bar, share in zip(bars, shares):
+        if share > 0:
+            width_val = bar.get_width()
+            ax.text(width_val + 1, bar.get_y() + bar.get_height()/2.,
+                   f'{share:.1f}%', ha='left', va='center', 
+                   fontsize=10, fontweight='bold')
+
+ax.set_ylabel('Distance (km)', fontsize=13, fontweight='bold')
+ax.set_xlabel('Mode Share (%)', fontsize=13, fontweight='bold')
+ax.set_title('Mode Share Comparison by Distance Category\n(Horizontal View)', 
+            fontsize=15, fontweight='bold', pad=20)
+ax.set_yticks(y_pos + width)
+ax.set_yticklabels(distance_categories, fontsize=11)
+ax.legend(loc='lower right', fontsize=12, framealpha=0.9)
+ax.grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_horizontal_by_distance.png',
+            dpi=300, bbox_inches='tight', facecolor='white')
+print("Created: mode_share_horizontal_by_distance.png")
+plt.close()
+
+# Visualization 4: Heatmap showing mode share intensity
+fig, ax = plt.subplots(figsize=(12, 6))
+
+# Prepare heatmap data
+heatmap_data = []
+for mode in modes:
+    shares = []
+    for category in distance_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(mode_share_by_distance[category][mode])
+        else:
+            shares.append(0)
+    heatmap_data.append(shares)
+
+heatmap_array = np.array(heatmap_data)
+
+# Create heatmap
+im = ax.imshow(heatmap_array, cmap='YlOrRd', aspect='auto', vmin=0, vmax=100)
+
+# Set ticks and labels
+ax.set_xticks(np.arange(len(distance_categories)))
+ax.set_yticks(np.arange(len(modes)))
+ax.set_xticklabels(distance_categories, fontsize=11)
+ax.set_yticklabels(modes, fontsize=11)
+
+# Add colorbar
+cbar = plt.colorbar(im, ax=ax)
+cbar.set_label('Mode Share (%)', rotation=270, labelpad=20, fontsize=12, fontweight='bold')
+
+# Add text annotations
+for i in range(len(modes)):
+    for j in range(len(distance_categories)):
+        text = ax.text(j, i, f'{heatmap_array[i, j]:.1f}%',
+                      ha="center", va="center", color="black" if heatmap_array[i, j] < 50 else "white",
+                      fontsize=11, fontweight='bold')
+
+ax.set_xlabel('Distance (km)', fontsize=13, fontweight='bold')
+ax.set_ylabel('Transportation Mode', fontsize=13, fontweight='bold')
+ax.set_title('Mode Share Intensity Heatmap by Distance\n(Darker = Higher Share)', 
+            fontsize=15, fontweight='bold', pad=20)
+
+plt.tight_layout()
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_heatmap_by_distance.png',
+            dpi=300, bbox_inches='tight', facecolor='white')
+print("Created: mode_share_heatmap_by_distance.png")
+plt.close()
+
+# Visualization 5: Focused comparison on key distance ranges (20-50, 50-100, 100-150)
+focus_categories = ['20-50', '50-100', '100-150']
+fig, ax = plt.subplots(figsize=(14, 8))
+
+x_pos = np.arange(len(focus_categories))
+width = 0.25
+
+# Custom colors for this graph - Car: Blue, PT: Green, UAM: Orange
+focus_colors = ['#3498db', '#2ecc71', '#ff8c42']  # Blue, Green, Orange
+
+for i, mode in enumerate(modes):
+    shares = []
+    for category in focus_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(mode_share_by_distance[category][mode])
+        else:
+            shares.append(0)
+    
+    bars = ax.bar(x_pos + i*width, shares, width, label=mode, color=focus_colors[i], alpha=0.85)
+    
+    # Add percentage labels on bars - MUCH LARGER
+    for bar, share in zip(bars, shares):
+        if share > 0:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+                   f'{share:.1f}%', ha='center', va='bottom', 
+                   fontsize=18, fontweight='bold')
+
+ax.set_xlabel('Distance (km)', fontsize=20, fontweight='bold')
+ax.set_ylabel('Mode Share (%)', fontsize=20, fontweight='bold')
+# ax.set_title('Mode Share Comparison: Focus on 20-150 km Range\n(Key Distance Categories for UAM Competitiveness)', 
+#             fontsize=15, fontweight='bold', pad=20)
+ax.set_xticks(x_pos + width)
+ax.set_xticklabels(focus_categories, fontsize=18)
+ax.tick_params(axis='y', labelsize=16)
+ax.legend(fontsize=16, loc='upper right', framealpha=0.9)
+ax.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_focus_20_150km.png',
+            dpi=300, bbox_inches='tight', facecolor='white')
+print("Created: mode_share_focus_20_150km.png")
+plt.close()
+
+# Save detailed mode share table
+mode_share_table = pd.DataFrame()
+mode_share_table['Distance (km)'] = distance_categories
+
+for mode in modes:
+    shares = []
+    for category in distance_categories:
+        if category in mode_share_by_distance and mode in mode_share_by_distance[category]:
+            shares.append(f"{mode_share_by_distance[category][mode]:.2f}%")
+        else:
+            shares.append("0.00%")
+    mode_share_table[mode] = shares
+
+mode_share_table.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_by_distance_table.csv',
+                       index=False)
+print("Created: mode_share_by_distance_table.csv")
+
 print("\n" + "=" * 60)
 print("RESULTS SAVED")
 print("=" * 60)
 print("Files generated:")
-print("mode_share_bar_chart.png")
-print("mode_share_percentage_chart.png")
-print("mode_share_results.csv")
-print("mode_share_by_distance.png")
-print("mode_share_trips_by_distance.png")
+print("  1. mode_share_bar_chart.png")
+print("  2. mode_share_percentage_chart.png")
+print("  3. mode_share_results.csv")
+print("  4. mode_share_by_distance.png")
+print("  5. mode_share_trips_by_distance.png")
+print("  6. mode_share_stacked_by_distance.png (NEW)")
+print("  7. mode_share_trend_line_by_distance.png (NEW)")
+print("  8. mode_share_horizontal_by_distance.png (NEW)")
+print("  9. mode_share_heatmap_by_distance.png (NEW)")
+print(" 10. mode_share_focus_20_150km.png (NEW)")
+print(" 11. mode_share_by_distance_table.csv (NEW)")
+print("=" * 60)
+print("\nRECOMMENDATIONS FOR PRESENTATION:")
+print("-" * 60)
+print("1. BEST for showing trends: mode_share_trend_line_by_distance.png")
+print("   - Clearly shows how each mode's share changes with distance")
+print("   - Easy to see UAM's pattern across categories")
+print("\n2. BEST for composition: mode_share_stacked_by_distance.png")
+print("   - Shows 100% composition at each distance")
+print("   - Easy to compare relative importance")
+print("\n3. BEST for detailed comparison: mode_share_heatmap_by_distance.png")
+print("   - Color intensity shows patterns at a glance")
+print("   - Good for presentations and papers")
+print("\n4. BEST for focused analysis: mode_share_focus_20_150km.png")
+print("   - Focuses on key 20-150 km range")
+print("   - Emphasizes UAM's competitive distances")
+print("\n5. MOST READABLE: mode_share_horizontal_by_distance.png")
+print("   - Horizontal layout easier to read mode names")
+print("   - Good for detailed reports")
 print("=" * 60)

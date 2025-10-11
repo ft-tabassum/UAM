@@ -8,7 +8,7 @@ print("=" * 60)
 
 # Load dataset
 data = pd.read_csv(
-    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+    '/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv')
 
 print(f"\nDataset loaded: {len(data):,} trips")
 

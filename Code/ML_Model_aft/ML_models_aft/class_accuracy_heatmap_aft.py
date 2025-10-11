@@ -23,12 +23,42 @@ class_accuracy_matrix = np.array([
 # Create the heatmap
 plt.figure(figsize=(12, 8))
 
+# Create custom colormap with more distinct colors
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.pyplot as plt
+
+# Define distinct colors for different accuracy ranges
+colors = [
+    '#ff6b35',  # Bright orange for low accuracy (40-60%)
+    '#ffa726',  # Light orange for medium-low (60-70%)
+    '#66bb6a',  # Medium green for medium (70-80%)
+    '#42a5f5',  # Light blue for medium-high (80-90%)
+    '#1e88e5'   # Dark blue for high accuracy (90-100%)
+]
+
+# Create colormap with distinct segments
+cmap_custom = LinearSegmentedColormap.from_list('custom_distinct', colors, N=256)
+
+# Alternative: Use a diverging colormap centered around 70%
+from matplotlib.colors import ListedColormap
+# Create a more distinct colormap
+colors_distinct = [
+    '#ff4757',  # Red for very low (40-50%)
+    '#ff8c42',  # Orange for low (50-60%)
+    '#ffa726',  # Light orange for medium-low (60-70%)
+    '#66bb6a',  # Green for medium-high (70-80%)
+    '#42a5f5',  # Blue for high (80-90%)
+    '#1e88e5'   # Dark blue for very high (90-100%)
+]
+
+cmap_custom = LinearSegmentedColormap.from_list('distinct_accuracy', colors_distinct, N=256)
+
 # Create heatmap using seaborn
 sns.set(font_scale=1.2)
 heatmap = sns.heatmap(class_accuracy_matrix, 
                       annot=True, 
                       fmt='.1f',
-                      cmap='RdYlGn',  # Red-Yellow-Green colormap
+                      cmap=cmap_custom,  # Custom blue-green-orange colormap
                       vmin=40,  # Start from 40%
                       vmax=100,  # End at 100%
                       center=70,  # Center at 70%
@@ -36,7 +66,8 @@ heatmap = sns.heatmap(class_accuracy_matrix,
                       xticklabels=classes,
                       yticklabels=models,
                       linewidths=0.5,
-                      linecolor='white')
+                      linecolor='white',
+                      annot_kws={'color': 'white', 'fontweight': 'bold', 'fontsize': 12})  # Force all text to white
 
 # Customize the plot
 
@@ -136,7 +167,7 @@ for patch, color in zip(bp2['boxes'], colors):
 
 ax2.set_title('Accuracy Distribution by Model', fontsize=14, fontweight='bold')
 ax2.set_ylabel('Accuracy (%)')
-ax2.tick_params(axis='x', rotation=45, ha='right')
+plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
 ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()

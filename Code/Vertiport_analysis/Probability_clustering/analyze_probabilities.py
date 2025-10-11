@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 
 # Load the data
-df = pd.read_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv')
+df = pd.read_csv(
+    '/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv')
 
 # Get UAM probabilities
 uam_probs = df['prob_mode_Autonomous Flying Taxi']
