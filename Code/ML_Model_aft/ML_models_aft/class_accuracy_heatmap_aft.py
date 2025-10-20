@@ -67,7 +67,7 @@ heatmap = sns.heatmap(class_accuracy_matrix,
                       yticklabels=models,
                       linewidths=0.5,
                       linecolor='white',
-                      annot_kws={'color': 'white', 'fontweight': 'bold', 'fontsize': 12})  # Force all text to white
+                      annot_kws={'color': 'white', 'fontweight': 'bold', 'fontsize': 12})  #all text to white
 
 # Customize the plot
 
@@ -121,7 +121,7 @@ print("\n" + "="*100)
 print("MODEL PERFORMANCE ANALYSIS")
 print("="*100)
 
-# Find best and worst classes for each model
+#  best and worst classes for each model
 for i, model_name in enumerate(models):
     accuracies = class_accuracy_matrix[i, :]
     best_class_idx = np.argmax(accuracies)
@@ -144,10 +144,10 @@ print("5. Least Balanced Model: Stacking (std dev: 43.33%)")
 print("6. Critical Issue: Stacking ensemble cannot predict Class 2 at all")
 print("="*100)
 
-# Create an additional visualization showing the performance distribution
+# visualization
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-# 1. Box plot of accuracy distribution by class
+#  Box plot of accuracy distribution by class
 class_data = [class_accuracy_matrix[:, i] for i in range(3)]
 bp1 = ax1.boxplot(class_data, labels=classes, patch_artist=True)
 colors = ['lightblue', 'lightgreen', 'lightcoral']
@@ -158,7 +158,7 @@ ax1.set_title('Accuracy Distribution by Class', fontsize=14, fontweight='bold')
 ax1.set_ylabel('Accuracy (%)')
 ax1.grid(True, alpha=0.3)
 
-# 2. Box plot of accuracy distribution by model
+#  Box plot of accuracy distribution by model
 model_data = [class_accuracy_matrix[i, :] for i in range(6)]
 bp2 = ax2.boxplot(model_data, labels=models, patch_artist=True)
 colors = ['gold', 'silver', 'lightblue', 'lightgreen', 'lightcoral', 'pink']

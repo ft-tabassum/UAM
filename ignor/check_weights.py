@@ -20,7 +20,7 @@ def _gini(arr):
     return (2 * np.sum(index * sorted_a) / (n * sorted_a.sum()) - (n + 1) / n)
 
 def check_weights():
-    centroid_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Centroid'
+    centroid_dir = '/Result/Vertiport_analysis/Probability_clustering/Centroid'
     weight_file = os.path.join(centroid_dir, 'weight_history.npy')
     uam_prob_file = os.path.join(centroid_dir, 'uam_prob_history.npy')
     convergence_file = os.path.join(centroid_dir, 'convergence_history.csv')

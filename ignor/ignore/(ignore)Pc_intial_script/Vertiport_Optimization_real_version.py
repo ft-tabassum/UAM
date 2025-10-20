@@ -201,7 +201,7 @@ for iteration in range(max_iter):
     new_coords = kmeans.cluster_centers_
     logger.info(f'KMeans finished in {kmeans.n_iter_} iterations this step.')
     # g. Check convergence
-    # Robust convergence check_ignor using the Hungarian (assignment) algorithm:
+    # Robust convergence ignor using the Hungarian (assignment) algorithm:
     # Computes the minimum total shift between new and previous vertiport coordinates,
     # matching centroids optimally regardless of their order.
     # This prevents false non-convergence due to centroid reordering between iterations.

@@ -252,7 +252,7 @@ def run_true_mnl_model():
     print("="*70)
     
     # Load data
-    data_file = Path("D:/Thesis/UAM/Result/ML_models_aft/Logit_Models/biogeme_aft_data.csv")
+    data_file = Path("/Result/ML_models_aft/Logit_Models/biogeme_aft_data.csv")
     print(f"Loading data from: {data_file}")
     
     data = pd.read_csv(data_file)
@@ -325,7 +325,7 @@ def run_true_mnl_model():
         plt.xlabel('Predicted Label')
         
         # Save results
-        output_dir = Path("D:/Thesis/UAM/Result/ML_models_aft/Logit_Models/output")
+        output_dir = Path("/Result/ML_models_aft/Logit_Models/output")
         output_dir.mkdir(parents=True, exist_ok=True)
         
         plt.savefig(output_dir / 'true_mnl_confusion_matrix.png', dpi=300, bbox_inches='tight')

@@ -6,7 +6,7 @@ print("=" * 55)
 
 # Define occupancy rates
 CAR_OCCUPANCY = 1.2  # average passenger per car
-PT_OCCUPANCY = 25.0  # people per PT vehicle (assumption)
+PT_OCCUPANCY = 25.0  # people per PT vehicle
 
 print(f"\nOCCUPANCY RATES:")
 print(f"   Car: {CAR_OCCUPANCY} people/vehicle")

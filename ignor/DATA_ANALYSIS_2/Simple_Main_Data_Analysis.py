@@ -230,7 +230,7 @@ def save_results(data, file_path):
     """Save analysis results"""
     
     # Create output directory
-    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
+    output_dir = Path("../DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Save data summary

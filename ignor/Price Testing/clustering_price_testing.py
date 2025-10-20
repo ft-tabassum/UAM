@@ -35,7 +35,7 @@ class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
 # Load the trained model from Part 1 using joblib
 logger.info("Loading trained LightGBM model from Part 1...")
 model_data = joblib.load(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Model_LightGBM/Trained_Model_LightGBM/lightgbm_model_LighterModel.pkl")
+    "/Result/Vertiport_analysis/Model_LightGBM/Trained_Model_LightGBM/lightgbm_model_LighterModel.pkl")
 
 final_model = model_data['final_model']  # model
 feature_names = model_data['feature_names']  # feature
@@ -52,10 +52,10 @@ for class_num, class_name in class_names.items():
 logger.info("Loading processed synthetic population data...")
 # Load full synthetic population data
 synthetic_population = pd.read_csv(
-    "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
+    "/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
-# Sample 10% of population
-synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+# Use full population (no sampling for price testing)
+# synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -75,8 +75,8 @@ uam_cruise_speed = 4166.67  # unit:m/min,     250 km/h
 # Price testing scenarios:
 # Scenario 1: base fare €0 + €3/km
 # Scenario 2: base fare €5 + €5/km
-uam_cost_m = 0.005  # unit: €/m,     5 €/km (Scenario 2)
-uam_base_fare = 5.0  # unit: €,      5 € base fare per trip (Scenario 2)
+uam_cost_m = 0.003  # unit: €/m,     3 €/km (Scenario 1)
+uam_base_fare = 0.0  # unit: €,      0 € base fare per trip (Scenario 1)
 uam_passenger_capacity = 4  # passengers per UAM vehicle (vehicle specification)
 pre_flight_time = 15  # unit : min      (Rothfeld, 2021)
 average_car_speed = 418.33  # unit: m/min,    25.1 km/h (TomTom- munich: https://www.tomtom.com/traffic-index/munich-traffic/)
@@ -175,7 +175,7 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
         0,  # walking is free
         last_mile_dist * car_cost  # car cost
     )
-    # Calculate UAM cost: €5.00/km + €5.00 base fare per trip (individual trip cost)
+    # Calculate UAM cost: €2.00/km + €5.00 base fare per trip (individual trip cost)
     # Fixed cost per kilometer plus base fare regardless of passenger count
     # Vehicle capacity (4 passengers) is just vehicle specification
     uam_travel_cost = base_fare + (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
@@ -232,7 +232,7 @@ def check_distance_matrix_stability(prev_coords, new_coords, threshold=0.01):
 
 # convergence
 max_iter = 50
-distance_stability_threshold = 0.987  # 9% relative change threshold
+distance_stability_threshold = 0.987  # 35% relative change threshold
 converged = False
 prev_coords = None
 feature_cols = feature_names
@@ -240,8 +240,8 @@ feature_cols = feature_names
 # Initialize min_total_shift for convergence tracking
 min_total_shift = float('nan')
 
-# Define output directory for price testing - Scenario 2
-output_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario2_base5_perkm5'
+# Define output directory for price testing - Scenario 1
+output_dir = '/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3'
 os.makedirs(output_dir, exist_ok=True)
 
 
@@ -673,15 +673,19 @@ weight_history = np.array(weight_history)  # shape: (num_iterations, 2*num_trips
 uam_prob_history = np.array(uam_prob_history)  # shape: (num_iterations, num_trips)
 
 # Save weight history
-np.save(os.path.join(output_dir, 'weight_history.npy'), weight_history)
+np.save(os.path.join(output_dir, 'cost_weight_history.npy'), weight_history)
 logger.info(f"Weight history saved: {weight_history.shape}")
+
+# Save UAM probability history
+np.save(os.path.join(output_dir, 'cost_uam_prob_history.npy'), uam_prob_history)
+logger.info(f"UAM probability history saved: {uam_prob_history.shape}")
 
 # Save final vertiport coordinates
 # Save as .npy
-np.save(os.path.join(output_dir, 'optimized_vertiport_coords.npy'), vertiport_coords)
+np.save(os.path.join(output_dir, 'cost_optimized_vertiport_coords.npy'), vertiport_coords)
 # Save as .csv
 pd.DataFrame(vertiport_coords, columns=['X', 'Y']).to_csv(
-    os.path.join(output_dir, 'optimized_vertiport_coords.csv'), index=False)
+    os.path.join(output_dir, 'cost_optimized_vertiport_coords.csv'), index=False)
 logger.info(f"Final vertiport coordinates saved to {output_dir}")
 
 # 4. FINAL PREDICTION AND OUTPUT
@@ -736,15 +740,18 @@ for col in ['uam_origin_vertiport', 'uam_dest_vertiport', 'travel_time_Uam', 'tr
             'origin_access_time', 'dest_access_time', 'origin_access_cost', 'dest_access_cost']:
     output[col] = synthetic_population_with_uam_final[col]
 
-# Save main prediction file (not needed for this testing)
-# Only saving weights and vertiport locations per user request
+# Save main prediction file with LightGBM predictions and UAM calculations
+output_predictions_path = os.path.join(output_dir, 'cost_LightGBM_synthetic_population_predictions_weights.csv')
+output.to_csv(output_predictions_path, index=False)
+logger.info(f"Final predictions with weights saved: {output_predictions_path}")
+logger.info(f"Output shape: {output.shape}, Columns: {len(output.columns)}")
 
 # =========================
 # 5. SAVE SUMMARY AND REPORT
 # =========================
 import csv
 
-report_path = os.path.join(output_dir, 'method_report.txt')
+report_path = os.path.join(output_dir, 'cost_method_report.txt')
 
 # Save summary and report with error handling
 try:
@@ -791,7 +798,7 @@ try:
 
     # Save detailed text report
     with open(report_path, 'w') as f:
-        f.write(f"VERTIPORT OPTIMIZATION REPORT - SCENARIO 2\n")
+        f.write(f"VERTIPORT OPTIMIZATION REPORT - SCENARIO 1\n")
         f.write(f"{'=' * 50}\n")
         from datetime import datetime
 
@@ -837,4 +844,3 @@ logger.info("Results saved with weights and stability controls")
 
 print(f"Iterations: {len(centroid_history) - 1}")
 print(f"Final shift: {convergence_history[-1] if convergence_history else 'N/A'}")
-

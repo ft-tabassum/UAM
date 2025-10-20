@@ -6,7 +6,7 @@ modes = ['Car', 'Public Transport', 'UAM']
 percentages = [79.72, 17.00, 3.28]
 
 # Create output directory path
-output_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
+output_dir = '/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
 
 # Colors for each mode
 colors = ['#ED7D31', '#4472C4', '#70AD47']

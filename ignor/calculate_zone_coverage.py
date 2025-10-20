@@ -15,8 +15,8 @@ def calculate_zone_coverage():
     print("🚁 Calculating Zone Coverage...")
     
     # Load data
-    zones_file = "Result/Vertiport_analysis/Probability_clustering/Centroid/zonePlz_with_aggregated_data.csv"
-    vertiports_file = "Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_optimized_vertiport_coords_final.csv"
+    zones_file = "../Result/Vertiport_analysis/Probability_clustering/Centroid/zonePlz_with_aggregated_data.csv"
+    vertiports_file = "../Result/Vertiport_analysis/Probability_clustering/Centroid/5km_radius_optimized_vertiport_coords_final.csv"
     
     zones_df = pd.read_csv(zones_file)
     vertiports_df = pd.read_csv(vertiports_file)

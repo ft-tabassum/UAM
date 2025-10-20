@@ -62,7 +62,7 @@ def create_simple_flowchart():
     create_rectangle(5, 10, 3, 0.8, 'Start Iteration Loop', process_color)
     create_arrow((5, 11), (5, 10.4))
     
-    # 6. First iteration check_ignor
+    # 6. First iteration ignor
     create_diamond(5, 8.5, 3, 1.2, 'First\nIteration?', decision_color)
     create_arrow((5, 9.6), (5, 9.1))
     
@@ -91,7 +91,7 @@ def create_simple_flowchart():
     create_arrow((2, 6.5), (4, 1.9))
     create_arrow((8, 2), (6, 1.9))
     
-    # 13. Convergence check_ignor
+    # 13. Convergence ignor
     create_diamond(5, 0, 3, 1.2, 'Converged?\n(Distance & Probability\nStability)', decision_color)
     create_arrow((5, 1.1), (5, 0.6))
     

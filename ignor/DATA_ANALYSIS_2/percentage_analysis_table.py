@@ -19,7 +19,7 @@ def create_percentage_tables():
     print("="*80)
     
     # Create output directory
-    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
+    output_dir = Path("../DATA_ANALYSIS/Main_Data_Analysis_2/simpleMain")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. ENVIRONMENTAL CONCERN VARIABLES

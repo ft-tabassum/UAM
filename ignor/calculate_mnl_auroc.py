@@ -4,7 +4,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import label_binarize
 
 # Load MNL predictions
-mnl_predictions = pd.read_csv('Result/ML_models_aft/Logit_Models/output/true_mnl_predictions.csv')
+mnl_predictions = pd.read_csv('../Result/ML_models_aft/Logit_Models/output/true_mnl_predictions.csv')
 
 print("="*80)
 print("CALCULATING AUROC FOR MNL MODEL")

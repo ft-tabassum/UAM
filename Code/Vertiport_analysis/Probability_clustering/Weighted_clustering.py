@@ -52,8 +52,7 @@ logger.info("Loading processed synthetic population data...")
 synthetic_population = pd.read_csv(
     "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/DataPreprocessing_ML.csv",
     low_memory=False)
-# Sample 10% of population
-# synthetic_population = synthetic_population.sample(frac=0.1, random_state=42).reset_index(drop=True)  # 10%
+
 
 # 2. INITIALIZE K-MEANS++ WITH 74 VERTIPORTS
 logger.info(
@@ -174,7 +173,7 @@ def calculate_uam_time_cost(df, vertiport_coords, car_speed=average_car_speed, c
     )
     # Calculate UAM cost: €2.00/km + €5.00 base fare per trip (individual trip cost)
     # Fixed cost per kilometer plus base fare regardless of passenger count
-    # Vehicle capacity (4 passengers) is just vehicle specification
+    # Vehicle capacity (4 passengers) is vehicle specification
     uam_travel_cost = base_fare + (cost_uam_m * uam_dist) + first_mile_cost + last_mile_cost
 
     df = df.copy()
@@ -506,7 +505,7 @@ for iteration in range(max_iter):
         # Get updated UAM probabilities (after temperature scaling)
         uam_probs_updated = proba_updated[:, uam_class_idx]
 
-        # ===== COMPREHENSIVE DIAGNOSTIC CHECKS =====
+        #  COMPREHENSIVE DIAGNOSTIC CHECKS
         logger.info("=" * 60)
         logger.info("DIAGNOSTIC: Checking Model Predictions Reasonableness")
         logger.info("=" * 60)
@@ -595,7 +594,7 @@ for iteration in range(max_iter):
         weight_history[-1] = weights_updated.copy()  # Update the last entry
         uam_prob_history[-1] = uam_probs.copy()  # Update the last entry
 
-        # g. Check convergence:  using the Hungarian (assignment) algorithm: Computes the mean shift between new and previous vertiport coordinates, matching centroids optimally regardless of their order. This prevents false non-convergence due to centroid reordering between iterations.
+        # Check convergence:  using the Hungarian (assignment) algorithm: Computes the mean shift between new and previous vertiport coordinates, matching centroids optimally regardless of their order. This prevents false non-convergence due to centroid reordering between iterations.
         if prev_coords is not None:
             from scipy.optimize import linear_sum_assignment
             from scipy.spatial.distance import cdist

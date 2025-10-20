@@ -6,7 +6,7 @@ scenarios = ['KM++', 'Weighted KM++']
 avg_rtts = [10.05, 11.08]
 
 # Create output directory path
-output_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
+output_dir = '/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
 
 # =============================================================================
 # OPTION 1: HORIZONTAL BAR CHART (easier to read labels)

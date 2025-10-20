@@ -24,7 +24,7 @@ def clean_and_merge_data():
     population_file_path = "D:/Files_D/Study/==Thesis==/data/travel_demand_2021/travel_demand_2021/sp/pp_2011.csv"
     
     # Output file path
-    output_file_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/population_jobLocation.csv"
+    output_file_path = "/Result/Vertiport_analysis/Synthetic_population/population_jobLocation.csv"
     
     print("Starting data cleaning and merging process...")
     

@@ -14,7 +14,7 @@ def merge_synthetic_predictions():
     
     # Define file paths using the base path [[memory:6463058]]
     base_path = "//"
-    lightgbm_file = os.path.join(base_path, "Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_predictions_weights.csv")
+    lightgbm_file = os.path.join(base_path, "Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv")
     trips_file = os.path.join(base_path, "Result/Vertiport_analysis/Synthetic_population/microdataTrips_popJob.csv")
     output_file = os.path.join(base_path, "Result/Vertiport_analysis/Probability_clustering/Weighting/LightGBM_synthetic_population_weightPredict_job.csv")
     

@@ -36,7 +36,7 @@ base_pipeline = Pipeline([
     ('classifier', SVC(probability=True, random_state=RANDOM_SEED))
 ])
 
-# Hyperparameter grid - increased regularization
+# Hyperparameter grid
 param_grid = {
     'classifier__C': [0.1, 0.5, 1, 5],  # Lower C values for stronger regularization
     'classifier__gamma': [0.01, 0.05, 0.1],  # Lower gamma values for smoother boundaries
@@ -56,7 +56,7 @@ fold_metrics = {
     'accuracies': [], 'precisions': [], 'recalls': [],
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
-    'best_params': [], 'train_accuracies': [], 'class_accuracies': []  # Added class_accuracies
+    'best_params': [], 'train_accuracies': [], 'class_accuracies': []
 }
 
 # Initialize a list to store the probabilities
@@ -95,9 +95,9 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     val_pred = best_model.predict(X_val)
     val_proba = best_model.predict_proba(X_val)
     
-    # Append the probabilities to the list (add fold number as a column)
+    # Append the probabilities to the list
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
-    fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
+    fold_probs_df['fold'] = fold
     all_fold_probs.append(fold_probs_df)
     
     # Calculate per-class accuracy
@@ -142,7 +142,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
     logger.info(f"Fold {fold} - Best Parameters: {grid_search.best_params_}")
     logger.info(f"Fold {fold} - Per-class Accuracy: {class_acc}")
 
-# After all folds are processed, concatenate all fold probabilities into a single DataFrame
+#  single DataFrame
 all_fold_probs_df = pd.concat(all_fold_probs, ignore_index=True)
 
 # Save the aggregated probabilities to a single CSV file

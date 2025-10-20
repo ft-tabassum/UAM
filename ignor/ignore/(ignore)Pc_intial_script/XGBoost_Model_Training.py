@@ -33,7 +33,7 @@ os.makedirs('../../Model_XgBoost/Trained_Model_XgBoost', exist_ok=True)
 
 # Load LighterModel data (UAM-aware data for training)
 logger.info("Loading processed LighterModel data...")
-lighter_data = pd.read_csv("/Result/check_ignor/Model_XgBoost/LighterModel/LighterModelProcessing_ML.csv")
+lighter_data = pd.read_csv("/Result/ignor/Model_XgBoost/LighterModel/LighterModelProcessing_ML.csv")
 
 # Define features and target for LighterModel
 y_lighter = lighter_data['tmode']

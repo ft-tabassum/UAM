@@ -35,18 +35,18 @@ base_pipeline = Pipeline([
     ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
     ('classifier', XGBClassifier(
         random_state=RANDOM_SEED,
-        eval_metric='mlogloss',  # Multi-class log loss
-        max_delta_step=1  # Helps with imbalanced classes
+        eval_metric='mlogloss',
+        max_delta_step=1
     ))
 ])
 
 # Hyperparameter grid 
 param_grid = {
-    'classifier__n_estimators': [150, 200],  # More trees for better minority class learning
-    'classifier__max_depth': [6, 8],  # Deeper for better Class 2 pattern recognition
-    'classifier__learning_rate': [0.05, 0.1],  # Higher learning rate for minority class
-    'classifier__subsample': [0.8, 1.0],  # Subsample ratio
-    'classifier__colsample_bytree': [0.8, 1.0]  # Column sampling
+    'classifier__n_estimators': [150, 200],
+    'classifier__max_depth': [6, 8],
+    'classifier__learning_rate': [0.05, 0.1],
+    'classifier__subsample': [0.8, 1.0],
+    'classifier__colsample_bytree': [0.8, 1.0]
 }
 
 # Split data into train+val and test
@@ -66,7 +66,7 @@ fold_metrics = {
     'f1s': [], 'roc_aucs': [], 'confusion_matrices': [], 
     'probabilities': [], 'true_labels': [], 'pred_labels': [],
     'best_params': [], 'train_accuracies': [], 'class_accuracies': [],
-    'feature_importances': []  # Added feature importances
+    'feature_importances': []
 }
 
 # Initialize a list to store the probabilities
@@ -86,7 +86,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         estimator=base_pipeline,
         param_grid=param_grid,
         cv=5,  # Use 5-fold CV for hyperparameter tuning
-        scoring='recall_macro',  # Focus on all classes equally - better for Class 2
+        scoring='recall_macro',
         n_jobs=-1
     )
     
@@ -115,7 +115,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
             class_acc[cls] = np.nan
     fold_metrics['class_accuracies'].append(class_acc)
     
-    # Append the probabilities to the list (add fold number as a column)
+    # Append the probabilities to the list
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
     fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
     all_fold_probs.append(fold_probs_df)

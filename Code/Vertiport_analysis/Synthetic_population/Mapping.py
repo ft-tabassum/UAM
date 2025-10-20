@@ -3,16 +3,11 @@ import numpy as np
 
 
 def calculate_monthly_income(income):
-    """ Calculate Monthly_Income using the formula:
-    Monthly_Income = income * (1+0.0346)^13 * (1+0.2532)
-    Where:
-    - Inflation Rate = 25.32%
-    - Annual Growth Rate = 3.46%
-    - Years = 13 (from 2011 to 2024) """
+
     if pd.isna(income):
         return np.nan
     
-    # Formula: income * (1 + annual_growth_rate)^years * (1 + inflation_rate)
+    # calculation income to present value
     annual_growth_rate = 0.0346
     inflation_rate = 0.2532
     years = 13
@@ -130,8 +125,8 @@ def main():
     print("=" * 60)
     
     # Input and output file paths
-    input_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/microdata_trips.csv"
-    output_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/Mapping.csv"
+    input_file = "/Result/ignor/Model_XgBoost/Synthetic_population/microdata_trips.csv"
+    output_file = "/Result/ignor/Model_XgBoost/Synthetic_population/Mapping.csv"
     
     try:
         # Read the input data

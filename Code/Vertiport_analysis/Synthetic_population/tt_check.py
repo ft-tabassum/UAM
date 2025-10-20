@@ -27,7 +27,7 @@ value_counts = Counter(filtered_values)
 count_df = pd.DataFrame(value_counts.items(), columns=["Value", "Count"])
 
 # Step 7: Save the result to a CSV file
-output_file_path = "/Result/check_ignor/Model_XgBoost/Synthetic_population/tt_check.csv"  # Update with the desired output file path
+output_file_path = "/Result/ignor/Model_XgBoost/Synthetic_population/tt_check.csv"  # Update with the desired output file path
 count_df.to_csv(output_file_path, index=False)
 
 # Print a message to confirm the file is saved

@@ -111,7 +111,7 @@ logger.info(f"Training set: {X_train.shape[0]} samples")
 logger.info(f"Validation set: {X_val.shape[0]} samples")
 logger.info(f"Test set: {X_test.shape[0]} samples")
 
-# Define parameter grids for base models (only important parameters)
+# Define parameter grids for base models
 param_grids = {
     'lightgbm': {
         'n_estimators': [80, 100],  # 2 values

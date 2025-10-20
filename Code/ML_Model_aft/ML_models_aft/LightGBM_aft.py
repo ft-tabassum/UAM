@@ -40,7 +40,7 @@ class FeaturePreservingImputer(BaseEstimator, TransformerMixin):
 
 # Load data of UAM survey data
 data = pd.read_csv("/Result/DataPreprocessing_aft/aft_normalized.csv")
-#"D:/Files_D/Study/Thesis/new_data/aft_2ndversion_lighter.csv"
+
 
 # Define features and target
 X = data.drop(columns=['CHOICE'])

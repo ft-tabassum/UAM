@@ -88,9 +88,9 @@ class SimpleNeuralNetwork(nn.Module, BaseEstimator, ClassifierMixin):
         self.train()
         best_loss = float('inf')
         patience_counter = 0
-        patience = 5  # Restored to reasonable patience
+        patience = 5
         
-        for epoch in range(25):  # Increased to 25 epochs for better training
+        for epoch in range(25):
             epoch_loss = 0
             for batch_X, batch_y in dataloader:
                 batch_X, batch_y = batch_X.to(self.device), batch_y.to(self.device)
@@ -162,11 +162,11 @@ n_classes = len(classes)
 
 # Hyperparameter grid - full version for best accuracy
 param_grid = {
-    'hidden_sizes': [[128, 64], [256, 128]],  # All options for best performance
-    'learning_rate': [0.0005, 0.001],                     # All learning rates
-    'dropout_rate': [0.3, 0.4],                           # All dropout rates
-    'batch_size': [32, 64],                               # Restored to original batch sizes
-    'weight_decay': [0.0005, 0.001]                       # All weight decay values
+    'hidden_sizes': [[128, 64], [256, 128]],
+    'learning_rate': [0.0005, 0.001],
+    'dropout_rate': [0.3, 0.4],
+    'batch_size': [32, 64],
+    'weight_decay': [0.0005, 0.001]
 }
 
 # Split data into train+val and test

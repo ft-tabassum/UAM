@@ -235,7 +235,7 @@ def create_visualizations(data):
     sns.set_palette("husl")
     
     # Create output directory
-    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2")
+    output_dir = Path("../DATA_ANALYSIS/Main_Data_Analysis_2")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Target variable distribution
@@ -438,7 +438,7 @@ def save_analysis_results(data, file_path):
     """Save analysis results to files"""
     
     # Create output directory
-    output_dir = Path("../../../Result/DATA_ANALYSIS/Main_Data_Analysis_2")
+    output_dir = Path("../DATA_ANALYSIS/Main_Data_Analysis_2")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Save data summary

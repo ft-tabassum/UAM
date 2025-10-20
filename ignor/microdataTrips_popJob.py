@@ -18,11 +18,11 @@ def merge_trips_with_population_jobs():
     """
     
     # Define file paths
-    trip_file_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/microdata_trips_purpose.csv"
-    popjob_file_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/population_jobLocation.csv"
+    trip_file_path = "/Result/Vertiport_analysis/Synthetic_population/microdata_trips_purpose.csv"
+    popjob_file_path = "/Result/Vertiport_analysis/Synthetic_population/population_jobLocation.csv"
     
     # Output file path
-    output_file_path = "D:/Thesis/UAM/Result/Vertiport_analysis/Synthetic_population/microdataTrips_popJob.csv"
+    output_file_path = "/Result/Vertiport_analysis/Synthetic_population/microdataTrips_popJob.csv"
     
     print("Starting trip and population-job data merging process...")
     

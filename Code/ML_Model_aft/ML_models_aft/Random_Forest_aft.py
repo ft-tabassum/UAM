@@ -43,7 +43,7 @@ param_grid = {
     'classifier__min_samples_split': [2, 5, 10],  # Less restrictive
     'classifier__min_samples_leaf': [1, 2, 4],  # Less restrictive
     'classifier__max_features': ['sqrt', 'log2', 0.5],  # More feature options
-    'classifier__class_weight': ['balanced']  # Reduced balancing - less focus on minority class
+    'classifier__class_weight': ['balanced']
 }
 
 
@@ -113,7 +113,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
             class_acc[cls] = np.nan
     fold_metrics['class_accuracies'].append(class_acc)
     
-    # Append the probabilities to the list (add fold number as a column)
+    # Append the probabilities to the list
     fold_probs_df = pd.DataFrame(val_proba, columns=classes)
     fold_probs_df['fold'] = fold  # Add fold number to distinguish rows
     all_fold_probs.append(fold_probs_df)

@@ -4,7 +4,7 @@ import numpy as np
 
 # Load the data
 data = pd.read_csv(
-    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/Weighting/5km_radius_LightGBM_synthetic_population_predictions_weights.csv')
+    'D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/cost_LightGBM_synthetic_population_predictions_weights.csv')
 
 print("=" * 60)
 print("MODE SHARE ANALYSIS")
@@ -72,7 +72,7 @@ for bar in bars:
 
 plt.grid(True, alpha=0.3, axis='y')
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_bar_chart.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/11',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -102,7 +102,7 @@ mode_share_results = pd.DataFrame({
     'Count': mode_counts.values,
     'Percentage': mode_shares.values
 })
-mode_share_results.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_results.csv',
+mode_share_results.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/12',
                          index=False)
 
 print("\n" + "=" * 60)
@@ -143,7 +143,7 @@ for category in distance_categories:
         for mode, share in category_mode_shares.items():
             print(f"  {mode}: {share:.1f}% ({category_mode_counts[mode]:,} trips)")
 
-# Focus on longer distances (50km+)
+#  longer distances (50km+)
 print("\n" + "=" * 60)
 print("FOCUS: LONGER DISTANCES (50km+)")
 print("=" * 60)
@@ -220,7 +220,7 @@ if len(long_distance_data) > 0:
     ax2.set_title('Mode Share for Long Distance Trips (50km+)', fontsize=14, fontweight='bold')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/13',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -268,7 +268,7 @@ ax.legend()
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_trips_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/1',
             dpi=300, bbox_inches='tight', facecolor='white')
 plt.close()
 
@@ -327,7 +327,7 @@ ax.set_ylim(0, 100)
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_stacked_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_stacked_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 print("Created: mode_share_stacked_by_distance.png")
 plt.close()
@@ -369,7 +369,7 @@ ax.grid(True, alpha=0.3, linestyle='--')
 ax.set_ylim(0, max([max(mode_shares_by_dist[i]) for i in range(len(modes))]) * 1.2)
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_trend_line_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_trend_line_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 print("Created: mode_share_trend_line_by_distance.png")
 plt.close()
@@ -408,7 +408,7 @@ ax.legend(loc='lower right', fontsize=12, framealpha=0.9)
 ax.grid(True, alpha=0.3, axis='x')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_horizontal_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_horizontal_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 print("Created: mode_share_horizontal_by_distance.png")
 plt.close()
@@ -455,7 +455,7 @@ ax.set_title('Mode Share Intensity Heatmap by Distance\n(Darker = Higher Share)'
             fontsize=15, fontweight='bold', pad=20)
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_heatmap_by_distance.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_heatmap_by_distance.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 print("Created: mode_share_heatmap_by_distance.png")
 plt.close()
@@ -499,7 +499,7 @@ ax.legend(fontsize=16, loc='upper right', framealpha=0.9)
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_focus_20_150km.png',
+plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_focus_20_150km.png',
             dpi=300, bbox_inches='tight', facecolor='white')
 print("Created: mode_share_focus_20_150km.png")
 plt.close()
@@ -517,7 +517,7 @@ for mode in modes:
             shares.append("0.00%")
     mode_share_table[mode] = shares
 
-mode_share_table.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/modeShare/mode_share_by_distance_table.csv',
+mode_share_table.to_csv('D:/Thesis/UAM/Result/Vertiport_analysis/Probability_clustering/pricetesting_weighting_clustering/scenario_base0_perkm3/mode_share_by_distance_table.csv',
                        index=False)
 print("Created: mode_share_by_distance_table.csv")
 

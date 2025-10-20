@@ -36,7 +36,7 @@ data = {
 df = pd.DataFrame(data)
 
 # Create output directory path
-output_dir = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
+output_dir = '/Result/Vertiport_analysis/Output_analyze/graphs_visualize/'
 
 print("=" * 80)
 print("FEATURE IMPORTANCE COMPARISON: XGBoost vs LGBM vs Random Forest")

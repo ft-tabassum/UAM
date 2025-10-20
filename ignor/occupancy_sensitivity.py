@@ -229,7 +229,7 @@ plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/congestion/p
 plt.show()
 
 # Save summary report
-summary_file = 'D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/congestion/occupancy_sensitivity_summary.txt'
+summary_file = '/Result/Vertiport_analysis/Output_analyze/congestion/occupancy_sensitivity_summary.txt'
 
 with open(summary_file, 'w') as f:
     f.write("UAM CONGESTION ANALYSIS - SIMPLE OCCUPANCY SENSITIVITY SUMMARY\n")

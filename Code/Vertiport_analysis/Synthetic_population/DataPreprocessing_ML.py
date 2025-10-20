@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 
 
 # Load data
-input_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/Mapping.csv"
+input_file = "/Result/ignor/Model_XgBoost/Synthetic_population/Mapping.csv"
 data = pd.read_csv(input_file, low_memory=False)
 
 print("=== SYNTHETIC POPULATION DATA PROCESSING SCRIPT ===")
@@ -272,7 +272,7 @@ if 'distance' in X_processed_df.columns:
     X_processed_df = X_processed_df[cols]
 
 # Step 10: Save the processed data
-output_file = "/Result/check_ignor/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv"
+output_file = "/Result/ignor/Model_XgBoost/Synthetic_population/DataPreprocessing_ML.csv"
 X_processed_df.to_csv(output_file, index=False)
 
 # Step 9: Print comprehensive summary
