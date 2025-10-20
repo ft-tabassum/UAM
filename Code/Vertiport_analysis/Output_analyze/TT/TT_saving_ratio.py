@@ -214,33 +214,32 @@ if len(positive_trip_length_analysis) > 0 and len(
     tt_analysis = tt_analysis[tt_analysis['trip_id'] > 0]
     
     if len(tt_analysis) > 0:
-    plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(12, 8))
         x_pos = range(len(tt_analysis))
         
         # Remove 'km' from x-axis labels
         x_labels_tt = [str(label).replace('km', '') for label in tt_analysis.index]
         
         uam_bars = plt.bar([x - 0.2 for x in x_pos], tt_analysis['travel_time_Uam'],
-            width=0.4, label='UAM', color='blue', alpha=0.7)
+                            width=0.4, label='UAM', color='blue', alpha=0.7)
         auto_bars = plt.bar([x + 0.2 for x in x_pos], tt_analysis['autos_TT'],
-            width=0.4, label='Auto', color='orange', alpha=0.7)
-    
-    # Add value labels on bars
-        for i, (uam_val, auto_val) in enumerate(
-                zip(tt_analysis['travel_time_Uam'], tt_analysis['autos_TT'])):
-        plt.text(i - 0.2, uam_val + 0.5, f'{uam_val:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
-        plt.text(i + 0.2, auto_val + 0.5, f'{auto_val:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
-    
+                             width=0.4, label='Auto', color='orange', alpha=0.7)
+        
+        # Add value labels on bars
+        for i, (uam_val, auto_val) in enumerate(zip(tt_analysis['travel_time_Uam'], tt_analysis['autos_TT'])):
+            plt.text(i - 0.2, uam_val + 0.5, f'{uam_val:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+            plt.text(i + 0.2, auto_val + 0.5, f'{auto_val:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+        
         # No title
         plt.xlabel('Distance (km)', fontsize=12, fontweight='bold')
         plt.ylabel('Travel time (min)', fontsize=12, fontweight='bold')
         plt.xticks(x_pos, x_labels_tt, rotation=45, ha='right')
         plt.legend(fontsize=11)
-    plt.grid(True, alpha=0.3)
+        plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/Travel_Time/travel_time_by_trip_length.png',
                     dpi=300, bbox_inches='tight')
-    plt.show()
+        plt.show()
     
     # Visualization 3: RTTs and Weighted RTTs with Trip Count (raw values, not percentage)
     # Calculate total RTTs and Weighted RTTs by trip length
@@ -296,7 +295,7 @@ if len(positive_trip_length_analysis) > 0 and len(
         plt.tight_layout()
         plt.savefig('D:/Thesis/UAM/Result/Vertiport_analysis/Output_analyze/Travel_Time/rtts_weighted_with_trip_count.png',
                     dpi=300, bbox_inches='tight')
-    plt.show()
+        plt.show()
     
     # Save trip length analysis for positive RTTs
     positive_trip_length_analysis.to_csv(

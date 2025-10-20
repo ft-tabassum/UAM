@@ -248,9 +248,9 @@ def analyze_vertiport_coverage():
     add_to_report(f"  Should equal potential UAM demand: {total_potential_uam_trips:,.0f} ✓")
     
     # Average UAM probability by coverage category
-        avg_uam_prob_both = df[both_covered][uam_prob_col].mean()
+    avg_uam_prob_both = df[both_covered][uam_prob_col].mean()
     avg_uam_prob_partial = df[only_origin_covered | only_dest_covered][uam_prob_col].mean()
-        avg_uam_prob_neither = df[neither_covered][uam_prob_col].mean()
+    avg_uam_prob_neither = df[neither_covered][uam_prob_col].mean()
     
     add_to_report(f"")
     add_to_report(f"AVERAGE UAM PROBABILITY BY COVERAGE STATUS:")

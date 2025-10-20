@@ -483,7 +483,7 @@ for iteration in range(max_iter):
         proba_updated = predict_mode_probabilities(synthetic_population_with_uam_updated, final_model, feature_cols)
 
 
-        # Apply temperature scaling to reduce model overconfidence
+        # temperature scaling to reduce model overconfidence
         def temperature_scaling(probabilities, temperature=2.0):
             """Apply temperature scaling to reduce overconfidence"""
             # Convert probabilities to logits
@@ -492,8 +492,8 @@ for iteration in range(max_iter):
             # Scale by temperature
             scaled_logits = logits / temperature
 
-            # Convert back to probabilities and renormalize
-            # (model.predict_proba already normalizes, but we need to renormalize after temperature scaling)
+            # Convert  to probabilities with normalization
+
             scaled_probs = np.exp(scaled_logits)
             scaled_probs = scaled_probs / scaled_probs.sum(axis=1, keepdims=True)
 
