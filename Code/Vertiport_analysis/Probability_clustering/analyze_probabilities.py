@@ -1,3 +1,8 @@
+"""
+Explore the distribution of predicted UAM probabilities.
+Summarises the predicted UAM choice probabilities for the synthetic population and shows how they would be distributed as 
+clustering weights (for origins and destinations), as a check before weighted clustering.
+"""
 import pandas as pd
 import numpy as np
 
