@@ -1,3 +1,7 @@
+"""
+Support Vector Machine model for travel mode choice prediction.
+Predicts the choice between car, public transport and UAM from the normalised survey data using an SVM with RBF kernel and probability estimates.
+"""
 import pandas as pd
 import numpy as np
 import logging
