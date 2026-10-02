@@ -1,7 +1,7 @@
 """ 
 Combine synthetic population and trip data into one dataset.
 Merges household, person and trip data from the synthetic population, excluding walking and cycling trips. Calculates household
-composition (number of adults and children) and travel costs for carand public transport based on distance.
+composition (number of adults and children) and travel costs for car and public transport based on distance.
 """
 import pandas as pd
 import numpy as np
