@@ -1,3 +1,14 @@
+"""
+Normalise numerical features of the processed survey data.
+
+Applies Min-Max scaling to the travel cost, travel time and income
+features of the three alternatives (car, public transport, AFT).
+Ordinal, binary and one-hot encoded features are kept unchanged.
+
+Input: processed survey data from DataProcessing_aft.py.
+Output: normalised dataset (aft_normalized.csv), used by all models
+in ML_models_aft/.
+"""
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
