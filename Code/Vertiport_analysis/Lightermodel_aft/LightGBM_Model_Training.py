@@ -1,3 +1,12 @@
+"""
+Re-train LightGBM on the reduced feature set.
+Trains the LightGBM model on the survey features that are also
+available in the synthetic population. Hyperparameters are tuned with
+GridSearchCV in each fold of a 10-fold stratified cross-validation and
+the final model is evaluated on a stratified test set.
+
+Output: trained model used for demand prediction in Probability_clustering/Weighted_clustering.py.
+"""
 import pandas as pd
 import numpy as np
 import logging
