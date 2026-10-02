@@ -1,3 +1,8 @@
+"""
+Check unusually long public transport travel times.
+Identifies trips in the raw trip data with bus, train or tram/metro travel times above 100 minutes and counts how often each value occurs.
+Used as a data quality check before further processing.
+"""
 import pandas as pd
 from collections import Counter
 
