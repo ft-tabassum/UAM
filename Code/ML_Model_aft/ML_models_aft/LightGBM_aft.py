@@ -1,3 +1,16 @@
+"""
+LightGBM model for travel mode choice prediction.
+Predicts the choice between car, public transport and UAM from the
+normalised survey data, using balanced class weights to account for
+class imbalance. The data are split into a stratified training set (80%)
+and test set (20%). Within the training set, hyperparameters are tuned
+with GridSearchCV (weighted F1-score) in each fold of a 10-fold
+stratified cross-validation.
+
+Outputs: predicted probabilities per fold and for the test set,
+evaluation metrics (accuracy, precision, recall, F1-score, AUROC and
+per-class accuracy), feature importance and the confusion matrix.
+"""
 import pandas as pd
 import numpy as np
 import logging
