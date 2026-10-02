@@ -1,3 +1,8 @@
+"""
+Analyse demand coverage of the vertiport network.
+Treats each trip as one demand point and checks whether its origin, its destination or both lie within the 5 km catchment 
+area of the 74 vertiports. 
+"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
