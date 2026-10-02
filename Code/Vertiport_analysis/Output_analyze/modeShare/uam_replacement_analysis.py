@@ -1,3 +1,8 @@
+"""
+Analyse which modes UAM trips replace.
+For trips where UAM is the chosen mode, identifies whether UAM replaces a car or public transport trip, and how 
+this pattern changes with trip distance.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
