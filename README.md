@@ -77,7 +77,7 @@ Run the scripts in this order:
 
 ## Main libraries
 
-pandas, NumPy, SciPy, scikit-learn, LightGBM, XGBoost, PyTorch, matplotlib, seaborn, joblib
+pandas, NumPy, SciPy, scikit-learn, LightGBM, XGBoost, matplotlib, seaborn, joblib
 
 ## Data
 
