@@ -1,3 +1,13 @@
+"""
+Locate vertiports with demand-weighted K-means++ clustering.
+Iterative workflow:
+1. Place 74 initial vertiports with K-means++ on trip origins and destinations from the synthetic population.
+2. For each trip, calculate UAM travel time and cost based on access to the nearest vertiports within the catchment area.
+3. Predict mode choice probabilities with the trained LightGBM model.
+4. Re-run K-means with the predicted UAM probabilities as weights.
+5. Repeat until the vertiport locations are stable. Convergence is checked by matching old and new vertiport locations with the
+   Hungarian algorithm (scipy linear_sum_assignment).
+"""
 import pandas as pd
 import numpy as np
 import logging
