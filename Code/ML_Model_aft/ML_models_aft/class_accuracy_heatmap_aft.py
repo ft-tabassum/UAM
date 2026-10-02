@@ -1,3 +1,8 @@
+"""
+Visualise class-wise accuracy of the six mode choice models.
+Creates a heatmap and box plots comparing the test set accuracy of each
+model for the three modes (car, public transport, flying taxi).
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
