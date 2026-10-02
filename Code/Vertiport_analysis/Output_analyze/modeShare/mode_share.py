@@ -1,3 +1,8 @@
+"""
+Calculate mode shares from predicted probabilities.
+Assigns each trip to the mode with the highest predicted probability (car, public transport or UAM), then 
+calculates mode shares overall and by distance.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
