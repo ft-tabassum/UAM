@@ -1,3 +1,6 @@
+"""
+Combine synthetic population and trip data, including trip purpose. Same workflow as microdata_trips.py but includes the trip purpose for each trip.
+"""
 import pandas as pd
 import numpy as np
 
