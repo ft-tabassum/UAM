@@ -1,6 +1,6 @@
 """
 LightGBM model for travel mode choice prediction.
-Predicts the choice between car, public transport and UAM from thenormalised survey data, using balanced class weights to account for class imbalance. 
+Predicts the choice between car, public transport and UAM from the normalised survey data, using balanced class weights to account for class imbalance. 
 """
 import pandas as pd
 import numpy as np
