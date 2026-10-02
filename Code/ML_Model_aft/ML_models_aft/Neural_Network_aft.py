@@ -1,3 +1,17 @@
+"""
+Feedforward neural network for travel mode choice prediction.
+Implements a feedforward neural network in PyTorch, wrapped as a
+scikit-learn compatible classifier so it can be tuned with GridSearchCV.
+The network uses hidden layers with ReLU activation, batch normalisation
+and dropout. Hyperparameters (hidden layer sizes, learning rate, dropout
+rate, batch size, weight decay) are tuned in each fold of a 10-fold
+stratified cross-validation on the training set (80%), and the final
+model is evaluated on the test set (20%).
+
+Outputs: predicted probabilities per fold and for the test set,
+evaluation metrics (accuracy, precision, recall, F1-score, AUROC and
+per-class accuracy) and the confusion matrix.
+"""
 import pandas as pd
 import numpy as np
 import logging
