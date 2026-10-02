@@ -1,3 +1,8 @@
+"""
+Stacking ensemble model for travel mode choice prediction.
+Combines LightGBM, Random Forest and XGBoost as base models with a logistic regression meta-learner. The data are split into training, validation and test sets. Base models are tuned with GridSearchCV in a
+10-fold stratified cross-validation, and their out-of-fold class probabilities are used as input features for the meta-learner.
+"""
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
