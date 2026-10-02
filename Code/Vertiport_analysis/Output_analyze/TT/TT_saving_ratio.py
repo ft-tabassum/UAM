@@ -1,3 +1,8 @@
+"""
+Calculate travel time savings ratios for UAM trips.
+Computes the travel time savings ratio (rtts) of UAM compared with car travel time, and weights it by
+the predicted UAM choice probability. Only trips where UAM is faster are included.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
