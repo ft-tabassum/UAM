@@ -1,3 +1,8 @@
+"""
+Prepare synthetic population features for model prediction.
+Selects the features required by the trained LightGBM model fills missing values and one-hot encodes nominal variables. Numerical values are kept unscaled.
+Output used in Probability_clustering/Weighted_clustering.py.
+"""
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
