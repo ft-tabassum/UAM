@@ -1,3 +1,8 @@
+"""
+Map synthetic population attributes to survey categories.
+Converts attributes of the synthetic population into the categories used in the stated preference survey, so that the trained model can be applied. This includes adjusting income to present value and grouping
+it into monthly income classes, binning age, and mapping gender, occupation and driving licence codes.
+"""
 import pandas as pd
 import numpy as np
 
