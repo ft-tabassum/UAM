@@ -1,3 +1,7 @@
+"""
+Random Forest model for travel mode choice prediction.
+Predicts the choice between car, public transport and UAM from the normalised survey data.
+"""
 import pandas as pd
 import numpy as np
 import logging
