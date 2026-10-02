@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/32967598/README.md)
 # Demand-driven Vertiport Siting by Machine Learning for UAM Network Expansion
 
 Code for my master's thesis at the Chair of Transportation Systems Engineering, Technical University of Munich (2025).
