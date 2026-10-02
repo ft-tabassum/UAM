@@ -1,3 +1,8 @@
+"""
+Analyse UAM travel time savings by distance category.
+Calculates travel time savings of UAM compared with car and public transport and summarises them 
+overall and for distance categories.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
