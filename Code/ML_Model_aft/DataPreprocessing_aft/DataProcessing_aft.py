@@ -1,8 +1,9 @@
 """
-Normalise numerical features of the processed survey data.
-Applies Min-Max scaling to the travel cost, travel time and income
-features of the three alternatives (car, public transport, AFT).
-Ordinal, binary and one-hot encoded features are kept unchanged.
+Clean and encode the stated preference survey data.
+Loads the raw stated preference survey on autonomous flying taxis (AFT), removes unused columns and maps the chosen mode (CHOICE) to three classes:
+0 = car, 1 = public transport, 2 = autonomous flying taxi (UAM). Missing values are filled by feature type, and nominal variables are
+one-hot encoded.
+Output: survey dataset, used as input for DataNormalization_aft.py.
 """
 import pandas as pd
 import numpy as np
