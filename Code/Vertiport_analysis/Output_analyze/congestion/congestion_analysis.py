@@ -1,3 +1,8 @@
+"""
+Estimate the effect of UAM on road congestion.
+Uses the predicted mode shares and average vehicle occupancy rates (car and public transport) to estimate the change 
+in vehicle-kilometres travelled (VKT) when trips shift to UAM, taking access and egress trips to vertiports into account.
+"""
 import pandas as pd
 import numpy as np
 
