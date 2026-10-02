@@ -1,6 +1,5 @@
 """
 Normalise numerical features of the processed survey data.
-
 Applies Min-Max scaling to the travel cost, travel time and income
 features of the three alternatives (car, public transport, AFT).
 Ordinal, binary and one-hot encoded features are kept unchanged.
