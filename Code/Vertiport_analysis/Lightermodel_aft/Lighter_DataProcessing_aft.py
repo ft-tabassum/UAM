@@ -1,3 +1,13 @@
+"""
+Prepare a reduced survey dataset for demand prediction.
+Processes a version of the survey data that contains only features
+also available in the synthetic population, so that the trained model
+can later be applied to it. Unused columns are removed, the chosen mode
+is mapped to three classes, missing values are filled (median or mode)
+and categorical variables are one-hot encoded.
+
+Output: processed reduced dataset, used by LightGBM_Model_Training.py.
+"""
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
